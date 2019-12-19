@@ -6,12 +6,12 @@ addons:
         packages:
         - apache2
         - postfix
-        - libapache2-mod-fastcgi
         - libappindicator1
         - fonts-liberation
 
 services:
     - mysql
+    - xvfb
 
 cache:
   yarn: true
@@ -38,9 +38,9 @@ before_install:
   - sudo chmod +x /usr/bin/chromedriver
   - chromedriver --version
   # Setup display for Selenium
-  - sh -e /etc/init.d/xvfb start
-  - export DISPLAY=:99.0
-  - sleep 10
+   #- sh -e /etc/init.d/xvfb start
+   #- export DISPLAY=:99.0
+   #- sleep 10
   # Get Selenium
   - wget http://selenium-release.storage.googleapis.com/3.141/selenium-server-standalone-3.141.59.jar
   # Check java
