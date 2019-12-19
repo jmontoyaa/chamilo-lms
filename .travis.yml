@@ -5,6 +5,7 @@ addons:
     apt:
         packages:
         - apache2
+        - php
         - postfix
         - libappindicator1
         - fonts-liberation
