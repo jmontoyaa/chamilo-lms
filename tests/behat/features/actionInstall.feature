@@ -1,5 +1,5 @@
 @administration
-Feature: Install portal
+Feature: Install chamilo
 
   Scenario: See the company reports link on the admin page
     Given I am on "/main/install"
