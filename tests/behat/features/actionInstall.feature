@@ -16,6 +16,7 @@ Feature: Install portal
       | dbPassForm ||
       | dbNameForm | master |
     Then I press "step3"
+    Then print last response
     Then I should see "Database driver: pdo_mysql"
     Then print last response
     Then I press "step4"
