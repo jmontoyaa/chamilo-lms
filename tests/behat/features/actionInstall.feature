@@ -27,5 +27,6 @@ Feature: Install portal
     Then I press "button_step6"
     Then wait the page to be loaded when ready
     Then wait the page to be loaded when ready
+    Then show last response
     Then I should see "Step7"
 
