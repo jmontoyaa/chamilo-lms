@@ -77,14 +77,14 @@ install:
     - ls -la public/build
 
 script:
-  - composer analyse
   - cd tests/behat
   #  - travis_wait 45 ../../vendor/behat/behat/bin/behat -v
-  - ../../vendor/behat/behat/bin/behat features/actionInstall.feature
+  - curl localhost
+  - ../../vendor/behat/behat/bin/behat -v features/actionInstall.feature
   - sudo cat /var/log/apache2/error.log
-  - ../../vendor/behat/behat/bin/behat features/adminFillUsers.feature
-  - ../../vendor/behat/behat/bin/behat features/course.feature
-  - ../../vendor/behat/behat/bin/behat features/createUser.feature
+  - ../../vendor/behat/behat/bin/behat -v features/adminFillUsers.feature
+  - ../../vendor/behat/behat/bin/behat -v features/course.feature
+  - ../../vendor/behat/behat/bin/behat -v features/createUser.feature
   - sudo apachectl -S
 
 after_failure:
