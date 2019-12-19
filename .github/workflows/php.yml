@@ -6,10 +6,21 @@ jobs:
   build:
         
     runs-on: ${{ matrix.operating-system }}
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: false
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: master
+        ports:
+          - 3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     strategy:      
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.2', '7.3', '7.4']
+        php-versions: ['7.2']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}    
 
     steps:
