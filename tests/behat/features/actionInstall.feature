@@ -13,10 +13,11 @@ Feature: Install portal
     Then I should see "Step4 – Database settings"
     Then I fill in the following:
       | dbUsernameForm | root |
-      | dbPassForm | |
+      | dbPassForm ||
       | dbNameForm | master |
     Then I press "step3"
     Then I should see "Database driver: pdo_mysql"
+    Then print last response
     Then I press "step4"
     Then I should see "Step5 – ConfigurationSettings"
     Then I fill in the following:
@@ -26,8 +27,5 @@ Feature: Install portal
     Then wait the page to be loaded when ready
     Then I press "button_step6"
     Then wait the page to be loaded when ready
-    Then wait the page to be loaded when ready
-    Then print last response
-    And print current URL
     Then I should see "Step7"
 
