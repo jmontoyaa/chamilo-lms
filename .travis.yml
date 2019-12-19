@@ -9,7 +9,6 @@ addons:
         - libapache2-mod-fastcgi
         - libappindicator1
         - fonts-liberation
-        - oracle-java8-installer
 
 services:
     - mysql
