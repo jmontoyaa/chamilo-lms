@@ -32,7 +32,7 @@ jobs:
       uses: shivammathur/setup-php@1.6.1
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: mbstring, xml, ctype, iconv, mysql, gd, soap, intl
+        extensions: mbstring, xml, ctype, iconv, mysql, gd, soap, intl, zip, bcmath
     
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress --no-suggest
