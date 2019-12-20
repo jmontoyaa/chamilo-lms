@@ -25,12 +25,15 @@ matrix:
   fast_finish: true
   include:
     - php: 7.2  
+      before_install:
+      - php -i 
       script:
-      - sudo apt install php php-mysql
-    - php: 7.3        
-      script:
-      - sudo apt install php php-mysql
-
+      - php -i 
+    - php: 7.3    
+      before_install:
+      - php -i 
+      script:      
+      - php -i 
 env:
   global:
     - VHOST_URL=localhost
