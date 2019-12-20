@@ -84,7 +84,6 @@ before_install:
     # Starting Apache
   - sudo service apache2 restart
   - sudo cat /etc/hosts
-  - sudo systemctl status php-fpm
   - curl http://localhost/php.php 
 
 install:
