@@ -33,7 +33,7 @@ env:
     - CHAMILO_VERSION=master
 
 before_install:
-  - CURL php.php   
+  - curl http://localhost/php.php 
   - mysqld --version
   - apache2 -v
   - php -m
@@ -57,7 +57,7 @@ before_install:
   - bash tests/travis/setup-php-fpm.sh
   - bash tests/travis/setup-apache.sh
   - sudo cat /etc/hosts
-  - CURL php.php  
+  - curl http://localhost/php.php 
 
 install:
     - phpenv config-rm xdebug.ini || return 0
