@@ -57,7 +57,7 @@ before_install:
   # Use default config
   - sudo apt-get update
   - sudo apt-get install php
-  - sudo a2enmod rewrite actions fastcgi alias
+  #- sudo a2enmod rewrite actions fastcgi alias
   
   # Apache & php-fpm configuration
   - bash tests/travis/setup-php-fpm.sh  
