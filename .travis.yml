@@ -2,7 +2,7 @@ dist: bionic
 language: php
 php:
     7.2
-    7.3
+#    7.3
     
 addons:
     apt:
@@ -11,6 +11,7 @@ addons:
         - postfix
         - libappindicator1
         - fonts-liberation
+        
 
 services:
     - mysql
@@ -25,7 +26,7 @@ matrix:
   fast_finish: false
   include:
     - php: 7.2
-    - php: 7.3    
+    #- php: 7.3    
 
 env:
   global:
@@ -53,33 +54,14 @@ before_install:
   - java -version
   - java -jar selenium-server-standalone-3.141.59.jar -log selenium.log  > /dev/null &
   
-  # Apache & php-fpm configuration
-  #- bash tests/travis/setup-php-fpm.sh
-  
-  #- bash tests/travis/setup-apache.sh
-  
-  #- sudo a2enmod rewrite actions fastcgi alias
-
-    # Use default config
+  # Use default config
   - sudo apt-get update
-  - sudo apt-get install apache2 libapache2-mod-fcgid
-  # enable php-fpm
-  - sudo cp ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf.default ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf
-  - sudo a2enmod rewrite actions fcgid alias proxy_fcgi
-  - echo "cgi.fix_pathinfo = 1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
-  - echo "memory_limit = 8G" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
-  - cat  ~/.phpenv/versions/$(phpenv version-name)/etc/php-fpm.conf
+  - sudo apt-get install php
+  - sudo a2enmod rewrite actions fastcgi alias
   
-  - sudo sed -i -e "s,www-data,travis,g" /etc/apache2/envvars
-  #- sudo chown -R travis:travis /var/lib/apache2/fastcgi
-  - ~/.phpenv/versions/$(phpenv version-name)/sbin/php-fpm
-  # configure apache virtual hosts
-  - sudo cp -f tests/travis/travis-apache /etc/apache2/sites-available/000-default.conf
-  - sudo sed -e "s?%TRAVIS_BUILD_DIR%?$(pwd)?g" --in-place /etc/apache2/sites-available/000-default.conf
-      # Starting Apache
-  - sudo service apache2 restart
-  
- # - sudo service apache2 restart
+  # Apache & php-fpm configuration
+  - bash tests/travis/setup-php-fpm.sh  
+  - bash tests/travis/setup-apache.sh
   
     # Starting Apache
   - sudo service apache2 restart
