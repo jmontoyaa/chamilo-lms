@@ -76,11 +76,14 @@ before_install:
   - sudo cp -f tests/travis/travis-apache /etc/apache2/sites-available/000-default.conf
   - sudo sed -e "s?%TRAVIS_BUILD_DIR%?$(pwd)?g" --in-place /etc/apache2/sites-available/000-default.conf
   
+  - sudo systemctl status php-fpm
+  
  # - sudo service apache2 restart
   
     # Starting Apache
   - sudo service apache2 restart
   - sudo cat /etc/hosts
+   - sudo systemctl status php-fpm
   - curl http://localhost/php.php 
 
 install:
