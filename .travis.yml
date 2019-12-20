@@ -54,7 +54,8 @@ before_install:
   - java -jar selenium-server-standalone-3.141.59.jar -log selenium.log  > /dev/null &
   
   # Apache & php-fpm configuration
-  - bash tests/travis/setup-php-fpm.sh
+  #- bash tests/travis/setup-php-fpm.sh
+  
   - bash tests/travis/setup-apache.sh
   - sudo cat /etc/hosts
   - curl http://localhost/php.php 
