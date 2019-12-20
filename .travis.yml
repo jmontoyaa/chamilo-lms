@@ -26,10 +26,10 @@ matrix:
   include:
     - php: 7.2  
       script:
-      - apt install php php-mysql
+      - sudo apt install php php-mysql
     - php: 7.3        
       script:
-      - apt install php php-mysql
+      - sudo apt install php php-mysql
 
 env:
   global:
