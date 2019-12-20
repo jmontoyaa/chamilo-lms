@@ -22,24 +22,22 @@ cache:
     - $HOME/.composer/cache/files
 
 matrix:
-  fast_finish: true
+  fast_finish: false
   include:
-    - php: 7.2  
-      before_install:
-      - php -i 
-      script:
-      - php -i 
+    - php: 7.2
     - php: 7.3    
-      before_install:
-      - php -i 
-      script:      
-      - php -i 
+
 env:
   global:
     - VHOST_URL=localhost
     - CHAMILO_VERSION=master
 
 before_install:
+  - php -i   
+  - mysqld --version
+  - apache2 -v
+  - php -m
+  - php -ini | grep memory_limit  
   # Fix travis error https://github.com/travis-ci/travis-ci/issues/8607
   - sudo rm -vf /etc/apt/sources.list.d/*riak*
   - google-chrome-stable --headless --disable-gpu --remote-debugging-port=9222 http://localhost &
@@ -61,12 +59,8 @@ before_install:
   # Apache & php-fpm configuration
   - bash tests/travis/setup-php-fpm.sh
   - bash tests/travis/setup-apache.sh
-
-  - mysqld --version
-  - apache2 -v
-  - php -m
-  - php -ini | grep memory_limit
   - sudo cat /etc/hosts
+  - php -i 
 
 install:
     - phpenv config-rm xdebug.ini || return 0
@@ -87,6 +81,7 @@ install:
     - ls -la public/build
 
 script:
+  - php -i 
   - cd tests/behat
   #  - travis_wait 45 ../../vendor/behat/behat/bin/behat -v
   - ../../vendor/behat/behat/bin/behat -v features/actionInstall.feature
