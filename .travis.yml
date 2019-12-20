@@ -56,7 +56,7 @@ before_install:
   
   # Use default config
   - sudo apt-get update
-  - sudo apt-get install php
+  - sudo apt-get install php php-mysql
   #- sudo a2enmod rewrite actions fastcgi alias
   
   # Apache & php-fpm configuration
