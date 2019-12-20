@@ -33,7 +33,7 @@ env:
     - CHAMILO_VERSION=master
 
 before_install:
-  - php -i   
+  - CURL php.php   
   - mysqld --version
   - apache2 -v
   - php -m
@@ -46,10 +46,7 @@ before_install:
   - sudo mv chromedriver /usr/bin
   - sudo chmod +x /usr/bin/chromedriver
   - chromedriver --version
-  # Setup display for Selenium
-   #- sh -e /etc/init.d/xvfb start
-   #- export DISPLAY=:99.0
-   #- sleep 10
+
   # Get Selenium
   - wget http://selenium-release.storage.googleapis.com/3.141/selenium-server-standalone-3.141.59.jar
   # Check java
@@ -60,7 +57,7 @@ before_install:
   - bash tests/travis/setup-php-fpm.sh
   - bash tests/travis/setup-apache.sh
   - sudo cat /etc/hosts
-  - php -i 
+  - CURL php.php  
 
 install:
     - phpenv config-rm xdebug.ini || return 0
@@ -81,7 +78,6 @@ install:
     - ls -la public/build
 
 script:
-  - php -i 
   - cd tests/behat
   #  - travis_wait 45 ../../vendor/behat/behat/bin/behat -v
   - ../../vendor/behat/behat/bin/behat -v features/actionInstall.feature
