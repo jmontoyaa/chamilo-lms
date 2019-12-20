@@ -79,8 +79,6 @@ before_install:
       # Starting Apache
   - sudo service apache2 restart
   
-  - sudo systemctl status php-fpm
-  
  # - sudo service apache2 restart
   
     # Starting Apache
