@@ -24,8 +24,12 @@ cache:
 matrix:
   fast_finish: true
   include:
-    - php: 7.2       
-    - php: 7.3    
+    - php: 7.2  
+      script:
+      - apt install php php-mysql
+    - php: 7.3        
+      script:
+      - apt install php php-mysql
 
 env:
   global:
