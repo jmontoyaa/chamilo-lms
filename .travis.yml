@@ -8,10 +8,10 @@ addons:
     apt:
         packages:
         - apache2
-        - libapache2-mod-fcgid
+        - php
+        - libapache2-mod-php
         - postfix
-        - libappindicator1
-        - php-fpm
+        - libappindicator1        
         
 services:
     - mysql
@@ -57,7 +57,7 @@ before_install:
   # Use default config
   #- sudo apt-get update
   #- sudo apt-get install php php-mysql php-xml php-gd php-intl php-soap php-bcmath
-  - sudo a2enmod rewrite actions fcgid alias proxy_fcgi setenvif  
+  - sudo a2enmod rewrite actions fcgid alias setenvif  
   
   # Apache & php-fpm configuration
   - bash tests/travis/setup-php-fpm.sh  
