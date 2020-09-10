@@ -11,10 +11,8 @@ addons:
         - libapache2-mod-fcgid
         - postfix
         - libappindicator1
-        - fonts-liberation
         - php-fpm
         
-
 services:
     - mysql
     - xvfb
@@ -59,7 +57,8 @@ before_install:
   # Use default config
   #- sudo apt-get update
   #- sudo apt-get install php php-mysql php-xml php-gd php-intl php-soap php-bcmath
-  - sudo a2enmod rewrite actions fcgid alias proxy_fcgi
+  - sudo a2enmod rewrite actions fcgid alias proxy_fcgi setenvif  
+  - sudo a2enconf php-fpm
   
   # Apache & php-fpm configuration
   - bash tests/travis/setup-php-fpm.sh  
