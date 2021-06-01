@@ -1,14 +1,14 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CLp;
 use ChamiloSession as Session;
 
 /**
  * This script contains the server part of the ajax interaction process. The client part is located
  * in lp_api.php or other api's.
  * This script updated the TOC of the SCORM without updating the SCO's attributes.
- *
- * @package chamilo.learnpath
  *
  * @author Yannick Warnier <ywarnier@beeznest.org>
  */
@@ -90,7 +90,7 @@ function switch_item_toc($lpId, $userId, $viewId, $currentItem, $nextItem)
         if ($debug > 1) {
             error_log('In switch_item_details - generating new item object', 0);
         }
-        $myLPI = new learnpathItem($newItemId, $userId);
+        $myLPI = new learnpathItem($newItemId);
         $myLPI->set_lp_view($viewId);
     }
     /*
@@ -120,7 +120,7 @@ function switch_item_toc($lpId, $userId, $viewId, $currentItem, $nextItem)
     $totalItems = $myLP->getTotalItemsCountWithoutDirs();
     $completedItems = $myLP->get_complete_items_count();
     $progressMode = $myLP->get_progress_bar_mode();
-    $progressMode = ($progressMode == '' ? '%' : $progressMode);
+    $progressMode = ('' == $progressMode ? '%' : $progressMode);
     $nextItemId = $myLP->get_next_item_id();
     $previousItemId = $myLP->get_previous_item_id();
     $itemType = $myLPI->get_type();
@@ -151,8 +151,22 @@ function switch_item_toc($lpId, $userId, $viewId, $currentItem, $nextItem)
 
     $return .= "update_toc('unhighlight','".$currentItem."');".
         "update_toc('highlight','".$newItemId."');".
-        "update_toc('$lessonStatus','".$newItemId."');".
-        "update_progress_bar('$completedItems','$totalItems','$progressMode');";
+        "update_toc('$lessonStatus','".$newItemId."');";
+
+    $progressBarSpecial = false;
+    $scoreAsProgressSetting = api_get_configuration_value('lp_score_as_progress_enable');
+    if (true === $scoreAsProgressSetting) {
+        $scoreAsProgress = $myLP->getUseScoreAsProgress();
+        if ($scoreAsProgress) {
+            $score = $myLPI->get_score();
+            $maxScore = $myLPI->get_max();
+            $return .= "update_progress_bar('$score', '$maxScore', '$progressMode');";
+            $progressBarSpecial = true;
+        }
+    }
+    if (!$progressBarSpecial) {
+        $return .= "update_progress_bar('$completedItems','$totalItems','$progressMode');";
+    }
 
     $myLP->set_error_msg('');
     $myLP->prerequisites_match(); // Check the prerequisites are all complete.

@@ -1,6 +1,6 @@
 # Chamilo 2.x
 
-[![Build Status](https://travis-ci.org/chamilo/chamilo-lms.svg?branch=master)](https://travis-ci.org/chamilo/chamilo-lms)
+[![PHP Composer](https://github.com/chamilo/chamilo-lms/workflows/PHP%20Composer/badge.svg)](https://github.com/chamilo/chamilo-lms/actions?query=workflow%3A%22PHP+Composer%22+branch%3Amaster)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/chamilo/chamilo-lms/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/chamilo/chamilo-lms/?branch=master)
 [![Bountysource](https://www.bountysource.com/badge/team?team_id=12439&style=raised)](https://www.bountysource.com/teams/chamilo?utm_source=chamilo&utm_medium=shield&utm_campaign=raised)
 [![Code Consistency](https://squizlabs.github.io/PHP_CodeSniffer/analysis/chamilo/chamilo-lms/grade.svg)](http://squizlabs.github.io/PHP_CodeSniffer/analysis/chamilo/chamilo-lms/)
@@ -11,27 +11,40 @@ Chamilo is an e-learning platform, also called "LMS" or "LCMS" published under G
 
 ## Quick install
 
-**Chamilo 2.0 is still in development stage. This install procedure is for reference only. For a stable Chamilo, please install Chamilo 1.11.x. See the 1.11.x branch README.md for details.**
+**Chamilo 2.0 is still in development stage. This installation procedure is for reference only. For a stable Chamilo, please install Chamilo 1.11.x. See the 1.11.x branch README.md for details.**
 
-We assume you have already installed "yarn" and "composer" and you're installing the portal in a domain,
-not in a sub folder inside a domain.
+We assume you already have: 
+
+- composer 2.x - https://getcomposer.org/download/
+- yarn 2.x - https://yarnpkg.com/getting-started/install
+- Configuring a virtualhost in a domain, not in a sub folder inside a domain.
+- A working LAMP server.
+
+On a fresh Ubuntu, you can prepare your server by issuing an apt command like the following:
 
 ~~~~
-# on a fresh Ubuntu, you can prepare your server by issuing an apt command like the following
-apt update && apt -y upgrade && apt install apache2 libapache2-mod-php mariadb-client mariadb-server php-pear php-dev php-gd php-curl php-intl php-mysql php-mbstring php-zip php-xml php-cli php-apcu php-bcmath git unzip
-# otherwise, you can use the following directly:
+apt update && apt -y upgrade && apt install apache2 libapache2-mod-php mariadb-client mariadb-server php-pear php-dev php-gd php-curl php-intl php-mysql php-mbstring php-zip php-xml php-cli php-apcu php-bcmath php-soap yarn git unzip npm
+~~~~
+
+Otherwise, you can use the following directly:
+
+~~~~
 git clone https://github.com/chamilo/chamilo-lms.git chamilo2
 cd chamilo2
-composer install (If composer asks to accept recipes, just press enter or "n")
+composer install
+# *important*: when composer asks to accept recipes, about 11 times, press enter or "n"
 php bin/console fos:js-routing:dump --format=json --target=public/js/fos_js_routes.json
+yarn set version berry
 yarn install
 yarn run encore dev
 chmod -R 777 .
 ~~~~
 
-Then enter the main/install/index.php and follow the UI instructions (database, admin user settings, etc).
+Note: on Ubuntu Groovy, the `yarn` package has been replaced by `yarnpkg`. In this case, replace `yarn` by `yarnpkg` in all commands above.
 
-After the web install process, change the permissions back to a reasonnably safe state:
+Then enter the **main/install/index.php** and follow the UI instructions (database, admin user settings, etc).
+
+After the web install process, change the permissions back to a reasonably safe state:
 ~~~~
 chmod -R 755 .
 chown -R www-data: public/ var/
@@ -41,15 +54,23 @@ chown -R www-data: public/ var/
 
 If you have already installed it and just want to update it from Git, do:
 ~~~~
-git pull origin master
+git pull
 composer update
 php bin/console fos:js-routing:dump --format=json --target=public/js/fos_js_routes.json
     
-yarn upgrade
-yarn encore dev
+yarn up
+yarn run encore dev
 ~~~~
-This will update the JS (yarn) and PHP (composer) dependencies.
+This will update the JS (yarn) and PHP (composer) dependencies in the public/build folder.
 
+### Quick re-install
+
+If you have it installed in a dev environment and feel like you should clean it up completely (might be necessary after changes to the database), you can do so by:
+
+* Removing the `.env.local`
+* Load the {url}/main/install/index.php script again
+
+The database should be automatically destroyed, table by table. In some extreme cases (a previous version created a table that is not necessary anymore and creates issues), you might want to clean it completely by just dropping it, but this shouldn't be necessary most of the time.
 
 ## Installation guide (Dev environment, stable environment not yet available)
 
@@ -70,14 +91,44 @@ Go back to the beginning of this section and try again.
 * app/Resources/public/assets moved to public/assets
 * main/inc/lib/javascript moved to public/js
 * main/img/ moved to public/img
-* main/template/default moved to src/Chamilo/CoreBundle/Resources/views
+* main/template/default moved to src/CoreBundle/Resources/views
+* src/Chamilo/XXXBundle moved to src/CoreBundle or src/CourseBundle
 * bin/doctrine.php removed use bin/console doctrine:xyz options
-* PHPMailer replaced with Swift Mailer
 * Plugin images, css and js libs are loaded inside the public/plugins folder
   (composer update copies the content inside plugin_name/public inside web/plugins/plugin_name
 * Plugins templates use asset() function instead of using "_p.web_plugin"
+* Remove main/inc/local.inc.php
+
+Libraries 
+
+* Integration with Symfony 5 
+* PHPMailer replaced with Swift Mailer
 * bower replaced by [yarn](https://yarnpkg.com)
 
+## JWT Authentication
+
+* php bin/console lexik:jwt:generate-keypair
+* In Apache setup Bearer with:
+
+`SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1`
+
+Get the token:
+
+`curl -k -X POST -H "Content-Type: application/json" https://example.com/api/authentication_token -d '{"username":"admin","password":"admin"}'`
+
+The response should return something like:
+
+`{"token":"MyTokenABC"}`
+
+Go to:
+
+https://example.com/api
+
+Click in "Authorize" and write
+
+`Bearer MyTokenABC`
+
+Then you can make queries using the JWT token.
 
 ## Todo
 

@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -20,64 +23,48 @@ use Doctrine\ORM\Mapping as ORM;
 class TrackEAccess
 {
     /**
-     * @var int
-     *
-     * @ORM\Column(name="access_user_id", type="integer", nullable=true)
-     */
-    protected $accessUserId;
-
-    /**
-     * @var \DateTime
-     *
-     * @ORM\Column(name="access_date", type="datetime", nullable=false)
-     */
-    protected $accessDate;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer", nullable=false)
-     */
-    protected $cId;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="access_tool", type="string", length=30, nullable=true)
-     */
-    protected $accessTool;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="access_session_id", type="integer", nullable=false)
-     */
-    protected $accessSessionId;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="user_ip", type="string", length=39, nullable=false)
-     */
-    protected $userIp;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="access_id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="IDENTITY")
      */
-    protected $accessId;
+    protected int $accessId;
+
+    /**
+     * @ORM\Column(name="access_user_id", type="integer", nullable=true)
+     */
+    protected ?int $accessUserId = null;
+
+    /**
+     * @ORM\Column(name="access_date", type="datetime", nullable=false)
+     */
+    protected DateTime $accessDate;
+
+    /**
+     * @ORM\Column(name="c_id", type="integer", nullable=false)
+     */
+    protected int $cId;
+
+    /**
+     * @ORM\Column(name="access_tool", type="string", length=30, nullable=true)
+     */
+    protected ?string $accessTool = null;
+
+    /**
+     * @ORM\Column(name="access_session_id", type="integer", nullable=false)
+     */
+    protected int $accessSessionId;
+
+    /**
+     * @ORM\Column(name="user_ip", type="string", length=39, nullable=false)
+     */
+    protected string $userIp;
 
     /**
      * Set accessUserId.
      *
-     * @param int $accessUserId
-     *
      * @return TrackEAccess
      */
-    public function setAccessUserId($accessUserId)
+    public function setAccessUserId(int $accessUserId)
     {
         $this->accessUserId = $accessUserId;
 
@@ -97,11 +84,9 @@ class TrackEAccess
     /**
      * Set accessDate.
      *
-     * @param \DateTime $accessDate
-     *
      * @return TrackEAccess
      */
-    public function setAccessDate($accessDate)
+    public function setAccessDate(DateTime $accessDate)
     {
         $this->accessDate = $accessDate;
 
@@ -111,7 +96,7 @@ class TrackEAccess
     /**
      * Get accessDate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getAccessDate()
     {
@@ -121,11 +106,9 @@ class TrackEAccess
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return TrackEAccess
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
@@ -145,11 +128,9 @@ class TrackEAccess
     /**
      * Set accessTool.
      *
-     * @param string $accessTool
-     *
      * @return TrackEAccess
      */
-    public function setAccessTool($accessTool)
+    public function setAccessTool(string $accessTool)
     {
         $this->accessTool = $accessTool;
 
@@ -169,11 +150,9 @@ class TrackEAccess
     /**
      * Set accessSessionId.
      *
-     * @param int $accessSessionId
-     *
      * @return TrackEAccess
      */
-    public function setAccessSessionId($accessSessionId)
+    public function setAccessSessionId(int $accessSessionId)
     {
         $this->accessSessionId = $accessSessionId;
 
@@ -193,11 +172,9 @@ class TrackEAccess
     /**
      * Set userIp.
      *
-     * @param string $userIp
-     *
      * @return TrackEAccess
      */
-    public function setUserIp($userIp)
+    public function setUserIp(string $userIp)
     {
         $this->userIp = $userIp;
 

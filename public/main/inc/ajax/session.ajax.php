@@ -1,7 +1,8 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\User;
 
 /**
  * Responses to AJAX calls.
@@ -87,10 +88,10 @@ switch ($action) {
                 foreach ($results as $item) {
                     $item2 = [];
                     foreach ($item as $id => $internal) {
-                        if ($id == 'id') {
+                        if ('id' == $id) {
                             $item2[$id] = $internal;
                         }
-                        if ($id == 'name') {
+                        if ('name' == $id) {
                             $item2['text'] = $internal;
                         }
                     }
@@ -120,10 +121,10 @@ switch ($action) {
                 foreach ($results as $item) {
                     $item2 = [];
                     foreach ($item as $id => $internal) {
-                        if ($id == 'id') {
+                        if ('id' == $id) {
                             $item2[$id] = $internal;
                         }
-                        if ($id == 'name') {
+                        if ('name' == $id) {
                             $item2['text'] = $internal;
                         }
                     }
@@ -157,9 +158,7 @@ switch ($action) {
                 }
             }
         }
-
         $sessionInfo['extra_fields'] = $values;
-
         if (!empty($sessionInfo)) {
             echo json_encode($sessionInfo);
         }
@@ -169,7 +168,7 @@ switch ($action) {
             $sessionInfo = api_get_session_info($_GET['session']);
             echo '<h2>'.$sessionInfo['name'].'</h2>';
             echo '<div class="home-course-intro"><div class="page-course"><div class="page-course-intro">';
-            echo $sessionInfo['show_description'] == 1 ? $sessionInfo['description'] : get_lang('none');
+            echo 1 == $sessionInfo['show_description'] ? $sessionInfo['description'] : get_lang('none');
             echo '</div></div></div>';
         }
         break;
@@ -250,15 +249,14 @@ switch ($action) {
         $currentUserId = api_get_user_id();
 
         $em = Database::getManager();
-
-        $course = $em->find('ChamiloCoreBundle:Course', $courseId);
-        $session = $em->find('ChamiloCoreBundle:Session', $sessionId);
+        $course = api_get_course_entity($courseId);
+        $session = api_get_session_entity($sessionId);
 
         if (!$course || !$session) {
             break;
         }
 
-        if (!api_is_platform_admin(true) || $session->getSessionAdminId() != $currentUserId) {
+        if (!api_is_platform_admin(true) || $session->getSessionAdmin()->getId() != $currentUserId) {
             break;
         }
 
@@ -266,9 +264,7 @@ switch ($action) {
 
         if ('get_basic_course_documents_list' === $action) {
             $courseInfo = api_get_course_info_by_id($course->getId());
-
             $exists = DocumentManager::folderExists('/basic-course-documents', $courseInfo, $session->getId(), 0);
-
             if (!$exists) {
                 $courseDir = $courseInfo['directory'].'/document';
                 $sysCoursePath = api_get_path(SYS_COURSE_PATH);
@@ -286,7 +282,7 @@ switch ($action) {
                     1
                 );
 
-                $id = (int) $newFolderData['iid'];
+                $id = $newFolderData->getIid();
             } else {
                 $id = DocumentManager::get_document_id($courseInfo, $folderName, $session->getId());
             }
@@ -302,16 +298,17 @@ switch ($action) {
                 false,
                 $session->getId()
             );
+
             $documentAndFolders = array_filter(
                 $documentAndFolders,
                 function (array $documentData) {
-                    return $documentData['filetype'] != 'folder';
+                    return 'folder' != $documentData['filetype'];
                 }
             );
             $documentAndFolders = array_map(
-                function (array $documentData) use ($course, $session, $courseInfo, $currentUserId, $http_www, $folderName, $id) {
+                function (array $documentData) use ($course, $session, $folderName) {
                     $downloadUrl = api_get_path(WEB_CODE_PATH).'document/document.php?'
-                        .api_get_cidreq_params($course->getCode(), $session->getId()).'&'
+                        .api_get_cidreq_params($course->getId(), $session->getId()).'&'
                         .http_build_query(['action' => 'download', 'id' => $documentData['id']]);
                     $deleteUrl = api_get_path(WEB_AJAX_PATH).'session.ajax.php?'
                         .http_build_query(
@@ -366,7 +363,7 @@ switch ($action) {
             $form = new FormValidator('get_basic_course_documents_form_'.$session->getId());
             $form->addMultipleUpload(
                 api_get_path(WEB_AJAX_PATH).'document.ajax.php?'
-                    .api_get_cidreq_params($course->getCode(), $session->getId())
+                    .api_get_cidreq_params($course->getId(), $session->getId())
                     .'&a=upload_file&curdirpath='.$folderName,
                 ''
             );
@@ -387,14 +384,14 @@ switch ($action) {
         $em = Database::getManager();
 
         $courseInfo = api_get_course_info_by_id($courseId);
-        $session = $em->find('ChamiloCoreBundle:Session', $sessionId);
+        $session = api_get_session_entity($sessionId);
         $currentUserId = api_get_user_id();
 
         if (empty($courseInfo) || !$session) {
             break;
         }
 
-        if (!api_is_platform_admin(true) || $session->getSessionAdminId() != $currentUserId) {
+        if (!api_is_platform_admin(true) || $session->getSessionAdmin()->getId() != $currentUserId) {
             break;
         }
 
@@ -413,7 +410,7 @@ switch ($action) {
             break;
         }
 
-        if ($documentInfo['filetype'] != 'link') {
+        if ('link' != $documentInfo['filetype']) {
             $deletedDocument = DocumentManager::delete_document(
                 $courseInfo,
                 null,
@@ -433,6 +430,39 @@ switch ($action) {
         }
 
         echo true;
+        break;
+    case 'search_template_session':
+        SessionManager::protectSession(null, false);
+
+        api_protect_limit_for_session_admin();
+
+        if (empty($_GET['q'])) {
+            break;
+        }
+
+        $q = strtolower(trim($_GET['q']));
+
+        $list = array_map(
+            function ($session) {
+                return [
+                    'id' => $session['id'],
+                    'text' => strip_tags($session['name']),
+                ];
+            },
+            SessionManager::formatSessionsAdminForGrid()
+        );
+
+        $list = array_filter(
+            $list,
+            function ($session) use ($q) {
+                $name = strtolower($session['text']);
+
+                return false !== strpos($name, $q);
+            }
+        );
+
+        header('Content-Type: application/json');
+        echo json_encode(['items' => array_values($list)]);
         break;
     default:
         echo '';

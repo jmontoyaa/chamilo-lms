@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Traits\UserTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 
@@ -17,38 +19,31 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
 class ExtraFieldSavedSearch
 {
     use TimestampableEntity;
+    use UserTrait;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer", nullable=false)
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var ExtraField
-     *
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\ExtraField")
      * @ORM\JoinColumn(name="field_id", referencedColumnName="id")
      */
-    protected $field;
+    protected ExtraField $field;
 
     /**
-     * @var User
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\UserBundle\Entity\User")
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User")
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id")
      */
-    protected $user;
+    protected User $user;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="value", type="array", nullable=true, unique=false)
      */
-    protected $value;
+    protected ?array $value = [];
 
     /**
      * Get id.
@@ -60,20 +55,12 @@ class ExtraFieldSavedSearch
         return $this->id;
     }
 
-    /**
-     * @return ExtraField
-     */
-    public function getField()
+    public function getField(): ExtraField
     {
         return $this->field;
     }
 
-    /**
-     * @param ExtraField $field
-     *
-     * @return ExtraFieldSavedSearch
-     */
-    public function setField($field)
+    public function setField(ExtraField $field): self
     {
         $this->field = $field;
 
@@ -81,39 +68,14 @@ class ExtraFieldSavedSearch
     }
 
     /**
-     * @return User
-     */
-    public function getUser()
-    {
-        return $this->user;
-    }
-
-    /**
-     * @param User $user
-     *
-     * @return ExtraFieldSavedSearch
-     */
-    public function setUser($user)
-    {
-        $this->user = $user;
-
-        return $this;
-    }
-
-    /**
-     * @return string
+     * @return array
      */
     public function getValue()
     {
         return $this->value;
     }
 
-    /**
-     * @param string $value
-     *
-     * @return ExtraFieldSavedSearch
-     */
-    public function setValue($value)
+    public function setValue(array $value): self
     {
         $this->value = $value;
 

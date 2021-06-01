@@ -1,13 +1,12 @@
-<?php /* For licensing terms, see /license.txt */
+<?php
+/* For licensing terms, see /license.txt */
 /**
  * Cron script to list used, but undefined, language variables.
- *
- * @package chamilo.cron
  */
 /**
  * Includes and declarations.
  */
-die();
+exit();
 require_once __DIR__.'/../../inc/global.inc.php';
 $path = api_get_path(SYS_LANG_PATH).'english';
 ini_set('memory_limit', '128M');
@@ -65,13 +64,13 @@ foreach ($files as $file) {
 }
 //$undefined_terms = array_flip($undefined_terms);
 if (count($undefined_terms) < 1) {
-    die("No missing terms<br />\n");
+    exit("No missing terms<br />\n");
 } else {
     echo "The following terms were nowhere to be found: <br />\n<table>";
 }
 $i = 1;
 foreach ($undefined_terms as $term => $file) {
-    $isPlugin = substr($file, 0, 7) == 'plugin/';
+    $isPlugin = 'plugin/' == substr($file, 0, 7);
     echo "<tr><td>$i</td><td>$term</td><td>in $file";
     if ($isPlugin) {
         echo " <span style=\"color: #00ff00;\">(this one should be taken care of by the plugin's language files)</span>";

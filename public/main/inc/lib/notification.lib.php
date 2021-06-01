@@ -1,16 +1,10 @@
 <?php
 /* For licensing terms, see /license.txt */
 
-use Chamilo\CoreBundle\Framework\Container;
-use Chamilo\CoreBundle\Hook\HookNotificationContent;
-use Chamilo\CoreBundle\Hook\HookNotificationTitle;
-
 /**
  * Notification class
  * This class provides methods for the Notification management.
  * Include/require it in your code to use its features.
- *
- * @package chamilo.library
  */
 class Notification extends Model
 {
@@ -153,15 +147,6 @@ class Notification extends Model
      */
     public function formatTitle($title, $senderInfo, $forceTitleWhenSendingEmail = false)
     {
-        $hook = Container::instantiateHook(HookNotificationTitle::class);
-        if (!empty($hook)) {
-            $hook->setEventData(['title' => $title]);
-            $data = $hook->notifyNotificationTitle(HOOK_EVENT_TYPE_PRE);
-            if (isset($data['title'])) {
-                $title = $data['title'];
-            }
-        }
-
         $newTitle = $this->getTitlePrefix();
 
         switch ($this->type) {
@@ -210,13 +195,13 @@ class Notification extends Model
             $newTitle = $title;
         }
 
-        if (!empty($hook)) {
+        /*if (!empty($hook)) {
             $hook->setEventData(['title' => $newTitle]);
             $data = $hook->notifyNotificationTitle(HOOK_EVENT_TYPE_POST);
             if (isset($data['title'])) {
                 $newTitle = $data['title'];
             }
-        }
+        }*/
 
         return $newTitle;
     }
@@ -298,7 +283,7 @@ class Notification extends Model
 
                     // Means that user extra was not set
                     // Then send email now.
-                    if ($userSetting === '') {
+                    if ('' === $userSetting) {
                         $userSetting = self::NOTIFY_MESSAGE_AT_ONCE;
                     }
                 }
@@ -372,15 +357,6 @@ class Notification extends Model
      * */
     public function formatContent($messageId, $content, $senderInfo)
     {
-        $hook = Container::instantiateHook(HookNotificationContent::class);
-        if (!empty($hook)) {
-            $hook->setEventData(['content' => $content]);
-            $data = $hook->notifyNotificationContent(HOOK_EVENT_TYPE_PRE);
-            if (isset($data['content'])) {
-                $content = $data['content'];
-            }
-        }
-
         $newMessageText = $linkToNewMessage = '';
         $showEmail = api_get_configuration_value('show_user_email_in_notification');
         $senderInfoName = '';
@@ -450,7 +426,7 @@ class Notification extends Model
         }
 
         // See message with link text
-        if (!empty($linkToNewMessage) && api_get_setting('allow_message_tool') == 'true') {
+        if (!empty($linkToNewMessage) && 'true' == api_get_setting('allow_message_tool')) {
             $content = $content.'<br /><br />'.$linkToNewMessage;
         }
 
@@ -461,13 +437,13 @@ class Notification extends Model
                 Display::url($preferenceUrl, $preferenceUrl)
             ).'</i>';
 
-        if (!empty($hook)) {
+        /*if (!empty($hook)) {
             $hook->setEventData(['content' => $content]);
             $data = $hook->notifyNotificationContent(HOOK_EVENT_TYPE_POST);
             if (isset($data['content'])) {
                 $content = $data['content'];
             }
-        }
+        }*/
 
         return $content;
     }
@@ -483,13 +459,13 @@ class Notification extends Model
      */
     public static function sendPushNotification(array $userIds, $title, $content)
     {
-        if (api_get_setting('messaging_allow_send_push_notification') !== 'true') {
+        if ('true' !== api_get_setting('messaging_allow_send_push_notification')) {
             return false;
         }
 
         $gdcApiKey = api_get_setting('messaging_gdc_api_key');
 
-        if ($gdcApiKey === false) {
+        if (false === $gdcApiKey) {
             return false;
         }
 
@@ -528,6 +504,8 @@ class Notification extends Model
             'data' => [
                 'title' => $title,
                 'message' => $content,
+                'body' => $content,
+                'sound' => 'default',
             ],
             'notification' => [
                 'title' => $title,

@@ -1,9 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * Coaches reporting.
- */
 ob_start();
 $cidReset = true;
 
@@ -20,11 +18,10 @@ if (isset($_GET["id_student"])) {
     $interbreadcrumb[] = ["url" => "student.php", "name" => get_lang('Learners')];
 }
 
-Display :: display_header($nameTools);
+Display::display_header($nameTools);
 
 api_display_tool_title($nameTools);
-
-// Database Table Definitions
+$data = [];
 $tbl_course = Database::get_main_table(TABLE_MAIN_COURSE);
 $tbl_course_user = Database::get_main_table(TABLE_MAIN_COURSE_USER);
 $tbl_user = Database::get_main_table(TABLE_MAIN_USER);
@@ -34,9 +31,6 @@ $tbl_session_rel_course_rel_user = Database::get_main_table(TABLE_MAIN_SESSION_C
 $tbl_session_rel_user = Database::get_main_table(TABLE_MAIN_SESSION_USER);
 $tbl_track_login = Database::get_main_table(TABLE_STATISTIC_TRACK_E_LOGIN);
 
-/**
- * MAIN PART.
- */
 if (isset($_POST['export'])) {
     $order_clause = api_is_western_name_order(PERSON_NAME_DATA_EXPORT) ? ' ORDER BY firstname, lastname' : ' ORDER BY lastname, firstname';
 } else {
@@ -57,10 +51,10 @@ if (isset($_GET["id_student"])) {
 			 	srcru.user_id=user_id AND
 			 	srcru.status=2 ".$order_clause;
     } else {
-        $sql_coachs = "SELECT DISTINCT user_id as id_coach, user.user_id, lastname, firstname
+        $sql_coachs = "SELECT DISTINCT user_id as id_coach, user.id as user_id, lastname, firstname
 			FROM
 			$tbl_user as user,
-			$tbl_session_rel_course_user as srcu,
+			$tbl_session_rel_course_rel_user as srcu,
 			$tbl_course_user as course_rel_user,
 			$tbl_course as c
 			WHERE
@@ -68,7 +62,7 @@ if (isset($_GET["id_student"])) {
 				c.id = srcu.c_id AND
 				course_rel_user.status='1' AND
 				course_rel_user.user_id='".api_get_user_id()."' AND
-				srcu.user_id = user.user_id AND
+				srcu.user_id = user.id AND
 				srcu.status = 2
 				".$order_clause;
     }
@@ -77,7 +71,7 @@ if (isset($_GET["id_student"])) {
 $result_coachs = Database::query($sql_coachs);
 
 if (api_is_western_name_order()) {
-    echo '<table class="data_table">
+    echo '<table class="table table-hover table-striped data_table">
 	    <tr>
             <th>'.get_lang('First name').'</th>
             <th>'.get_lang('Last name').'</th>
@@ -86,7 +80,7 @@ if (api_is_western_name_order()) {
             <th>'.get_lang('Learners').'</th>
         </tr>';
 } else {
-    echo '<table class="data_table">
+    echo '<table class="table table-hover table-striped data_table">
 	        <tr>
                 <th>'.get_lang('Last name').'</th>
                 <th>'.get_lang('First name').'</th>
@@ -135,15 +129,15 @@ if (Database::num_rows($result_coachs) > 0) {
             $nb_seconds += ($timestamp_logout_date - $timestamp_login_date);
         }
 
-        if ($nb_seconds == 0) {
+        if (0 == $nb_seconds) {
             $s_connection_time = '';
         } else {
             $s_connection_time = api_time_to_hms($nb_seconds);
         }
 
-        if ($i % 2 == 0) {
+        if (0 == $i % 2) {
             $css_class = "row_odd";
-            if ($i % 20 == 0 && $i != 0) {
+            if (0 == $i % 20 && 0 != $i) {
                 if (api_is_western_name_order()) {
                     echo '<tr>
 					    <th>'.get_lang('First name').'</th>
@@ -212,7 +206,7 @@ if (Database::num_rows($result_coachs) > 0) {
 echo '</table>';
 
 if (isset($_POST['export'])) {
-    export_csv($header, $data, 'coaches.csv');
+    Export::arrayToCsv($header + $data, 'coaches.csv');
 }
 
 echo "<br /><br />";

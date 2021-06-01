@@ -3,8 +3,6 @@
  * This file is part of session block plugin for dashboard,
  * it should be required inside dashboard controller for showing it into dashboard interface from plattform.
  *
- * @package chamilo.dashboard
- *
  * @author Christian Fasanando
  */
 
@@ -12,8 +10,6 @@
  * This class is used like controller for this session block plugin,
  * the class name must be registered inside path.info file
  * (e.g: controller = "BlockSession"), so dashboard controller will be instantiate it.
- *
- * @package chamilo.dashboard
  */
 class BlockSession extends Block
 {
@@ -36,7 +32,7 @@ class BlockSession extends Block
     /**
      * This method check if a user is allowed to see the block inside dashboard interface.
      *
-     * @param int        User id
+     * @param int $user_id User id
      *
      * @return bool Is block visible for user
      */
@@ -92,7 +88,7 @@ class BlockSession extends Block
                                 </tr>';
             $i = 1;
             foreach ($sessions as $session) {
-                $session_id = intval($session['id']);
+                $session_id = (int) ($session['id']);
                 $title = $session['name'];
 
                 if (!empty($session['access_start_date'])) {
@@ -114,7 +110,7 @@ class BlockSession extends Block
 
                 $count_courses_in_session = count(Tracking::get_courses_list_from_session($session_id));
 
-                if ($i % 2 == 0) {
+                if (0 == $i % 2) {
                     $class_tr = 'row_odd';
                 } else {
                     $class_tr = 'row_even';

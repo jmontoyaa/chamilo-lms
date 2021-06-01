@@ -1,9 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
 
-/**
- *   @package chamilo.admin
- */
 // resetting the course id
 $cidReset = true;
 
@@ -26,13 +23,14 @@ $form_sent = 0;
 $errorMsg = '';
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-SessionManager::protectSession($id);
+$session = api_get_session_entity($id);
+SessionManager::protectSession($session);
 
 $htmlResult = '';
 if (isset($_POST['form_sent']) && $_POST['form_sent']) {
     $form_sent = $_POST['form_sent'];
 
-    if ($form_sent == 1 &&
+    if (1 == $form_sent &&
         isset($_POST['sessions']) && isset($_POST['courses'])
     ) {
         $sessions = $_POST['sessions'];

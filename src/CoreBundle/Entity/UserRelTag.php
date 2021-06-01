@@ -1,95 +1,48 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
+use Chamilo\CoreBundle\Traits\UserTrait;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * UserRelTag.
  *
  * @ORM\Table(
- *  name="user_rel_tag",
- *  indexes={
- *      @ORM\Index(name="idx_urt_uid", columns={"user_id"}),
- *      @ORM\Index(name="idx_urt_tid", columns={"tag_id"})
- *  }
+ *     name="user_rel_tag",
+ *     indexes={
+ *         @ORM\Index(name="idx_urt_uid", columns={"user_id"}),
+ *         @ORM\Index(name="idx_urt_tid", columns={"tag_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class UserRelTag
 {
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="user_id", type="integer", nullable=false)
-     */
-    protected $userId;
+    use UserTrait;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="tag_id", type="integer", nullable=false)
-     */
-    protected $tagId;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="IDENTITY")
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * Set userId.
-     *
-     * @param int $userId
-     *
-     * @return UserRelTag
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="userRelTags")
+     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    public function setUserId($userId)
-    {
-        $this->userId = $userId;
-
-        return $this;
-    }
+    protected User $user;
 
     /**
-     * Get userId.
-     *
-     * @return int
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Tag")
+     * @ORM\JoinColumn(name="tag_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    public function getUserId()
-    {
-        return $this->userId;
-    }
-
-    /**
-     * Set tagId.
-     *
-     * @param int $tagId
-     *
-     * @return UserRelTag
-     */
-    public function setTagId($tagId)
-    {
-        $this->tagId = $tagId;
-
-        return $this;
-    }
-
-    /**
-     * Get tagId.
-     *
-     * @return int
-     */
-    public function getTagId()
-    {
-        return $this->tagId;
-    }
+    protected Tag $tag;
 
     /**
      * Get id.
@@ -99,5 +52,29 @@ class UserRelTag
     public function getId()
     {
         return $this->id;
+    }
+
+    public function getUser(): User
+    {
+        return $this->user;
+    }
+
+    public function setUser(User $user): self
+    {
+        $this->user = $user;
+
+        return $this;
+    }
+
+    public function getTag(): Tag
+    {
+        return $this->tag;
+    }
+
+    public function setTag(Tag $tag): self
+    {
+        $this->tag = $tag;
+
+        return $this;
     }
 }

@@ -1,8 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
-/**
- * @package chamilo.webservices
- */
+
 $realm = 'The batcave';
 
 // Just a random id
@@ -32,7 +31,7 @@ if ($digestParts['response'] != $validResponse) {
 } else {
     // We're in!
     echo 'a7532ae474e5e66a0c16eddab02e02a7';
-    die();
+    exit();
 }
 
 // This function returns the digest string
@@ -43,10 +42,10 @@ function getDigest()
         $digest = $_SERVER['PHP_AUTH_DIGEST'];
     // most other servers
     } elseif (isset($_SERVER['HTTP_AUTHENTICATION'])) {
-        if (strpos(
+        if (0 === strpos(
                 strtolower($_SERVER['HTTP_AUTHENTICATION']),
                 'digest'
-            ) === 0) {
+            )) {
             $digest = substr($_SERVER['HTTP_AUTHORIZATION'], 7);
         }
     } elseif (isset($_SERVER['HTTP_WWW_AUTHENTICATE'])) {
@@ -62,7 +61,7 @@ function requireLogin($realm, $nonce)
     header('WWW-Authenticate: Digest realm="'.$realm.'",qop="auth",nonce="'.$nonce.'",opaque="'.md5($realm).'"');
     header('HTTP/1.1 401');
     echo 'Authentication Canceled';
-    die();
+    exit();
 }
 
 // This function extracts the separate values from the digest string

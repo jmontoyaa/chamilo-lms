@@ -3,8 +3,6 @@
 
 /**
  * User move script (to move between courses and sessions).
- *
- * @package chamilo.admin
  */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
@@ -19,18 +17,18 @@ function compare_data($result_message)
 {
     foreach ($result_message as $table => $data) {
         $title = $table;
-        if ($table == 'TRACK_E_EXERCISES') {
+        if ('TRACK_E_EXERCISES' == $table) {
             $title = get_lang('Tests');
-        } elseif ($table == 'TRACK_E_EXERCISES_IN_LP') {
+        } elseif ('TRACK_E_EXERCISES_IN_LP' == $table) {
             $title = get_lang('TestsInLp');
-        } elseif ($table == 'LP_VIEW') {
+        } elseif ('LP_VIEW' == $table) {
             $title = get_lang('Learning paths');
         }
         echo '<br / ><h3>'.get_lang($title).' </h3><hr />';
 
         if (is_array($data)) {
             foreach ($data as $id => $item) {
-                if ($table == 'TRACK_E_EXERCISES' || $table == 'TRACK_E_EXERCISES_IN_LP') {
+                if ('TRACK_E_EXERCISES' == $table || 'TRACK_E_EXERCISES_IN_LP' == $table) {
                     echo "<br /><h3>".get_lang('Attempt')." #$id</h3>";
                     echo '<h3>';
                     echo get_lang('Test').' #'.$item['exe_exo_id'];
@@ -77,9 +75,9 @@ if (isset($_REQUEST['load_ajax'])) {
             echo get_lang('There was an error.');
         } else {
             $origin_course_code = $combination_result['course_code'];
-            $origin_session_id = intval($combination_result['session_id']);
-            $new_session_id = intval($_REQUEST['session_id']);
-            $session = $em->find('ChamiloCoreBundle:Session', $new_session_id);
+            $origin_session_id = (int) $combination_result['session_id'];
+            $new_session_id = (int) $_REQUEST['session_id'];
+            $session = api_get_session_entity($new_session_id);
 
             //if (!isset($_REQUEST['view_stat'])) {
             if ($origin_session_id == $new_session_id) {
@@ -87,8 +85,7 @@ if (isset($_REQUEST['load_ajax'])) {
                 exit;
             }
             //}
-            $user_id = intval($_REQUEST['user_id']);
-
+            $user_id = (int) $_REQUEST['user_id'];
             $new_course_list = SessionManager::get_course_list_by_session_id($new_session_id);
 
             $course_founded = false;
@@ -102,7 +99,7 @@ if (isset($_REQUEST['load_ajax'])) {
             $result_message_compare = [];
 
             $update_database = true;
-            if (isset($_REQUEST['view_stat']) && $_REQUEST['view_stat'] == 1) {
+            if (isset($_REQUEST['view_stat']) && 1 == $_REQUEST['view_stat']) {
                 $update_database = false;
             }
 
@@ -125,6 +122,7 @@ if (isset($_REQUEST['load_ajax'])) {
                 // Begin with the import process
                 $course_info = api_get_course_info($origin_course_code);
                 $course_id = $course_info['real_id'];
+                $course = api_get_course_entity($course_id);
 
                 $TABLETRACK_EXERCICES = Database::get_main_table(TABLE_STATISTIC_TRACK_E_EXERCISES);
                 $TBL_TRACK_ATTEMPT = Database::get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT);
@@ -171,9 +169,9 @@ if (isset($_REQUEST['load_ajax'])) {
                 // DESTINY COURSE
                 if (!$update_database) {
                     $sql = "SELECT * FROM $TABLETRACK_EXERCICES
-                            WHERE 
-                                c_id = $course_id AND  
-                                session_id = $new_session_id AND 
+                            WHERE
+                                c_id = $course_id AND
+                                session_id = $new_session_id AND
                                 exe_user_id = $user_id ";
                     $res = Database::query($sql);
                     $list = [];
@@ -184,7 +182,7 @@ if (isset($_REQUEST['load_ajax'])) {
                     if (!empty($list)) {
                         foreach ($list as $exe_id => $data) {
                             if ($update_database) {
-                                $sql = "UPDATE $TABLETRACK_EXERCICES 
+                                $sql = "UPDATE $TABLETRACK_EXERCICES
                                         SET session_id = '$new_session_id'
                                         WHERE exe_id = $exe_id";
                                 $res = Database::query($sql);
@@ -215,8 +213,8 @@ if (isset($_REQUEST['load_ajax'])) {
                 if (!empty($list)) {
                     foreach ($list as $id => $data) {
                         if ($update_database) {
-                            $sql = "UPDATE $TBL_TRACK_E_COURSE_ACCESS 
-                                    SET session_id = $new_session_id 
+                            $sql = "UPDATE $TBL_TRACK_E_COURSE_ACCESS
+                                    SET session_id = $new_session_id
                                     WHERE course_access_id = $id";
                             if ($debug) {
                                 echo $sql;
@@ -241,8 +239,8 @@ if (isset($_REQUEST['load_ajax'])) {
                 if (!empty($list)) {
                     foreach ($list as $id) {
                         if ($update_database) {
-                            $sql = "UPDATE $TBL_TRACK_E_LAST_ACCESS 
-                                    SET access_session_id = $new_session_id 
+                            $sql = "UPDATE $TBL_TRACK_E_LAST_ACCESS
+                                    SET access_session_id = $new_session_id
                                     WHERE access_id = $id";
                             if ($debug) {
                                 echo $sql;
@@ -267,16 +265,16 @@ if (isset($_REQUEST['load_ajax'])) {
                 $list = [];
                 while ($row = Database::fetch_array($res, 'ASSOC')) {
                     //Checking if the LP exist in the new session
-                    if (in_array($row['lp_id'], array_keys($flat_list))) {
-                        $list[$row['id']] = $row;
-                    }
+                    //if (in_array($row['lp_id'], array_keys($flat_list))) {
+                    $list[$row['id']] = $row;
+                    //}
                 }
 
                 if (!empty($list)) {
                     foreach ($list as $id => $data) {
                         if ($update_database) {
-                            $sql = "UPDATE $TBL_LP_VIEW 
-                                    SET session_id = $new_session_id 
+                            $sql = "UPDATE $TBL_LP_VIEW
+                                    SET session_id = $new_session_id
                                     WHERE c_id = $course_id AND id = $id ";
                             if ($debug) {
                                 var_dump($sql);
@@ -290,15 +288,15 @@ if (isset($_REQUEST['load_ajax'])) {
                             //Getting all information of that lp_item_id
                             $score = Tracking::get_avg_student_score(
                                 $user_id,
-                                $origin_course_code,
+                                $course,
                                 [$data['lp_id']],
-                                $origin_session_id
+                                $session
                             );
                             $progress = Tracking::get_avg_student_progress(
                                 $user_id,
-                                $origin_course_code,
+                                $course,
                                 [$data['lp_id']],
-                                $origin_session_id
+                                $session
                             );
                             $result_message['LP_VIEW'][$data['lp_id']] = [
                                 'score' => $score,
@@ -320,10 +318,11 @@ if (isset($_REQUEST['load_ajax'])) {
                     $list = [];
                     while ($row = Database::fetch_array($res, 'ASSOC')) {
                         //Checking if the LP exist in the new session
-                        if (in_array($row['lp_id'], array_keys($flat_list))) {
-                            $list[$row['id']] = $row;
-                        }
+                        //if (in_array($row['lp_id'], array_keys($flat_list))) {
+                        $list[$row['id']] = $row;
+                        //}
                     }
+
                     if (!empty($list)) {
                         foreach ($list as $id => $data) {
                             //Getting all information of that lp_item_id
@@ -349,7 +348,7 @@ if (isset($_REQUEST['load_ajax'])) {
 
                 //6. Agenda
                 //calendar_event_attachment no problems no session_id
-                $sql = "SELECT ref FROM $TBL_ITEM_PROPERTY 
+                $sql = "SELECT ref FROM $TBL_ITEM_PROPERTY
                         WHERE tool = 'calendar_event' AND insert_user_id = $user_id AND c_id = $course_id ";
                 $res = Database::query($sql);
                 while ($row = Database::fetch_array($res, 'ASSOC')) {
@@ -369,7 +368,7 @@ if (isset($_REQUEST['load_ajax'])) {
 
                 //7. Forum ?? So much problems when trying to import data
                 //8. Student publication - Works
-                $sql = "SELECT ref FROM $TBL_ITEM_PROPERTY 
+                $sql = "SELECT ref FROM $TBL_ITEM_PROPERTY
                         WHERE tool = 'work' AND insert_user_id = $user_id AND c_id = $course_id";
                 if ($debug) {
                     echo $sql;
@@ -389,7 +388,7 @@ if (isset($_REQUEST['load_ajax'])) {
                         }
                         $parent_id = $data['parent_id'];
                         if (isset($data['parent_id']) && !empty($data['parent_id'])) {
-                            $sql = "SELECT * FROM $TBL_STUDENT_PUBLICATION 
+                            $sql = "SELECT * FROM $TBL_STUDENT_PUBLICATION
                                     WHERE id = $parent_id AND c_id = $course_id";
                             $select_res = Database::query($sql);
                             $parent_data = Database::fetch_array(
@@ -403,7 +402,6 @@ if (isset($_REQUEST['load_ajax'])) {
                             $sys_course_path = api_get_path(SYS_COURSE_PATH);
                             $course_dir = $sys_course_path.$course_info['path'];
                             $base_work_dir = $course_dir.'/work';
-                            require_once api_get_path(SYS_CODE_PATH).'work/work.lib.php';
 
                             // Creating the parent folder in the session if does not exists already
                             //@todo ugly fix
@@ -541,7 +539,7 @@ if (isset($_REQUEST['load_ajax'])) {
 
                 //9. Survey   Pending
                 //10. Dropbox - not neccesary to move categories (no presence of session_id)
-                $sql = "SELECT id FROM $TBL_DROPBOX_FILE 
+                $sql = "SELECT id FROM $TBL_DROPBOX_FILE
                         WHERE uploader_id = $user_id AND session_id = $origin_session_id AND c_id = $course_id";
                 if ($debug) {
                     var_dump($sql);
@@ -582,8 +580,8 @@ if (isset($_REQUEST['load_ajax'])) {
                 while ($row = Database::fetch_array($res, 'ASSOC')) {
                     $id = $row['notebook_id'];
                     if ($update_database) {
-                        $sql = "UPDATE $TBL_NOTEBOOK 
-                                SET session_id = $new_session_id 
+                        $sql = "UPDATE $TBL_NOTEBOOK
+                                SET session_id = $new_session_id
                                 WHERE c_id = $course_id AND notebook_id = $id";
                         if ($debug) {
                             var_dump($sql);
@@ -610,7 +608,7 @@ if (isset($_REQUEST['load_ajax'])) {
                     echo '<tr>';
                     echo '<td width="50%" valign="top">';
 
-                    if ($origin_session_id == 0) {
+                    if (0 == $origin_session_id) {
                         echo '<h4>'.get_lang('Original course').'</h4>';
                     } else {
                         echo '<h4>'.get_lang('Original session').' #'.$origin_session_id.'</h4>';
@@ -618,7 +616,7 @@ if (isset($_REQUEST['load_ajax'])) {
                     compare_data($result_message);
                     echo '</td>';
                     echo '<td width="50%" valign="top">';
-                    if ($new_session_id == 0) {
+                    if (0 == $new_session_id) {
                         echo '<h4>'.get_lang('Destination course').'</h4>';
                     } else {
                         echo '<h4>'.get_lang('Destination session').' #'.$new_session_id.'</h4>';
@@ -697,7 +695,7 @@ Display::addFlash(
     )
 );
 Display::display_header(get_lang('Move users results from/to a session'));
-echo  '<div class="actions">';
+echo '<div class="actions">';
 echo '<a href="../admin/index.php">'.Display::return_icon('back.png', get_lang('Back to').' '.get_lang('Administration'), '', ICON_SIZE_MEDIUM).'</a>';
 echo '</div>';
 
@@ -707,7 +705,7 @@ if (isset($_GET['page']) && !empty($_GET['page'])) {
     $page = intval($_GET['page']);
 }
 $default = 20;
-$count = UserManager::get_number_of_users();
+$count = UserManager::get_number_of_users(null, api_get_current_access_url_id());
 $nro_pages = round($count / $default) + 1;
 $begin = $default * ($page - 1);
 $end = $default * $page;
@@ -783,13 +781,16 @@ if (!empty($user_list)) {
 
         $course_list = $course_list_registered;
 
-        echo '<div>';
-        echo '<table class="data_table">';
+        echo '<div class="table-responsive">';
+        echo '<table class="table table-hover table-striped data_table">';
+        echo '<thead>';
         echo '<tr>';
         echo '<th style="text-align:left;" colspan="'.count($course_list).'">';
         echo "<h3>$name #$user_id </h3>  ";
         echo '</th>';
         echo '</tr>';
+        echo '</thead>';
+        echo '<tbody>';
 
         if (!empty($course_list)) {
             echo '<tr>';
@@ -821,7 +822,7 @@ if (!empty($user_list)) {
                 $unique_id = uniqid();
                 $combinations[$unique_id] = ['course_code' => $course_code, 'session_id' => $session_id];
 
-                echo '<select id="'.$unique_id.'" name="'.$unique_id.'">';
+                echo '<select id="'.$unique_id.'" name="'.$unique_id.'" class="form-control">';
                 echo $options;
                 echo '</select>';
                 echo '<br />';
@@ -836,6 +837,7 @@ if (!empty($user_list)) {
             echo get_lang('This user isn\'t subscribed in a course');
             echo '</td>';
         }
+        echo '</tbody>';
         echo '</table>';
         echo '</div>';
     }

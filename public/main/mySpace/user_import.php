@@ -16,7 +16,7 @@ api_block_anonymous_users();
 
 $interbreadcrumb[] = ['url' => 'index.php', 'name' => get_lang('Reporting')];
 $id_session = '';
-if (isset($_GET['id_session']) && $_GET['id_session'] != '') {
+if (isset($_GET['id_session']) && '' != $_GET['id_session']) {
     $id_session = intval($_GET['id_session']);
     $interbreadcrumb[] = ['url' => 'session.php', 'name' => get_lang('Course sessions')];
     $interbreadcrumb[] = ['url' => 'course.php?id_session='.$id_session.'', 'name' => get_lang('Course')];
@@ -26,14 +26,14 @@ if (isset($_GET['id_session']) && $_GET['id_session'] != '') {
 $purification_option_for_usernames = false;
 
 // Checking whether the current coach is the admin coach.
-if (api_get_setting('add_users_by_coach') === 'true') {
+if ('true' === api_get_setting('add_users_by_coach')) {
     if (!api_is_platform_admin()) {
         if (isset($_REQUEST['id_session'])) {
             $id_session = intval($_REQUEST['id_session']);
             $sql = 'SELECT id_coach FROM '.Database::get_main_table(TABLE_MAIN_SESSION).'
                     WHERE id='.$id_session;
             $rs = Database::query($sql);
-            if (Database::result($rs, 0, 0) != $_user['user_id']) {
+            if (Database::result($rs, 0, 0) != api_get_user_id()) {
                 api_not_allowed(true);
             }
         } else {
@@ -46,10 +46,10 @@ if (api_get_setting('add_users_by_coach') === 'true') {
 
 set_time_limit(0);
 $errors = [];
-if (isset($_POST['formSent']) && $_POST['formSent'] && $_FILES['import_file']['size'] !== 0) {
+if (isset($_POST['formSent']) && $_POST['formSent'] && 0 !== $_FILES['import_file']['size']) {
     $file_type = $_POST['file_type'];
     $id_session = intval($_POST['id_session']);
-    if ($file_type == 'csv') {
+    if ('csv' === $file_type) {
         $users = MySpace::parse_csv_data($_FILES['import_file']['tmp_name']);
     } else {
         $users = MySpace::parse_xml_data($_FILES['import_file']['tmp_name']);
@@ -59,7 +59,7 @@ if (isset($_POST['formSent']) && $_POST['formSent'] && $_FILES['import_file']['s
         $errors = $results['errors'];
         $users = $results['users'];
 
-        if (count($errors) == 0) {
+        if (0 == count($errors)) {
             if (!empty($id_session)) {
                 $tbl_session_rel_course = Database::get_main_table(TABLE_MAIN_SESSION_COURSE);
                 // Selecting all the courses from the session id requested.
@@ -71,7 +71,7 @@ if (isset($_POST['formSent']) && $_POST['formSent'] && $_FILES['import_file']['s
                 }
                 $errors = MySpace::get_user_creator($users);
                 $users = MySpace::check_all_usernames($users, $course_list, $id_session);
-                if (count($errors) == 0) {
+                if (0 == count($errors)) {
                     MySpace::save_data($users, $course_list, $id_session);
                 }
             } else {
@@ -89,11 +89,11 @@ if (isset($_POST['formSent']) && $_POST['formSent'] && $_FILES['import_file']['s
 
 Display::display_header($tool_name);
 
-if (isset($_FILES['import_file']) && $_FILES['import_file']['size'] == 0 && $_POST) {
+if (isset($_FILES['import_file']) && 0 == $_FILES['import_file']['size'] && $_POST) {
     echo Display::return_message(get_lang('Required field'), 'error');
 }
 
-if (count($errors) != 0) {
+if (0 != count($errors)) {
     $error_message = '<ul>';
     foreach ($errors as $index => $error_user) {
         $error_message .= '<li><strong>'.$error_user['error'].'</strong>: ';
@@ -127,15 +127,14 @@ $form->addElement(
 );
 $form->addElement('radio', 'sendMail', get_lang('Send a mail to users'), get_lang('Yes'), 1);
 $form->addElement('radio', 'sendMail', null, get_lang('No'), 0);
-$form->addElement('submit', 'submit', get_lang('Validate'));
+$form->addButtonSave(get_lang('Validate'));
 $defaults['formSent'] = 1;
 $defaults['sendMail'] = 0;
 $defaults['file_type'] = 'xml';
 $form->setDefaults($defaults);
 $form->display();
-?>
-<p><?php echo get_lang('The CSV file must look like this').' ('.get_lang('Fields in <strong>bold</strong> are mandatory.').')'; ?> :</p>
 
+$content = '<p>'.get_lang('The CSV file must look like this').' ('.get_lang('Fields in <strong>bold</strong> are mandatory.').') :</p>
 <blockquote>
 <pre>
 <b>LastName</b>;<b>FirstName</b>;<b>Email</b>;UserName;Password;OfficialCode;PhoneNumber;
@@ -143,11 +142,10 @@ $form->display();
 <b>Doewing</b>;<b>Johny</b>;<b>info@localhost</b>;jdoewing;123456789;code2;3141516
 </pre>
 </blockquote>
-
-<p><?php echo get_lang('The XML file must look like this').' ('.get_lang('Fields in <strong>bold</strong> are mandatory.').')'; ?> :</p>
+<p>'.get_lang('The XML file must look like this').' ('.get_lang('Fields in <strong>bold</strong> are mandatory.').') :</p>
 <blockquote>
 <pre>
-&lt;?xml version=&quot;1.0&quot; encoding=&quot;<?php echo api_refine_encoding_id(api_get_system_encoding()); ?>&quot;?&gt;
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;'.api_refine_encoding_id(api_get_system_encoding()).'&quot;?&gt;
 &lt;Contacts&gt;
     &lt;Contact&gt;
         <b>&lt;LastName&gt;Montoya&lt;/LastName&gt;</b>
@@ -160,6 +158,7 @@ $form->display();
     &lt;/Contact&gt;
 &lt;/Contacts&gt;
 </pre>
-</blockquote>
-<?php
-Display :: display_footer();
+</blockquote>';
+
+echo Display::prose($content);
+Display::display_footer();

@@ -1,176 +1,146 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
 use Chamilo\CoreBundle\Entity\Room;
+use DateTime;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * CCalendarEvent.
  *
  * @ORM\Table(
- *  name="c_calendar_event",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="session_id", columns={"session_id"})
- *  }
+ *     name="c_calendar_event",
+ *     indexes={
+ *     }
  * )
  * @ORM\Entity
  */
-class CCalendarEvent
+class CCalendarEvent extends AbstractResource implements ResourceInterface
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
-     */
-    protected $cId;
-
-    /**
-     * @var string
-     *
+     * @Assert\NotBlank()
      * @ORM\Column(name="title", type="string", length=255, nullable=false)
      */
-    protected $title;
+    protected string $title;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="content", type="text", nullable=true)
      */
-    protected $content;
+    protected ?string $content = null;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="start_date", type="datetime", nullable=true)
      */
-    protected $startDate;
+    protected ?DateTime $startDate = null;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="end_date", type="datetime", nullable=true)
      */
-    protected $endDate;
+    protected ?DateTime $endDate = null;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="parent_event_id", type="integer", nullable=true)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CCalendarEvent", inversedBy="children")
+     * @ORM\JoinColumn(name="parent_event_id", referencedColumnName="iid")
      */
-    protected $parentEventId;
+    protected ?CCalendarEvent $parentEvent = null;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="session_id", type="integer", nullable=false)
+     * @var Collection|CCalendarEvent[]
+     * @ORM\OneToMany(targetEntity="CCalendarEvent", mappedBy="parentEvent")
      */
-    protected $sessionId;
+    protected Collection $children;
 
     /**
-     * @var int
+     * @var Collection|CCalendarEventRepeat[]
      *
+     * @ORM\OneToMany(targetEntity="CCalendarEventRepeat", mappedBy="event", cascade={"persist"}, orphanRemoval=true)
+     */
+    protected Collection $repeatEvents;
+
+    /**
      * @ORM\Column(name="all_day", type="integer", nullable=false)
      */
-    protected $allDay;
+    protected int $allDay;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="comment", type="text", nullable=true)
      */
-    protected $comment;
+    protected ?string $comment = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="color", type="string", length=100, nullable=true)
      */
-    protected $color;
+    protected ?string $color = null;
 
     /**
-     * @var Room
-     *
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Room")
      * @ORM\JoinColumn(name="room_id", referencedColumnName="id")
      */
-    protected $room;
+    protected ?Room $room = null;
 
     /**
-     * Set title.
+     * @var Collection|CCalendarEventAttachment[]
      *
-     * @param string $title
-     *
-     * @return CCalendarEvent
+     * @ORM\OneToMany(
+     *     targetEntity="CCalendarEventAttachment", mappedBy="event", cascade={"persist", "remove"}
+     * )
      */
-    public function setTitle($title)
+    protected Collection $attachments;
+
+    public function __construct()
+    {
+        $this->children = new ArrayCollection();
+        $this->attachments = new ArrayCollection();
+        $this->repeatEvents = new ArrayCollection();
+    }
+
+    public function __toString(): string
+    {
+        return $this->getTitle();
+    }
+
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
         return $this;
     }
 
-    /**
-     * Get title.
-     *
-     * @return string
-     */
-    public function getTitle()
+    public function getTitle(): string
     {
         return $this->title;
     }
 
-    /**
-     * Set content.
-     *
-     * @param string $content
-     *
-     * @return CCalendarEvent
-     */
-    public function setContent($content)
+    public function setContent(string $content): self
     {
         $this->content = $content;
 
         return $this;
     }
 
-    /**
-     * Get content.
-     *
-     * @return string
-     */
-    public function getContent()
+    public function getContent(): ?string
     {
         return $this->content;
     }
 
-    /**
-     * Set startDate.
-     *
-     * @param \DateTime $startDate
-     *
-     * @return CCalendarEvent
-     */
-    public function setStartDate($startDate)
+    public function setStartDate(?DateTime $startDate): self
     {
         $this->startDate = $startDate;
 
@@ -180,21 +150,14 @@ class CCalendarEvent
     /**
      * Get startDate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getStartDate()
     {
         return $this->startDate;
     }
 
-    /**
-     * Set endDate.
-     *
-     * @param \DateTime $endDate
-     *
-     * @return CCalendarEvent
-     */
-    public function setEndDate($endDate)
+    public function setEndDate(?DateTime $endDate): self
     {
         $this->endDate = $endDate;
 
@@ -204,131 +167,62 @@ class CCalendarEvent
     /**
      * Get endDate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getEndDate()
     {
         return $this->endDate;
     }
 
-    /**
-     * Set parentEventId.
-     *
-     * @param int $parentEventId
-     *
-     * @return CCalendarEvent
-     */
-    public function setParentEventId($parentEventId)
+    public function setParentEvent(self $parent): self
     {
-        $this->parentEventId = $parentEventId;
+        $this->parentEvent = $parent;
+
+        return $this;
+    }
+
+    public function getParentEvent(): ?self
+    {
+        return $this->parentEvent;
+    }
+
+    /**
+     * @return Collection|CCalendarEvent[]
+     */
+    public function getChildren()
+    {
+        return $this->children;
+    }
+
+    public function addChild(self $event): self
+    {
+        if (!$this->getChildren()->contains($event)) {
+            $this->getChildren()->add($event);
+        }
 
         return $this;
     }
 
     /**
-     * Get parentEventId.
-     *
-     * @return int
+     * @param Collection|CCalendarEvent[] $children
      */
-    public function getParentEventId()
+    public function setChildren(Collection $children): self
     {
-        return $this->parentEventId;
-    }
-
-    /**
-     * Set sessionId.
-     *
-     * @param int $sessionId
-     *
-     * @return CCalendarEvent
-     */
-    public function setSessionId($sessionId)
-    {
-        $this->sessionId = $sessionId;
+        $this->children = $children;
 
         return $this;
     }
 
-    /**
-     * Get sessionId.
-     *
-     * @return int
-     */
-    public function getSessionId()
-    {
-        return $this->sessionId;
-    }
-
-    /**
-     * Set allDay.
-     *
-     * @param int $allDay
-     *
-     * @return CCalendarEvent
-     */
-    public function setAllDay($allDay)
+    public function setAllDay(int $allDay): self
     {
         $this->allDay = $allDay;
 
         return $this;
     }
 
-    /**
-     * Get allDay.
-     *
-     * @return int
-     */
-    public function getAllDay()
+    public function getAllDay(): int
     {
         return $this->allDay;
-    }
-
-    /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CCalendarEvent
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CCalendarEvent
-     */
-    public function setCId($cId)
-    {
-        $this->cId = $cId;
-
-        return $this;
-    }
-
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
-    {
-        return $this->cId;
     }
 
     /**
@@ -339,32 +233,19 @@ class CCalendarEvent
         return $this->comment;
     }
 
-    /**
-     * @param string $comment
-     *
-     * @return CCalendarEvent
-     */
-    public function setComment($comment)
+    public function setComment(string $comment): self
     {
         $this->comment = $comment;
 
         return $this;
     }
 
-    /**
-     * @return Room
-     */
-    public function getRoom()
+    public function getRoom(): ?Room
     {
         return $this->room;
     }
 
-    /**
-     * @param Room $room
-     *
-     * @return $this
-     */
-    public function setRoom($room)
+    public function setRoom(Room $room): self
     {
         $this->room = $room;
 
@@ -379,12 +260,7 @@ class CCalendarEvent
         return $this->color;
     }
 
-    /**
-     * @param string $color
-     *
-     * @return $this
-     */
-    public function setColor($color)
+    public function setColor(string $color): self
     {
         $this->color = $color;
 
@@ -400,14 +276,59 @@ class CCalendarEvent
     }
 
     /**
-     * @param int $iid
+     * @return Collection
+     */
+    public function getAttachments()
+    {
+        return $this->attachments;
+    }
+
+    public function setAttachments(Collection $attachments): self
+    {
+        $this->attachments = $attachments;
+
+        return $this;
+    }
+
+    public function addAttachment(CCalendarEventAttachment $attachment): self
+    {
+        $this->attachments->add($attachment);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|CCalendarEventRepeat[]
+     */
+    public function getRepeatEvents()
+    {
+        return $this->repeatEvents;
+    }
+
+    /**
+     * @param Collection|CCalendarEventRepeat[] $repeatEvents
      *
      * @return CCalendarEvent
      */
-    public function setIid($iid)
+    public function setRepeatEvents(Collection $repeatEvents)
     {
-        $this->iid = $iid;
+        $this->repeatEvents = $repeatEvents;
 
         return $this;
+    }
+
+    public function getResourceIdentifier(): int
+    {
+        return $this->getIid();
+    }
+
+    public function getResourceName(): string
+    {
+        return $this->getTitle();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setTitle($name);
     }
 }

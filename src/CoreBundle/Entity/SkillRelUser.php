@@ -1,12 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
-use Chamilo\SkillBundle\Entity\Level;
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Traits\UserTrait;
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\Criteria;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -14,25 +17,49 @@ use Doctrine\ORM\Mapping as ORM;
  * SkillRelUser.
  *
  * @ORM\Table(
- *  name="skill_rel_user",
- *  indexes={
- *      @ORM\Index(name="idx_select_cs", columns={"course_id", "session_id"}),
- *      @ORM\Index(name="idx_select_s_c_u", columns={"session_id", "course_id", "user_id"}),
- *      @ORM\Index(name="idx_select_sk_u", columns={"skill_id", "user_id"})
- *  }
+ *     name="skill_rel_user",
+ *     indexes={
+ *         @ORM\Index(name="idx_select_cs", columns={"course_id", "session_id"}),
+ *         @ORM\Index(name="idx_select_s_c_u", columns={"session_id", "course_id", "user_id"}),
+ *         @ORM\Index(name="idx_select_sk_u", columns={"skill_id", "user_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class SkillRelUser
 {
+    use UserTrait;
+
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="achievedSkills", cascade={"persist"})
+     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false, onDelete="CASCADE")
+     */
+    protected User $user;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Skill", inversedBy="issuedSkills", cascade={"persist"})
+     * @ORM\JoinColumn(name="skill_id", referencedColumnName="id", nullable=false, onDelete="CASCADE")
+     */
+    protected ?Skill $skill = null;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course", inversedBy="issuedSkills", cascade={"persist"})
+     * @ORM\JoinColumn(name="course_id", referencedColumnName="id", nullable=true, onDelete="CASCADE")
+     */
+    protected ?Course $course = null;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Session", inversedBy="issuedSkills", cascade={"persist"})
+     * @ORM\JoinColumn(name="session_id", referencedColumnName="id", nullable=true, onDelete="CASCADE")
+     */
+    protected ?Session $session = null;
 
     /**
      * @ORM\OneToMany(
@@ -40,109 +67,48 @@ class SkillRelUser
      *     cascade={"persist", "remove"},
      *     orphanRemoval=true
      * )
+     *
+     * @var Collection|SkillRelUserComment[]
      */
-    protected $comments;
+    protected Collection $comments;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Level")
+     * @ORM\JoinColumn(name="acquired_level", referencedColumnName="id")
+     */
+    protected Level $acquiredLevel;
+
+    /**
+     * @ORM\Column(name="acquired_skill_at", type="datetime", nullable=false)
+     */
+    protected DateTime $acquiredSkillAt;
 
     /**
      * Whether this has been confirmed by a teacher or not
      * Only set to 0 when the skill_rel_item says requires_validation = 1.
      *
-     * @var int
-     *
      * @ORM\Column(name="validation_status", type="integer")
      */
-    protected $validationStatus;
+    protected int $validationStatus;
 
     /**
-     * @ORM\ManyToOne(targetEntity="Chamilo\UserBundle\Entity\User", inversedBy="achievedSkills", cascade={"persist"})
-     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
-     */
-    protected $user;
-
-    /**
-     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Skill", inversedBy="issuedSkills", cascade={"persist"})
-     * @ORM\JoinColumn(name="skill_id", referencedColumnName="id", nullable=false)
-     */
-    protected $skill;
-
-    /**
-     * @var \DateTime
-     *
-     * @ORM\Column(name="acquired_skill_at", type="datetime", nullable=false)
-     */
-    protected $acquiredSkillAt;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="assigned_by", type="integer", nullable=false)
      */
-    protected $assignedBy;
+    protected int $assignedBy;
 
     /**
-     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course", inversedBy="issuedSkills", cascade={"persist"})
-     * @ORM\JoinColumn(name="course_id", referencedColumnName="id", nullable=true)
-     */
-    protected $course;
-
-    /**
-     * @var Session
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Session", inversedBy="issuedSkills", cascade={"persist"})
-     * @ORM\JoinColumn(name="session_id", referencedColumnName="id", nullable=true)
-     */
-    protected $session;
-
-    /**
-     * @var Level
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\SkillBundle\Entity\Level")
-     * @ORM\JoinColumn(name="acquired_level", referencedColumnName="id")
-     */
-    protected $acquiredLevel;
-
-    /**
-     * @var string
-     *
      * @ORM\Column(name="argumentation", type="text")
      */
-    protected $argumentation;
+    protected string $argumentation;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="argumentation_author_id", type="integer")
      */
-    protected $argumentationAuthorId;
+    protected int $argumentationAuthorId;
 
-    /**
-     * SkillRelUser constructor.
-     */
     public function __construct()
     {
         $this->comments = new ArrayCollection();
-    }
-
-    /**
-     * Set user.
-     *
-     * @return SkillRelUser
-     */
-    public function setUser(User $user)
-    {
-        $this->user = $user;
-
-        return $this;
-    }
-
-    /**
-     * Get user.
-     *
-     * @return User
-     */
-    public function getUser()
-    {
-        return $this->user;
     }
 
     /**
@@ -214,11 +180,9 @@ class SkillRelUser
     /**
      * Set acquiredSkillAt.
      *
-     * @param \DateTime $acquiredSkillAt
-     *
      * @return SkillRelUser
      */
-    public function setAcquiredSkillAt($acquiredSkillAt)
+    public function setAcquiredSkillAt(DateTime $acquiredSkillAt)
     {
         $this->acquiredSkillAt = $acquiredSkillAt;
 
@@ -228,7 +192,7 @@ class SkillRelUser
     /**
      * Get acquiredSkillAt.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getAcquiredSkillAt()
     {
@@ -238,11 +202,9 @@ class SkillRelUser
     /**
      * Set assignedBy.
      *
-     * @param int $assignedBy
-     *
      * @return SkillRelUser
      */
-    public function setAssignedBy($assignedBy)
+    public function setAssignedBy(int $assignedBy)
     {
         $this->assignedBy = $assignedBy;
 
@@ -272,11 +234,9 @@ class SkillRelUser
     /**
      * Set acquiredLevel.
      *
-     * @param Level $acquiredLevel
-     *
      * @return SkillRelUser
      */
-    public function setAcquiredLevel($acquiredLevel)
+    public function setAcquiredLevel(Level $acquiredLevel)
     {
         $this->acquiredLevel = $acquiredLevel;
 
@@ -296,11 +256,9 @@ class SkillRelUser
     /**
      * Set argumentationAuthorId.
      *
-     * @param int $argumentationAuthorId
-     *
      * @return SkillRelUser
      */
-    public function setArgumentationAuthorId($argumentationAuthorId)
+    public function setArgumentationAuthorId(int $argumentationAuthorId)
     {
         $this->argumentationAuthorId = $argumentationAuthorId;
 
@@ -320,11 +278,9 @@ class SkillRelUser
     /**
      * Set argumentation.
      *
-     * @param string $argumentation
-     *
      * @return SkillRelUser
      */
-    public function setArgumentation($argumentation)
+    public function setArgumentation(string $argumentation)
     {
         $this->argumentation = $argumentation;
 
@@ -349,12 +305,11 @@ class SkillRelUser
     public function getSourceName()
     {
         $source = '';
-
-        if ($this->session && 0 != $this->session->getId()) {
-            $source .= "[{$this->session->getName()}] ";
+        if (null !== $this->session) {
+            $source .= sprintf('[%s] ', $this->session->getName());
         }
 
-        if ($this->course) {
+        if (null !== $this->course) {
             $source .= $this->course->getTitle();
         }
 
@@ -368,7 +323,7 @@ class SkillRelUser
      */
     public function getIssueUrl()
     {
-        return api_get_path(WEB_PATH)."badge/{$this->id}";
+        return api_get_path(WEB_PATH).sprintf('badge/%s', $this->id);
     }
 
     /**
@@ -378,7 +333,7 @@ class SkillRelUser
      */
     public function getIssueUrlAll()
     {
-        return api_get_path(WEB_PATH)."skill/{$this->skill->getId()}/user/{$this->user->getId()}";
+        return api_get_path(WEB_PATH).sprintf('skill/%s/user/%s', $this->skill->getId(), $this->user->getId());
     }
 
     /**
@@ -390,24 +345,15 @@ class SkillRelUser
     {
         $url = api_get_path(WEB_CODE_PATH).'badge/assertion.php?';
 
-        $url .= http_build_query([
+        return $url.http_build_query([
             'user' => $this->user->getId(),
             'skill' => $this->skill->getId(),
-            'course' => $this->course ? $this->course->getId() : 0,
-            'session' => $this->session ? $this->session->getId() : 0,
+            'course' => null !== $this->course ? $this->course->getId() : 0,
+            'session' => null !== $this->session ? $this->session->getId() : 0,
         ]);
-
-        return $url;
     }
 
-    /**
-     * Get comments.
-     *
-     * @param bool $sortDescByDateTime
-     *
-     * @return ArrayCollection
-     */
-    public function getComments($sortDescByDateTime = false)
+    public function getComments(bool $sortDescByDateTime = false): Collection
     {
         if ($sortDescByDateTime) {
             $criteria = Criteria::create();
@@ -423,21 +369,18 @@ class SkillRelUser
 
     /**
      * Calculate the average value from the feedback comments.
-     *
-     * @return string
      */
-    public function getAverage()
+    public function getAverage(): string
     {
         $sum = 0;
         $countValues = 0;
-
         foreach ($this->comments as $comment) {
-            if (!$comment->getFeedbackValue()) {
+            if (0 === $comment->getFeedbackValue()) {
                 continue;
             }
 
             $sum += $comment->getFeedbackValue();
-            ++$countValues;
+            $countValues++;
         }
 
         $average = $countValues > 0 ? $sum / $countValues : 0;
@@ -454,11 +397,9 @@ class SkillRelUser
     }
 
     /**
-     * @param int $validationStatus
-     *
      * @return SkillRelUser
      */
-    public function setValidationStatus($validationStatus)
+    public function setValidationStatus(int $validationStatus)
     {
         $this->validationStatus = $validationStatus;
 

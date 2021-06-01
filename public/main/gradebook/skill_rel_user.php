@@ -1,11 +1,13 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-use Chamilo\SkillBundle\Entity\SkillRelItem;
+use Chamilo\CoreBundle\Entity\SkillRelItem;
+use Chamilo\CoreBundle\Entity\SkillRelItemRelUser;
 
 require_once __DIR__.'/../inc/global.inc.php';
 
-if (api_get_configuration_value('allow_skill_rel_items') == false) {
+if (false == api_get_configuration_value('allow_skill_rel_items')) {
     api_not_allowed(true);
 }
 
@@ -22,11 +24,11 @@ if (empty($userInfo)) {
     api_not_allowed(true);
 }
 
-$skills = Skill::getSkillRelItemsPerCourse($courseId, $sessionId);
+$skills = SkillModel::getSkillRelItemsPerCourse($courseId, $sessionId);
 $uniqueSkills = [];
 $itemsPerSkill = [];
 $uniqueSkillsConclusion = [];
-$skillRelUser = new SkillRelUser();
+$skillRelUser = new SkillRelUserModel();
 $userSkills = $skillRelUser->getUserSkills($userId, api_get_course_int_id(), api_get_session_id());
 $userSkillsList = [];
 if (!empty($userSkills)) {
@@ -41,14 +43,14 @@ $codePath = api_get_path(WEB_CODE_PATH);
 foreach ($skills as $skill) {
     $skillId = $skill->getSkill()->getId();
     $uniqueSkills[$skillId] = $skill->getSkill();
-    $itemInfo = Skill::getItemInfo($skill->getItemId(), $skill->getItemType());
+    $itemInfo = SkillModel::getItemInfo($skill->getItemId(), $skill->getItemType());
 
     $criteria = [
         'user' => $userId,
         'skillRelItem' => $skill,
     ];
-    /** @var \Chamilo\SkillBundle\Entity\SkillRelItemRelUser $skillRelItemRelUser */
-    $skillRelItemRelUser = $em->getRepository('ChamiloSkillBundle:SkillRelItemRelUser')->findOneBy($criteria);
+    /** @var SkillRelItemRelUser $skillRelItemRelUser */
+    $skillRelItemRelUser = $em->getRepository(SkillRelItemRelUser::class)->findOneBy($criteria);
     $itemInfo['status'] = $skillRelItemRelUser ? true : false;
     $itemInfo['url_activity'] = $codePath.$skill->getItemResultList(api_get_cidreq());
     if ($skillRelItemRelUser) {

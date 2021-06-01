@@ -1,11 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Controller;
 
+use Chamilo\CoreBundle\Traits\ControllerTrait;
+use Display;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use SystemAnnouncementManager;
 
 /**
  * Class IndexController
@@ -15,6 +20,8 @@ use Symfony\Component\Routing\Annotation\Route;
  */
 class NewsController extends BaseController
 {
+    use ControllerTrait;
+
     /**
      * @Route("/", name="news_index", methods={"GET"}, options={"expose"=true})
      */
@@ -22,15 +29,15 @@ class NewsController extends BaseController
     {
         $toolBar = '';
         if ($this->isGranted('ROLE_ADMIN')) {
-            $actionEdit = \Display::url(
-                \Display::return_icon('edit.png', $this->trans('EditSystemAnnouncement'), [], ICON_SIZE_MEDIUM),
+            $actionEdit = Display::url(
+                Display::return_icon('edit.png', $this->trans('EditSystemAnnouncement'), [], ICON_SIZE_MEDIUM),
                 api_get_path(WEB_PATH).'main/admin/system_announcements.php'
             );
-            $toolBar = \Display::toolbarAction('toolbar', [$actionEdit]);
+            $toolBar = Display::toolbarAction('toolbar', [$actionEdit]);
         }
 
         return $this->render(
-            '@ChamiloTheme/News/index.html.twig',
+            '@ChamiloCore/News/index.html.twig',
             [
                 'toolbar' => $toolBar,
             ]
@@ -39,31 +46,28 @@ class NewsController extends BaseController
 
     /**
      * @Route("/{id}", name="news", methods={"GET", "POST"}, options={"expose"=true})
-     *
-     * @param int $id
      */
-    public function newsAction($id = 0): Response
+    public function newsAction(int $id = 0): Response
     {
-        $visibility = \SystemAnnouncementManager::getCurrentUserVisibility();
+        $visibility = SystemAnnouncementManager::getCurrentUserVisibility();
 
         if (empty($id)) {
-            $content = \SystemAnnouncementManager::getAnnouncements($visibility);
+            $content = SystemAnnouncementManager::getAnnouncements($visibility);
 
             return $this->render(
-                '@ChamiloTheme/News/slider.html.twig',
+                '@ChamiloCore/News/slider.html.twig',
                 [
                     'announcements' => $content,
                 ]
             );
-        } else {
-            $content = \SystemAnnouncementManager::getAnnouncement($id, $visibility);
-
-            return $this->render(
-                '@ChamiloTheme/News/view.html.twig',
-                [
-                    'announcement' => $content,
-                ]
-            );
         }
+        $content = SystemAnnouncementManager::getAnnouncement($id, $visibility);
+
+        return $this->render(
+            '@ChamiloCore/News/view.html.twig',
+            [
+                'announcement' => $content,
+            ]
+        );
     }
 }

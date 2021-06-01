@@ -10,6 +10,7 @@
  */
 require_once __DIR__.'/../inc/global.inc.php';
 
+api_protect_course_script(true);
 $form_style = '<style>
 .row {
     width: 200px;
@@ -24,7 +25,7 @@ $form_style = '<style>
 
 $htmlHeadXtra[] = $form_style;
 
-if (api_get_setting('search_enabled') == 'true') {
+if ('true' == api_get_setting('search_enabled')) {
     $specific_fields = get_specific_field_list();
 }
 
@@ -34,10 +35,9 @@ if (isset($_POST['convert'])) {
         $allowed_extensions = ['doc', 'docx', 'odt', 'txt', 'sxw', 'rtf'];
         if (in_array(strtolower(pathinfo($_FILES['user_file']['name'], PATHINFO_EXTENSION)), $allowed_extensions)) {
             require '../lp/lp_upload.php';
-            if (isset($o_doc) && $first_item_id != 0) {
+            if (isset($o_doc) && 0 != $first_item_id) {
                 // Search-related section
-                if (api_get_setting('search_enabled') == 'true') {
-                    require_once api_get_path(LIBRARY_PATH).'specific_fields_manager.lib.php';
+                if ('true' == api_get_setting('search_enabled')) {
                     $specific_fields = get_specific_field_list();
 
                     foreach ($specific_fields as $specific_field) {
@@ -153,7 +153,7 @@ EOT;
 $renderer->setCustomElementTemplate($user_file_template);
 
 $form->addElement('file', 'user_file', Display::return_icon('word_big.gif'));
-if (api_get_setting('search_enabled') === 'true') {
+if ('true' === api_get_setting('search_enabled')) {
     $form->addElement('checkbox', 'index_document', '', get_lang('Index document text?ument'));
     $form->addElement('html', '<br />');
     $form->addElement(
@@ -175,7 +175,8 @@ if (api_get_setting('search_enabled') === 'true') {
  * $form -> addElement ('radio', 'split_steps',null, get_lang('A section, a learning object'),'per_chapter');
  */
 $form->addElement('hidden', 'split_steps', 'per_page');
-$form->addElement('submit', 'convert', get_lang('Convert to course'), 'class="convert_button"');
+//$form->addElement('submit', 'convert', get_lang('Convert to course'), 'class="convert_button"');
+$this->addButtonSave(get_lang('Convert to course'), 'convert');
 $form->addElement('hidden', 'woogie', 'true');
 $form->addProgress();
 $defaults = ['split_steps' => 'per_page', 'index_document' => 'checked="checked"'];

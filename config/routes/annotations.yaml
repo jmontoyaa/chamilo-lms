@@ -1,4 +1,11 @@
-# Controllers
-controllers:
-    resource: '../../src/UserBundle/Controller/'
+core_controllers:
+    resource: '../../src/CoreBundle/Controller/'
+    type: annotation
+
+course_controllers:
+    resource: '../../src/CourseBundle/Controller/'
+    type: annotation
+
+lti_controllers:
+    resource: '../../src/LtiBundle/Controller/'
     type: annotation

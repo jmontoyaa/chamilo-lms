@@ -1,6 +1,8 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Entity\ExtraFieldSavedSearch;
 use Chamilo\CoreBundle\Entity\Tag;
 
 require_once __DIR__.'/../global.inc.php';
@@ -46,7 +48,7 @@ switch ($action) {
         $extraFieldOption = new ExtraFieldOption($type);
 
         $tags = Database::getManager()
-            ->getRepository('ChamiloCoreBundle:Tag')
+            ->getRepository(Tag::class)
             ->createQueryBuilder('t')
             ->where("t.tag LIKE :tag")
             ->andWhere('t.fieldId = :field')
@@ -66,6 +68,7 @@ switch ($action) {
         echo json_encode(['items' => $result]);
         break;
     case 'search_options_from_tags':
+        exit;
         $type = isset($_REQUEST['type']) ? $_REQUEST['type'] : null;
         $fieldId = isset($_REQUEST['field_id']) ? $_REQUEST['field_id'] : null;
         $tag = isset($_REQUEST['tag']) ? $_REQUEST['tag'] : null;
@@ -116,20 +119,20 @@ switch ($action) {
             'field' => $extraFieldInfo['id'],
         ];
 
-        $extraFieldSavedSearch = $em->getRepository('ChamiloCoreBundle:ExtraFieldSavedSearch')->findOneBy($search);
+        $extraFieldSavedSearch = $em->getRepository(ExtraFieldSavedSearch::class)->findOneBy($search);
 
         if ($save) {
-            $extraField = new \Chamilo\CoreBundle\Entity\ExtraFieldSavedSearch('session');
+            $extraField = new ExtraFieldSavedSearch('session');
             if ($extraFieldSavedSearch) {
                 $extraFieldSavedSearch->setValue($values);
-                $em->merge($extraFieldSavedSearch);
+                $em->persist($extraFieldSavedSearch);
                 $em->flush();
             }
         }
 
         if ($extraFieldInfo) {
-            /** @var \Chamilo\CoreBundle\Entity\ExtraFieldSavedSearch $options */
-            $extraFieldSavedSearch = $em->getRepository('ChamiloCoreBundle:ExtraFieldSavedSearch')->findOneBy($search);
+            /** @var ExtraFieldSavedSearch $extraFieldSavedSearch */
+            $extraFieldSavedSearch = $em->getRepository(ExtraFieldSavedSearch::class)->findOneBy($search);
             $values = $extraFieldSavedSearch->getValue();
             $url = api_get_self().'?a=order&save=1&field_variable='.$variable;
 
@@ -138,29 +141,28 @@ switch ($action) {
                 $(function() {
                     $( "#sortable" ).sortable();
                     $( "#sortable" ).disableSelection();
-                    
+
                     $( "#link_'.$variable.'" ).on("click", function() {
                         var newList = [];
                         $("#sortable").find("li").each(function(){
                             newList.push($(this).text());
                         });
-                                                
-                        var save = JSON.stringify(newList);                      
+
+                        var save = JSON.stringify(newList);
                         $.ajax({
                             url: "'.$url.'",
                             dataType: "json",
                             data: "values="+save,
                             success: function(data) {
-                                console.log(data);
                             }
                         });
-                        
+
                         alert("'.get_lang('Saved.').'");
-                        
+
                         location.reload();
-                        
+
                         return false;
-                        
+
                     });
                 });
             </script>';

@@ -1,9 +1,8 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 /**
  * Config the plugin.
- *
- * @package chamilo.plugin.test2pdf
  *
  * @author Jose Angel Ruiz <desarrollo@nosolored.com>
  */

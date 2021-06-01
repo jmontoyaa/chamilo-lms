@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CourseBundle\Entity\CStudentPublication;
@@ -8,26 +9,24 @@ $current_course_tool = TOOL_STUDENTPUBLICATION;
 
 api_protect_course_script(true);
 
-require_once 'work.lib.php';
 $this_section = SECTION_COURSES;
 
 $workId = isset($_GET['id']) ? (int) $_GET['id'] : null;
 $courseInfo = api_get_course_info();
-
 if (empty($workId) || empty($courseInfo)) {
     api_not_allowed(true);
 }
+$course = api_get_course_entity();
+
 
 // Student publications are saved with the iid in a LP
 $origin = api_get_origin();
-if ($origin === 'learnpath') {
+if ('learnpath' === $origin) {
     $em = Database::getManager();
     /** @var CStudentPublication $work */
-    $work = $em->getRepository('ChamiloCourseBundle:CStudentPublication')->findOneBy(
-        ['iid' => $workId, 'cId' => $courseInfo['real_id']]
-    );
+    $work = $em->getRepository(CStudentPublication::class)->find($workId);
     if ($work) {
-        $workId = $work->getId();
+        $workId = $work->getIid();
     }
 }
 
@@ -43,14 +42,14 @@ $htmlHeadXtra[] = api_get_jqgrid_js();
 $url_dir = api_get_path(WEB_CODE_PATH).'work/work.php?'.api_get_cidreq();
 
 if (!empty($group_id)) {
-    $group_properties = GroupManager :: get_group_properties($group_id);
+    $group = api_get_group_entity($group_id);
     $interbreadcrumb[] = [
         'url' => api_get_path(WEB_CODE_PATH).'group/group.php?'.api_get_cidreq(),
         'name' => get_lang('Groups'),
     ];
     $interbreadcrumb[] = [
         'url' => api_get_path(WEB_CODE_PATH).'group/group_space.php?'.api_get_cidreq(),
-        'name' => get_lang('Group area').' '.$group_properties['name'],
+        'name' => get_lang('Group area').' '.$group->getName(),
     ];
 }
 
@@ -121,8 +120,8 @@ if (!empty($extraFieldWorkData)) {
                         e.preventDefault();
                     }
                 });
-                
-                $('.download_extra_field').on('click', function(e){      
+
+                $('.download_extra_field').on('click', function(e){
                     clicked = 1;
                 });
             });
@@ -137,13 +136,14 @@ $item_id = isset($_REQUEST['item_id']) ? (int) $_REQUEST['item_id'] : null;
 
 switch ($action) {
     case 'delete':
-        $fileDeleted = deleteWorkItem($item_id, $courseInfo);
+        $fileDeleted = deleteWorkItem($item_id, $course);
 
         if (!$fileDeleted) {
             Display::addFlash(Display::return_message(get_lang('You are not allowed to delete this document')));
         } else {
             Display::addFlash(Display::return_message(get_lang('The document has been deleted.')));
         }
+
         break;
 }
 
@@ -278,7 +278,7 @@ if (!api_is_invitee()) {
     $content .= '
         <script>
             $(function() {
-                '.Display::grid_js('results', $url, $columns, $columnModel, $extraParams).'            
+                '.Display::grid_js('results', $url, $columns, $columnModel, $extraParams).'
             });
         </script>
     ';

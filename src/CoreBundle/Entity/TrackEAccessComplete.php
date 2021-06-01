@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
+use Chamilo\CoreBundle\Traits\UserTrait;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -14,124 +17,93 @@ use Doctrine\ORM\Mapping as ORM;
  */
 class TrackEAccessComplete
 {
+    use UserTrait;
+
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="user_id", type="integer", nullable=false)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="trackEAccessCompleteList")
+     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", onDelete="CASCADE", nullable=false)
      */
-    protected $userId;
+    protected User $user;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="date_reg", type="datetime", nullable=false)
      */
-    protected $dateReg;
+    protected int $dateReg;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="tool", type="string", length=255, nullable=false)
      */
-    protected $tool;
+    protected string $tool;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="tool_id", type="integer", nullable=false)
      */
-    protected $toolId;
+    protected int $toolId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="tool_id_detail", type="integer", nullable=false)
      */
-    protected $toolIdDetail;
+    protected int $toolIdDetail;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="action", type="string", length=255, nullable=false)
      */
-    protected $action;
+    protected string $action;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="action_details", type="string", length=255, nullable=false)
      */
-    protected $actionDetails;
+    protected string $actionDetails;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="current_id", type="integer", nullable=false)
      */
-    protected $currentId;
+    protected int $currentId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="ip_user", type="string", length=255, nullable=false)
      */
-    protected $ipUser;
+    protected string $ipUser;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="user_agent", type="string", length=255, nullable=false)
      */
-    protected $userAgent;
+    protected string $userAgent;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="session_id", type="integer", nullable=false)
      */
-    protected $sessionId;
+    protected int $sessionId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer", nullable=false)
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="ch_sid", type="string", length=255, nullable=false)
      */
-    protected $chSid;
+    protected string $chSid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="login_as", type="integer", nullable=false)
      */
-    protected $loginAs;
+    protected int $loginAs;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="info", type="text", nullable=false)
      */
-    protected $info;
+    protected string $info;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="url", type="text", nullable=false)
      */
-    protected $url;
+    protected string $url;
 }

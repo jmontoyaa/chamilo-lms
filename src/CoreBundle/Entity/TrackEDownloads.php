@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -19,57 +22,43 @@ use Doctrine\ORM\Mapping as ORM;
 class TrackEDownloads
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="down_id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $downId;
+    protected int $downId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="down_user_id", type="integer", nullable=true)
      */
-    protected $downUserId;
+    protected ?int $downUserId = null;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="down_date", type="datetime", nullable=false)
      */
-    protected $downDate;
+    protected DateTime $downDate;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer", nullable=false)
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="down_doc_path", type="string", length=255, nullable=false)
      */
-    protected $downDocPath;
+    protected string $downDocPath;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="down_session_id", type="integer", nullable=false)
      */
-    protected $downSessionId;
+    protected int $downSessionId;
 
     /**
      * Set downUserId.
      *
-     * @param int $downUserId
-     *
      * @return TrackEDownloads
      */
-    public function setDownUserId($downUserId)
+    public function setDownUserId(int $downUserId)
     {
         $this->downUserId = $downUserId;
 
@@ -89,11 +78,9 @@ class TrackEDownloads
     /**
      * Set downDate.
      *
-     * @param \DateTime $downDate
-     *
      * @return TrackEDownloads
      */
-    public function setDownDate($downDate)
+    public function setDownDate(DateTime $downDate)
     {
         $this->downDate = $downDate;
 
@@ -103,7 +90,7 @@ class TrackEDownloads
     /**
      * Get downDate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getDownDate()
     {
@@ -113,11 +100,9 @@ class TrackEDownloads
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return TrackEDownloads
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
@@ -137,11 +122,9 @@ class TrackEDownloads
     /**
      * Set downDocPath.
      *
-     * @param string $downDocPath
-     *
      * @return TrackEDownloads
      */
-    public function setDownDocPath($downDocPath)
+    public function setDownDocPath(string $downDocPath)
     {
         $this->downDocPath = $downDocPath;
 
@@ -161,11 +144,9 @@ class TrackEDownloads
     /**
      * Set downSessionId.
      *
-     * @param int $downSessionId
-     *
      * @return TrackEDownloads
      */
-    public function setDownSessionId($downSessionId)
+    public function setDownSessionId(int $downSessionId)
     {
         $this->downSessionId = $downSessionId;
 

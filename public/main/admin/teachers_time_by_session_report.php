@@ -2,18 +2,15 @@
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Entity\Session;
-use Chamilo\CourseBundle\Repository\CStudentPublicationRepository;
+use Chamilo\CoreBundle\Framework\Container;
 use Doctrine\Common\Collections\Criteria;
 
 /**
  * Generate a teacher time report in platform by session only.
- *
- * @package chamilo.admin
  */
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
-require_once api_get_path(SYS_CODE_PATH).'work/work.lib.php';
 
 if (!api_is_platform_admin(true) && !api_is_teacher()) {
     api_not_allowed(true);
@@ -85,8 +82,7 @@ if ($session) {
                 continue;
             }
 
-            /** @var CStudentPublicationRepository $studentPubRepo */
-            $studentPubRepo = $em->getRepository('ChamiloCourseBundle:CStudentPublication');
+            $studentPubRepo = Container::getStudentPublicationRepository();
             $works = $studentPubRepo->findWorksByTeacher($user, $course, $session);
 
             $usersInfo[$user->getId()][$course->getId().'_number_of_students'] = $sessionCourse->getNbrUsers();
@@ -106,7 +102,7 @@ if ($session) {
     }
 }
 
-if (isset($_GET['export']) && $session && ($coursesInfo && $usersInfo)) {
+if (isset($_GET['export']) && $session && $coursesInfo && $usersInfo) {
     $fileName = get_lang('Teachers time report').' '.api_get_local_time();
 
     $dataToExport = [];

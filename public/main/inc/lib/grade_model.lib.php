@@ -79,7 +79,7 @@ class GradeModel extends Model
         // Setting the form elements
         $header = get_lang('Add');
 
-        if ($action == 'edit') {
+        if ('edit' == $action) {
             $header = get_lang('Edit');
         }
         $id = isset($_GET['id']) ? intval($_GET['id']) : '';
@@ -111,7 +111,7 @@ class GradeModel extends Model
             $components = $this->get_components($defaults['id']);
         }
 
-        if ($action == 'edit') {
+        if ('edit' == $action) {
             if (!empty($components)) {
                 $nr_items = count($components);
             }
@@ -131,7 +131,7 @@ class GradeModel extends Model
             $form->addElement('hidden', 'components['.$i.'][id]', null);
 
             $template_percentage =
-            '<div id='.$i.' style="display: '.(($i <= $nr_items) ? 'inline' : 'none').';" class="form-group">                
+            '<div id='.$i.' style="display: '.(($i <= $nr_items) ? 'inline' : 'none').';" class="form-group">
                 <label for="" class="col-sm-2 control-label">
                     {label}
                 </label>
@@ -156,7 +156,7 @@ class GradeModel extends Model
             $renderer->setElementTemplate($template_percentage, 'components['.$i.'][percentage]');
             $renderer->setElementTemplate($template_acronym, 'components['.$i.'][acronym]');
 
-            if ($i == 0) {
+            if (0 == $i) {
                 $form->addRule('components['.$i.'][percentage]', get_lang('Required field'), 'required');
                 $form->addRule('components['.$i.'][acronym]', get_lang('Required field'), 'required');
                 $form->addRule('components['.$i.'][title]', get_lang('Required field'), 'required');
@@ -172,7 +172,7 @@ class GradeModel extends Model
         $form->addRule($component_array, get_lang('The sum of all values must be 100'), 'compare_fields', '==@100');
         $form->addElement('label', '', get_lang('The sum of all values must be 100'));
 
-        if ($action == 'edit') {
+        if ('edit' == $action) {
             $form->addButtonUpdate(get_lang('Edit'));
         } else {
             $form->addButtonCreate(get_lang('Add'));
@@ -212,13 +212,13 @@ class GradeModel extends Model
 
     /**
      * @param array $params
-     * @param bool  $show_query
+     * @param bool  $showQuery
      *
      * @return bool
      */
-    public function save($params, $show_query = false)
+    public function save($params, $showQuery = false)
     {
-        $id = parent::save($params, $show_query);
+        $id = parent::save($params, $showQuery);
         if (!empty($id)) {
             foreach ($params['components'] as $component) {
                 if (!empty($component['title']) && !empty($component['percentage']) && !empty($component['acronym'])) {
@@ -270,11 +270,11 @@ class GradeModel extends Model
      */
     public function fill_grade_model_select_in_form(&$form, $name = 'gradebook_model_id', $default_value = null)
     {
-        if (api_get_setting('gradebook_enable_grade_model') === 'false') {
+        if ('false' === api_get_setting('gradebook_enable_grade_model')) {
             return false;
         }
 
-        if (api_get_setting('teachers_can_change_grade_model_settings') === 'true' || api_is_platform_admin()) {
+        if ('true' === api_get_setting('teachers_can_change_grade_model_settings') || api_is_platform_admin()) {
             $grade_models = $this->get_all();
             $grade_model_options = ['-1' => get_lang('none')];
             if (!empty($grade_models)) {
@@ -286,7 +286,7 @@ class GradeModel extends Model
             $default_platform_setting = api_get_setting('gradebook_default_grade_model_id');
             $default = -1;
 
-            if ($default_platform_setting == -1) {
+            if (-1 == $default_platform_setting) {
                 if (!empty($default_value)) {
                     $default = $default_value;
                 }
@@ -294,7 +294,7 @@ class GradeModel extends Model
                 $default = $default_platform_setting;
             }
 
-            if (!empty($default) && $default != '-1') {
+            if (!empty($default) && '-1' != $default) {
                 $form->setDefaults([$name => $default]);
             }
         }

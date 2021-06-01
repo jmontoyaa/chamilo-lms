@@ -1,12 +1,13 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Entity\Promotion as PromotionEntity;
 
 /**
  * Class Promotion
  * This class provides methods for the promotion management.
  * Include/require it in your code to use its features.
- *
- * @package chamilo.library
  */
 class Promotion extends Model
 {
@@ -146,14 +147,11 @@ class Promotion extends Model
         );
     }
 
-    /**
-     * @return array
-     */
-    public function get_status_list()
+    public function get_status_list(): array
     {
         return [
-            PROMOTION_STATUS_ACTIVE => get_lang('active'),
-            PROMOTION_STATUS_INACTIVE => get_lang('inactive'),
+            PromotionEntity::PROMOTION_STATUS_ACTIVE => get_lang('active'),
+            PromotionEntity::PROMOTION_STATUS_INACTIVE => get_lang('inactive'),
         ];
     }
 
@@ -164,9 +162,7 @@ class Promotion extends Model
      */
     public function display()
     {
-        // Action links
-        echo '<div class="actions" style="margin-bottom:20px">';
-        echo '<a href="career_dashboard.php">'.
+        $actions = '<a href="career_dashboard.php">'.
             Display::return_icon(
                 'back.png',
                 get_lang('Back'),
@@ -174,21 +170,22 @@ class Promotion extends Model
                 '32'
             )
             .'</a>';
-        echo '<a href="'.api_get_self().'?action=add">'.
+        $actions .= '<a href="'.api_get_self().'?action=add">'.
             Display::return_icon(
                 'new_promotion.png',
                 get_lang('Add'),
                 '',
                 '32'
             ).'</a>';
-        echo '<a href="'.api_get_path(WEB_CODE_PATH).'session/session_add.php">'.
+        $actions .= '<a href="'.api_get_path(WEB_CODE_PATH).'session/session_add.php">'.
             Display::return_icon(
                 'new_session.png',
                 get_lang('Add a training session'),
                 '',
                 '32'
             ).'</a>';
-        echo '</div>';
+
+        echo Display::toolbarAction('promotion_actions', [$actions]);
         echo Display::grid_html('promotions');
     }
 
@@ -223,7 +220,7 @@ class Promotion extends Model
         $form = new FormValidator('promotion', 'post', $url);
         // Setting the form elements
         $header = get_lang('Add');
-        if ($action == 'edit') {
+        if ('edit' == $action) {
             $header = get_lang('Edit');
         }
 
@@ -262,11 +259,11 @@ class Promotion extends Model
         );
         $status_list = $this->get_status_list();
         $form->addElement('select', 'status', get_lang('Status'), $status_list);
-        if ($action == 'edit') {
+        if ('edit' == $action) {
             $form->addElement('text', 'created_at', get_lang('Created at'));
             $form->freeze('created_at');
         }
-        if ($action == 'edit') {
+        if ('edit' == $action) {
             $form->addButtonSave(get_lang('Edit'), 'submit');
         } else {
             $form->addButtonCreate(get_lang('Add'), 'submit');
@@ -290,16 +287,16 @@ class Promotion extends Model
 
     /**
      * @param array $params
-     * @param bool  $show_query
+     * @param bool  $showQuery
      *
      * @return bool
      */
-    public function save($params, $show_query = false)
+    public function save($params, $showQuery = false)
     {
         $promotion = new \Chamilo\CoreBundle\Entity\Promotion();
 
         $em = Database::getManager();
-        $repo = $em->getRepository('ChamiloCoreBundle:Career');
+        $repo = $em->getRepository(\Chamilo\CoreBundle\Entity\Career::class);
         $promotion
             ->setName($params['name'])
             ->setStatus($params['status'])

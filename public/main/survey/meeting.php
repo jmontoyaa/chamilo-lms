@@ -1,5 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CSurvey;
 
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -13,7 +17,8 @@ $courseInfo = api_get_course_info();
 $surveyId = isset($_REQUEST['survey_id']) ? (int) $_REQUEST['survey_id'] : 0;
 $invitationcode = isset($_REQUEST['invitationcode']) ? Database::escape_string($_REQUEST['invitationcode']) : 0;
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : '';
-
+$survey = null;
+$repo = Container::getSurveyRepository();
 if (!empty($invitationcode) || !api_is_allowed_to_edit()) {
     $table_survey_invitation = Database::get_course_table(TABLE_SURVEY_INVITATION);
     $table_survey = Database::get_course_table(TABLE_SURVEY);
@@ -28,84 +33,63 @@ if (!empty($invitationcode) || !api_is_allowed_to_edit()) {
     }
 
     $survey_invitation = Database::fetch_array($result, 'ASSOC');
-    $sql = "SELECT * FROM $table_survey
-            WHERE
-                c_id = $courseId AND
-                code = '".Database::escape_string($survey_invitation['survey_code'])."'";
-    $sql .= api_get_session_condition($sessionId);
-    $result = Database::query($sql);
-    $result = Database::fetch_array($result, 'ASSOC');
-    $surveyId = $result['iid'];
+    /** @var CSurvey $survey */
+    $survey = $repo->find($survey_invitation['survey_id']);
+    $surveyId = $survey->getIid();
 }
 
-$surveyData = SurveyManager::get_survey($surveyId);
-
-if (empty($surveyData)) {
+if (null === $survey) {
     api_not_allowed(true);
 }
 
-SurveyManager::checkTimeAvailability($surveyData);
-
-$invitations = SurveyUtil::get_invited_users($surveyData['code']);
-$students = isset($invitations['course_users']) ? $invitations['course_users'] : [];
-
-$content = Display::page_header($surveyData['title']);
+SurveyManager::checkTimeAvailability($survey);
+$invitations = SurveyUtil::get_invited_users($survey);
+$students = $invitations['course_users'] ?? [];
+$content = Display::page_header($survey->getTitle());
 
 $interbreadcrumb[] = [
-    'url' => api_get_path(WEB_CODE_PATH).
-        'survey/survey_list.php?cidReq='.$courseInfo['code'].'&id_session='.$sessionId,
+    'url' => api_get_path(WEB_CODE_PATH).'survey/survey_list.php?cid='.$courseInfo['real_id'].'&sid='.$sessionId,
     'name' => get_lang('Survey list'),
 ];
 
-$questions = SurveyManager::get_questions($surveyData['iid']);
-
 $url = api_get_self().'?survey_id='.$surveyId.'&invitationcode='.$invitationcode.'&'.api_get_cidreq();
 $urlEdit = $url.'&action=edit';
+
+$questions = $survey->getQuestions();
 
 if (isset($_POST) && !empty($_POST)) {
     $options = isset($_POST['options']) ? array_keys($_POST['options']) : [];
 
     foreach ($questions as $item) {
-        $questionId = $item['question_id'];
-        SurveyUtil::remove_answer(
-            $userId,
-            $surveyId,
-            $questionId,
-            $courseId
-        );
+        $questionId = $item->getIid();
+        SurveyUtil::remove_answer($userId, $surveyId, $questionId, $courseId);
     }
 
     $status = 1;
     if (!empty($options)) {
         foreach ($options as $selectedQuestionId) {
-            SurveyUtil::store_answer(
+            SurveyUtil::saveAnswer(
                 $userId,
-                $surveyId,
+                $survey,
                 $selectedQuestionId,
                 1,
-                $status,
-                $surveyData
+                $status
             );
         }
     } else {
         foreach ($questions as $item) {
             $questionId = $item['question_id'];
-            SurveyUtil::store_answer(
+            SurveyUtil::saveAnswer(
                 $userId,
-                $surveyId,
+                $survey,
                 $questionId,
                 1,
-                0,
-                $surveyData
+                0
             );
         }
     }
 
-    SurveyManager::update_survey_answered(
-        $surveyData,
-        $survey_invitation['user'],
-        $survey_invitation['survey_code']
-    );
+    SurveyManager::updateSurveyAnswered($survey, $survey_invitation['user']);
 
     Display::addFlash(Display::return_message(get_lang('Saved.')));
     header('Location: '.$url);
@@ -115,19 +99,19 @@ if (isset($_POST) && !empty($_POST)) {
 $template = new Template();
 
 $table = new HTML_Table(['class' => 'table']);
-
 $row = 0;
 $column = 1;
 $answerList = [];
 foreach ($questions as $item) {
-    $answers = SurveyUtil::get_answers_of_question_by_user($surveyId, $item['question_id']);
+    $questionId = $item->getIid();
+    $answers = SurveyUtil::get_answers_of_question_by_user($surveyId, $questionId);
     foreach ($answers as $tempUserId => &$value) {
         $value = $value[0];
         $value = explode('*', $value);
-        $value = isset($value[1]) ? $value[1] : 0;
+        $value = $value[1] ?? 0;
     }
-    $answerList[$item['question_id']] = $answers;
-    $parts = explode('@@', $item['question']);
+    $answerList[$questionId] = $answers;
+    $parts = explode('@@', $item->getSurveyQuestion());
     $startDateTime = api_get_local_time($parts[0]);
     $endDateTime = api_get_local_time($parts[1]);
 
@@ -166,7 +150,7 @@ foreach ($questions as $item) {
     $questionsWithAnswer = 0;
     if (isset($answerList[$questionId])) {
         foreach ($answerList[$questionId] as $userAnswer) {
-            if ((int) $userAnswer === 1) {
+            if (1 === (int) $userAnswer) {
                 $questionsWithAnswer++;
             }
         }
@@ -189,7 +173,7 @@ foreach ($students as $studentId) {
     $userInfo = api_get_user_info($studentId);
     $name = $userInfo['complete_name'];
     if ($userId == $studentId) {
-        if ($action !== 'edit') {
+        if ('edit' !== $action) {
             $name .= Display::url(
                 Display::return_icon('edit.png', get_lang('Edit')),
                 $urlEdit
@@ -204,20 +188,20 @@ foreach ($students as $studentId) {
                 if (empty($answerList[$item['question_id']][$studentId])) {
                     $checked = $notAvailableIcon;
                 }
-                if ($action === 'edit') {
+                if ('edit' === $action) {
                     $checked = '';
-                    if ($answerList[$item['question_id']][$studentId] == 1) {
+                    if (1 == $answerList[$item['question_id']][$studentId]) {
                         $checked = 'checked';
                     }
                 }
             }
 
-            if ($action === 'edit') {
-                $html = '<div class="alert alert-info"><input 
-                    id="'.$item['question_id'].'" 
-                    name="options['.$item['question_id'].']" 
-                    class="question" '.$checked.' 
-                    type="checkbox" 
+            if ('edit' === $action) {
+                $html = '<div class="alert alert-info"><input
+                    id="'.$item['question_id'].'"
+                    name="options['.$item['question_id'].']"
+                    class="question" '.$checked.'
+                    type="checkbox"
                 /></div>';
             } else {
                 $html = $checked;
@@ -252,13 +236,13 @@ foreach ($students as $studentId) {
     $table->setCellContents($row, $column, $name);
     $row++;
 }
-if ($action === 'edit') {
+if ('edit' === $action) {
     $content .= '<form name="meeting" action="'.$urlEdit.'" method="post">';
 }
 
 $content .= $table->toHtml();
 
-if ($action === 'edit') {
+if ('edit' === $action) {
     $content .= '<div class="pull-right">
         <button name="submit" type="submit" class="btn btn-primary btn-lg">'.get_lang('Save').'</button></div>';
     $content .= '</form>';

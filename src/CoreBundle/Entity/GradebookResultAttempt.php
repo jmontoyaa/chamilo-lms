@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
@@ -18,32 +20,25 @@ class GradebookResultAttempt
     use TimestampableEntity;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="comment", type="text", nullable=true)
      */
-    protected $comment;
+    protected ?bool $comment = null;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="score", type="float", nullable=true)
      */
-    protected $score;
+    protected ?float $score = null;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="result_id", type="integer", nullable=false)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\GradebookResult")
+     * @ORM\JoinColumn(name="result_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $resultId;
+    protected GradebookResult $result;
 }

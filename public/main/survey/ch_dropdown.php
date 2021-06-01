@@ -7,16 +7,22 @@
 class ch_dropdown extends survey_question
 {
     /**
-     * @param array $survey_data
+     * @param array $surveyData
      * @param $formData
      */
-    public function createForm($survey_data, $formData)
+    public function createForm($surveyData, $formData)
     {
-        parent::createForm($survey_data, $formData);
+        parent::createForm($surveyData, $formData);
 
         if (is_array($formData['answers'])) {
             foreach ($formData['answers'] as $key => $value) {
                 $this->getForm()->addText('answers['.$key.']', $key + 1);
+            }
+        }
+
+        if (isset($formData['answersid']) && !empty($formData['answersid'])) {
+            foreach ($formData['answersid'] as $value) {
+                $this->getForm()->addHidden('answersid[]', $value);
             }
         }
 

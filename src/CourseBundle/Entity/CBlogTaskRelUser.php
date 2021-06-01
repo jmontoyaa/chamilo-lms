@@ -1,78 +1,67 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * CBlogTaskRelUser.
  *
  * @ORM\Table(
- *  name="c_blog_task_rel_user",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="user", columns={"user_id"}),
- *      @ORM\Index(name="task", columns={"task_id"})
- *  }
+ *     name="c_blog_task_rel_user",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"}),
+ *         @ORM\Index(name="user", columns={"user_id"}),
+ *         @ORM\Index(name="task", columns={"task_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CBlogTaskRelUser
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="blog_id", type="integer")
      */
-    protected $blogId;
+    protected int $blogId;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="target_date", type="date", nullable=false)
      */
-    protected $targetDate;
+    protected DateTime $targetDate;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="user_id", type="integer")
      */
-    protected $userId;
+    protected int $userId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="task_id", type="integer")
      */
-    protected $taskId;
+    protected int $taskId;
 
     /**
      * Set targetDate.
      *
-     * @param \DateTime $targetDate
-     *
      * @return CBlogTaskRelUser
      */
-    public function setTargetDate($targetDate)
+    public function setTargetDate(DateTime $targetDate)
     {
         $this->targetDate = $targetDate;
 
@@ -82,7 +71,7 @@ class CBlogTaskRelUser
     /**
      * Get targetDate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getTargetDate()
     {
@@ -92,11 +81,9 @@ class CBlogTaskRelUser
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CBlogTaskRelUser
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
@@ -116,11 +103,9 @@ class CBlogTaskRelUser
     /**
      * Set blogId.
      *
-     * @param int $blogId
-     *
      * @return CBlogTaskRelUser
      */
-    public function setBlogId($blogId)
+    public function setBlogId(int $blogId)
     {
         $this->blogId = $blogId;
 
@@ -140,11 +125,9 @@ class CBlogTaskRelUser
     /**
      * Set userId.
      *
-     * @param int $userId
-     *
      * @return CBlogTaskRelUser
      */
-    public function setUserId($userId)
+    public function setUserId(int $userId)
     {
         $this->userId = $userId;
 
@@ -164,11 +147,9 @@ class CBlogTaskRelUser
     /**
      * Set taskId.
      *
-     * @param int $taskId
-     *
      * @return CBlogTaskRelUser
      */
-    public function setTaskId($taskId)
+    public function setTaskId(int $taskId)
     {
         $this->taskId = $taskId;
 

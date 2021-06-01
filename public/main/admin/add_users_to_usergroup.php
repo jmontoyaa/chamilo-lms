@@ -1,9 +1,6 @@
 <?php
-/* For licensing terms, see /license.txt */
 
-/**
- *   @package chamilo.admin
- */
+/* For licensing terms, see /license.txt */
 
 // resetting the course id
 $cidReset = true;
@@ -29,7 +26,6 @@ $tool_name = get_lang('Subscribe users to class');
 
 $htmlHeadXtra[] = '
 <script>
-
 $(function () {
     $("#relation").change(function() {
         window.location = "add_users_to_usergroup.php?id='.$id.'" +"&relation=" + $(this).val();
@@ -64,7 +60,7 @@ function validate_filter() {
     document.formulaire.submit();
 }
 
-function checked_in_no_group(checked) 
+function checked_in_no_group(checked)
 {
     $("#relation")
     .find("option")
@@ -91,7 +87,7 @@ $new_field_list = [];
 if (is_array($extra_field_list)) {
     foreach ($extra_field_list as $extra_field) {
         //if is enabled to filter and is a "<select>" field type
-        if ($extra_field[8] == 1 && $extra_field[2] == 4) {
+        if (1 == $extra_field[8] && 4 == $extra_field[2]) {
             $new_field_list[] = [
                 'name' => $extra_field[3],
                 'variable' => $extra_field[1], 'data' => $extra_field[9],
@@ -116,13 +112,13 @@ if (isset($_POST['form_sent']) && $_POST['form_sent']) {
     }
 
     // If "social group" you need to select a role
-    if ($groupInfo['group_type'] == 1 && empty($relation)) {
+    if (1 == $groupInfo['group_type'] && empty($relation)) {
         Display::addFlash(Display::return_message(get_lang('Select role'), 'warning'));
         header('Location: '.api_get_self().'?id='.$id);
         exit;
     }
 
-    if ($form_sent == 1) {
+    if (1 == $form_sent) {
         Display::addFlash(Display::return_message(get_lang('Update successful')));
         // Added a parameter to send emails when registering a user
         $usergroup->subscribe_users_to_usergroup(
@@ -136,7 +132,7 @@ if (isset($_POST['form_sent']) && $_POST['form_sent']) {
     }
 }
 
-if (isset($_GET['action']) && $_GET['action'] == 'export') {
+if (isset($_GET['action']) && 'export' === $_GET['action']) {
     $users = $usergroup->getUserListByUserGroup($id);
     if (!empty($users)) {
         $data = [
@@ -158,7 +154,7 @@ if (is_array($extra_field_list)) {
         foreach ($new_field_list as $new_field) {
             $varname = 'field_'.$new_field['variable'];
             if (UserManager::is_extra_field_available($new_field['variable'])) {
-                if (isset($_POST[$varname]) && $_POST[$varname] != '0') {
+                if (isset($_POST[$varname]) && '0' != $_POST[$varname]) {
                     $use_extra_fields = true;
                     $extra_field_result[] = UserManager::get_extra_user_data_by_value(
                         $new_field['variable'],
@@ -217,7 +213,7 @@ if (api_is_western_name_order()) {
 }
 
 $orderListByOfficialCode = api_get_setting('order_user_list_by_official_code');
-if ($orderListByOfficialCode === 'true') {
+if ('true' === $orderListByOfficialCode) {
     $order = ['official_code', 'lastname'];
 }
 
@@ -249,7 +245,7 @@ if (!empty($complete_user_list)) {
         }
 
         // Avoid anonymous users
-        if ($item['status'] == 6) {
+        if (6 == $item['status']) {
             continue;
         }
 
@@ -261,7 +257,7 @@ if (!empty($complete_user_list)) {
             ).' ('.$item['username'].') '.$officialCode;
 
             $orderListByOfficialCode = api_get_setting('order_user_list_by_official_code');
-            if ($orderListByOfficialCode === 'true') {
+            if ('true' === $orderListByOfficialCode) {
                 $officialCode = !empty($item['official_code']) ? $item['official_code'].' - ' : '? - ';
                 $person_name = $officialCode.api_get_person_name(
                     $item['firstname'],
@@ -297,7 +293,7 @@ if (!empty($user_list)) {
         }
 
         // Avoid anonymous users
-        if ($item['status'] == ANONYMOUS) {
+        if (ANONYMOUS == $item['status']) {
             continue;
         }
 
@@ -308,7 +304,7 @@ if (!empty($user_list)) {
         ).' ('.$item['username'].') '.$officialCode;
 
         $orderListByOfficialCode = api_get_setting('order_user_list_by_official_code');
-        if ($orderListByOfficialCode === 'true') {
+        if ('true' === $orderListByOfficialCode) {
             $officialCode = !empty($item['official_code']) ? $item['official_code'].' - ' : '? - ';
             $person_name = $officialCode.api_get_person_name(
                 $item['firstname'],
@@ -324,29 +320,34 @@ if (!empty($user_list)) {
 
 Display::display_header($tool_name);
 
-echo '<div class="actions">';
-echo '<a href="usergroups.php">'.
+$actions = '<a href="usergroups.php">'.
     Display::return_icon('back.png', get_lang('Back'), [], ICON_SIZE_MEDIUM).'</a>';
 
-echo Display::url(get_lang('Advanced search'), '#', ['class' => 'advanced_options', 'id' => 'advanced_search']);
+$actions .= Display::url(
+    get_lang('Advanced search'),
+    '#',
+    ['class' => 'advanced_options btn', 'id' => 'advanced_search']
+);
 
-echo '<a href="usergroup_user_import.php">'.
+$actions .= '<a href="usergroup_user_import.php">'.
     Display::return_icon('import_csv.png', get_lang('Import'), [], ICON_SIZE_MEDIUM).'</a>';
 
-echo '<a href="'.api_get_self().'?id='.$id.'&action=export">'.
-    Display::return_icon('export_csv.png', get_lang('Export'), [], ICON_SIZE_MEDIUM).'</a>';
-echo '</div>';
+$actions .= '<a href="'.api_get_self().'?id='.$id.'&action=export">'.
+    Display::return_icon('export_csv.png', get_lang('Export'), [], ICON_SIZE_MEDIUM).
+    '</a>';
+
+echo Display::toolbarAction('add_users', [$actions]);
 
 echo '<div id="advanced_search_options" style="display:none">';
 $searchForm->display();
 echo '</div>';
+echo Display::page_header($tool_name.': '.$data['name']);
+
 ?>
 <form name="formulaire" method="post" action="<?php echo api_get_self(); ?>?id=<?php echo $id; if (!empty($_GET['add'])) {
     echo '&add=true';
-} ?>" style="margin:0px;">
+} ?>">
 <?php
-echo '<legend>'.$tool_name.': '.$data['name'].'</legend>';
-
 if (is_array($extra_field_list)) {
     if (is_array($new_field_list) && count($new_field_list) > 0) {
         echo '<h3>'.get_lang('Filter by user').'</h3>';
@@ -379,19 +380,19 @@ echo Display::input('hidden', 'add_type', null);
 ?>
 <div class="row">
     <div class="col-md-5">
-        <?php if ($data['group_type'] == UserGroup::SOCIAL_CLASS) {
+        <?php if (UserGroup::SOCIAL_CLASS == $data['group_type']) {
     ?>
         <select name="relation" id="relation">
             <option value=""><?php echo get_lang('Relation type selection'); ?></option>
-            <option value="<?php echo GROUP_USER_PERMISSION_ADMIN; ?>" <?php echo (isset($relation) && $relation == GROUP_USER_PERMISSION_ADMIN) ? 'selected=selected' : ''; ?> >
+            <option value="<?php echo GROUP_USER_PERMISSION_ADMIN; ?>" <?php echo isset($relation) && GROUP_USER_PERMISSION_ADMIN == $relation ? 'selected=selected' : ''; ?> >
                 <?php echo get_lang('Admin'); ?></option>
-            <option value="<?php echo GROUP_USER_PERMISSION_READER; ?>" <?php echo (isset($relation) && $relation == GROUP_USER_PERMISSION_READER) ? 'selected=selected' : ''; ?> >
+            <option value="<?php echo GROUP_USER_PERMISSION_READER; ?>" <?php echo isset($relation) && GROUP_USER_PERMISSION_READER == $relation ? 'selected=selected' : ''; ?> >
                 <?php echo get_lang('Reader'); ?></option>
-            <option value="<?php echo GROUP_USER_PERMISSION_PENDING_INVITATION; ?>" <?php echo (isset($relation) && $relation == GROUP_USER_PERMISSION_PENDING_INVITATION) ? 'selected=selected' : ''; ?> >
+            <option value="<?php echo GROUP_USER_PERMISSION_PENDING_INVITATION; ?>" <?php echo isset($relation) && GROUP_USER_PERMISSION_PENDING_INVITATION == $relation ? 'selected=selected' : ''; ?> >
                 <?php echo get_lang('Pending invitation'); ?></option>
-            <option value="<?php echo GROUP_USER_PERMISSION_MODERATOR; ?>" <?php echo (isset($relation) && $relation == GROUP_USER_PERMISSION_MODERATOR) ? 'selected=selected' : ''; ?> >
+            <option value="<?php echo GROUP_USER_PERMISSION_MODERATOR; ?>" <?php echo isset($relation) && GROUP_USER_PERMISSION_MODERATOR == $relation ? 'selected=selected' : ''; ?> >
                 <?php echo get_lang('Moderator'); ?></option>
-            <option value="<?php echo GROUP_USER_PERMISSION_HRM; ?>" <?php echo (isset($relation) && $relation == GROUP_USER_PERMISSION_HRM) ? 'selected=selected' : ''; ?> >
+            <option value="<?php echo GROUP_USER_PERMISSION_HRM; ?>" <?php echo isset($relation) && GROUP_USER_PERMISSION_HRM == $relation ? 'selected=selected' : ''; ?> >
                 <?php echo get_lang('Human Resources Manager'); ?></option>
         </select>
         <?php
@@ -457,7 +458,6 @@ echo Display::input('hidden', 'add_type', null);
             ],
             false
         );
-        unset($sessionUsersList);
     ?>
     </div>
 </div>

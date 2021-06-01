@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -6,8 +7,6 @@
  *	It displays a list of users and a list of courses;
  *	you can select multiple users and courses and then click on
  *	'Add to this(these) course(s)'.
- *
- *	@package chamilo.admin
  *
  * 	@todo use formvalidator for the form
  */
@@ -42,7 +41,7 @@ Display :: display_header($tool_name);
 
 $link_add_group = '<a href="usergroups.php">'.
     Display::return_icon('multiple.gif', get_lang('Enrolment by classes')).get_lang('Enrolment by classes').'</a>';
-echo '<div class="actions">'.$link_add_group.'</div>';
+echo Display::toolbarAction('subscribe', [$link_add_group]);
 
 $form = new FormValidator('subscribe_user2course');
 $form->addElement('header', '', $tool_name);
@@ -55,7 +54,7 @@ $new_field_list = [];
 if (is_array($extra_field_list)) {
     foreach ($extra_field_list as $extra_field) {
         // if is enabled to filter and is a "<select>" field type
-        if ($extra_field[8] == 1 && $extra_field[2] == ExtraField::FIELD_TYPE_SELECT) {
+        if (1 == $extra_field[8] && ExtraField::FIELD_TYPE_SELECT == $extra_field[2]) {
             $new_field_list[] = [
                 'name' => $extra_field[3],
                 'type' => $extra_field[2],
@@ -63,7 +62,7 @@ if (is_array($extra_field_list)) {
                 'data' => $extra_field[9],
             ];
         }
-        if ($extra_field[8] == 1 && $extra_field[2] == ExtraField::FIELD_TYPE_TAG) {
+        if (1 == $extra_field[8] && ExtraField::FIELD_TYPE_TAG == $extra_field[2]) {
             $options = UserManager::get_extra_user_data_for_tags($extra_field[1]);
 
             $new_field_list[] = [
@@ -79,8 +78,8 @@ if (is_array($extra_field_list)) {
 /* React on POSTed request */
 if (isset($_POST['form_sent']) && $_POST['form_sent']) {
     $form_sent = $_POST['form_sent'];
-    $users = isset($_POST['User list']) && is_array($_POST['User list']) ? $_POST['User list'] : [];
-    $courses = isset($_POST['Course list']) && is_array($_POST['Course list']) ? $_POST['Course list'] : [];
+    $users = isset($_POST['UserList']) && is_array($_POST['UserList']) ? $_POST['UserList'] : [];
+    $courses = isset($_POST['CourseList']) && is_array($_POST['CourseList']) ? $_POST['CourseList'] : [];
     $first_letter_user = Database::escape_string($_POST['firstLetterUser']);
     $first_letter_course = Database::escape_string($_POST['firstLetterCourse']);
 
@@ -88,26 +87,35 @@ if (isset($_POST['form_sent']) && $_POST['form_sent']) {
         $users[$key] = intval($value);
     }
 
-    if ($form_sent == 1) {
-        if (count($users) == 0 || count($courses) == 0) {
+    if (1 == $form_sent) {
+        if (0 == count($users) || 0 == count($courses)) {
             echo Display::return_message(get_lang('You must select at least one user and one course'), 'error');
         } else {
             $errorDrh = 0;
             foreach ($courses as $course_code) {
                 foreach ($users as $user_id) {
                     $user = api_get_user_info($user_id);
-                    if ($user['status'] != DRH) {
-                        CourseManager::subscribeUser($user_id, $course_code);
+                    if (DRH != $user['status']) {
+                        $courseInfo = api_get_course_info($course_code);
+                        CourseManager::subscribeUser($user_id, $courseInfo['real_id']);
                     } else {
                         $errorDrh = 1;
                     }
                 }
             }
 
-            if ($errorDrh == 0) {
-                echo Display::return_message(get_lang('The selected users are subscribed to the selected course'), 'confirm');
+            if (0 == $errorDrh) {
+                echo Display::return_message(
+                    get_lang('The selected users are subscribed to the selected course'),
+                    'confirm'
+                );
             } else {
-                echo Display::return_message(get_lang('Human resources managers should not be registered to courses. The corresponding users you selected have not been subscribed.'), 'error');
+                echo Display::return_message(
+                    get_lang(
+                        'Human resources managers should not be registered to courses. The corresponding users you selected have not been subscribed.'
+                    ),
+                    'error'
+                );
             }
         }
     }
@@ -137,9 +145,9 @@ if (is_array($extra_field_list)) {
             $varname = 'field_'.$new_field['variable'];
             $fieldtype = $new_field['type'];
             if (UserManager::is_extra_field_available($new_field['variable'])) {
-                if (isset($_POST[$varname]) && $_POST[$varname] != '0') {
+                if (isset($_POST[$varname]) && '0' != $_POST[$varname]) {
                     $use_extra_fields = true;
-                    if ($fieldtype == ExtraField::FIELD_TYPE_TAG) {
+                    if (ExtraField::FIELD_TYPE_TAG == $fieldtype) {
                         $extra_field_result[] = UserManager::get_extra_user_data_by_tags(
                             intval($_POST['field_id']),
                             $_POST[$varname]
@@ -170,17 +178,17 @@ if ($use_extra_fields) {
 
     if (api_is_multiple_url_enabled()) {
         if (is_array($final_result) && count($final_result) > 0) {
-            $where_filter = " AND u.user_id IN  ('".implode("','", $final_result)."') ";
+            $where_filter = " AND u.id IN  ('".implode("','", $final_result)."') ";
         } else {
             //no results
-            $where_filter = " AND u.user_id  = -1";
+            $where_filter = " AND u.id  = -1";
         }
     } else {
         if (is_array($final_result) && count($final_result) > 0) {
-            $where_filter = " AND user_id IN  ('".implode("','", $final_result)."') ";
+            $where_filter = " AND id IN  ('".implode("','", $final_result)."') ";
         } else {
             //no results
-            $where_filter = " AND user_id  = -1";
+            $where_filter = " AND id  = -1";
         }
     }
 }
@@ -189,30 +197,30 @@ $target_name = 'lastname';
 $orderBy = $target_name;
 $showOfficialCode = false;
 $orderListByOfficialCode = api_get_setting('order_user_list_by_official_code');
-if ($orderListByOfficialCode === 'true') {
+if ('true' === $orderListByOfficialCode) {
     $showOfficialCode = true;
     $orderBy = " official_code, lastname, firstname";
 }
 
-$sql = "SELECT user_id, lastname, firstname, username, official_code
+$sql = "SELECT id as user_id, lastname, firstname, username, official_code
         FROM $tbl_user
-        WHERE user_id<>2 AND ".$target_name." LIKE '".$first_letter_user."%' $where_filter
-        ORDER BY ".(count($users) > 0 ? "(user_id IN(".implode(',', $users).")) DESC," : "")." ".$orderBy;
+        WHERE id <>2 AND ".$target_name." LIKE '".$first_letter_user."%' $where_filter
+        ORDER BY ".(count($users) > 0 ? "(id IN(".implode(',', $users).")) DESC," : "")." ".$orderBy;
 
 if (api_is_multiple_url_enabled()) {
     $tbl_user_rel_access_url = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
     $access_url_id = api_get_current_access_url_id();
-    if ($access_url_id != -1) {
-        $sql = "SELECT u.user_id,lastname,firstname,username, official_code
+    if (-1 != $access_url_id) {
+        $sql = "SELECT u.id as user_id,lastname,firstname,username, official_code
                 FROM $tbl_user u
                 INNER JOIN $tbl_user_rel_access_url user_rel_url
-                ON (user_rel_url.user_id = u.user_id)
+                ON (user_rel_url.user_id = u.id)
                 WHERE
-                    u.user_id<>2 AND
+                    u.id <> 2 AND
                     access_url_id =  $access_url_id AND
                     (".$target_name." LIKE '".$first_letter_user."%' )
                     $where_filter
-                ORDER BY ".(count($users) > 0 ? "(u.user_id IN(".implode(',', $users).")) DESC," : "")." ".$orderBy;
+                ORDER BY ".(count($users) > 0 ? "(u.id IN(".implode(',', $users).")) DESC," : "")." ".$orderBy;
     }
 }
 
@@ -228,7 +236,7 @@ $sql = "SELECT code,visual_code,title
 if (api_is_multiple_url_enabled()) {
     $tbl_course_rel_access_url = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE);
     $access_url_id = api_get_current_access_url_id();
-    if ($access_url_id != -1) {
+    if (-1 != $access_url_id) {
         $sql = "SELECT code, visual_code, title
                 FROM $tbl_course as course
                 INNER JOIN $tbl_course_rel_access_url course_rel_url
@@ -257,7 +265,7 @@ if (is_array($extra_field_list)) {
             echo '<option value="0">--'.get_lang('Select').'--</option>';
             foreach ($new_field['data'] as $option) {
                 $checked = '';
-                if ($fieldtype == ExtraField::FIELD_TYPE_TAG) {
+                if (ExtraField::FIELD_TYPE_TAG == $fieldtype) {
                     if (isset($_POST[$varname])) {
                         if ($_POST[$varname] == $option['tag']) {
                             $checked = 'selected="true"';
@@ -274,7 +282,7 @@ if (is_array($extra_field_list)) {
                 }
             }
             echo '</select>';
-            $extraHidden = $fieldtype == ExtraField::FIELD_TYPE_TAG ? '<input type="hidden" name="field_id" value="'.$option['field_id'].'" />' : '';
+            $extraHidden = ExtraField::FIELD_TYPE_TAG == $fieldtype ? '<input type="hidden" name="field_id" value="'.$option['field_id'].'" />' : '';
             echo $extraHidden;
             echo '&nbsp;&nbsp;';
         }
@@ -316,7 +324,7 @@ if (is_array($extra_field_list)) {
    </tr>
    <tr>
     <td width="40%" align="center">
-     <select name="User list[]" multiple="multiple" size="20" style="width:300px;">
+     <select name="UserList[]" multiple="multiple" size="20" style="width:300px;">
     <?php foreach ($db_users as $user) {
           ?>
           <option value="<?php echo $user['user_id']; ?>" <?php if (in_array($user['user_id'], $users)) {
@@ -340,7 +348,7 @@ if (is_array($extra_field_list)) {
     </button>
    </td>
    <td width="40%" align="center">
-    <select name="Course list[]" multiple="multiple" size="20" style="width:300px;">
+    <select name="CourseList[]" multiple="multiple" size="20" style="width:300px;">
     <?php foreach ($db_courses as $course) {
           ?>
          <option value="<?php echo $course['code']; ?>" <?php if (in_array($course['code'], $courses)) {

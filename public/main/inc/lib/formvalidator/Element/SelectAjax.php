@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -44,7 +45,7 @@ class SelectAjax extends HTML_QuickForm_select
 
         $plHolder = $this->getAttribute('placeholder');
         if (empty($plHolder)) {
-            $plHolder = get_lang('Please select an option');
+            $plHolder = preg_replace("/'/", "\\'", get_lang('Please select an option'));
         }
 
         $id = $this->getAttribute('id');
@@ -74,6 +75,9 @@ class SelectAjax extends HTML_QuickForm_select
         $max = $this->getAttribute('maximumSelectionLength');
         $max = !empty($max) ? "maximumSelectionLength: $max, " : '';
 
+        // wait XX milliseconds before triggering the request
+        $delay = ((int) $this->getAttribute('delay')) ?: 1000;
+
         $html = <<<JS
             <script>
                 $(function(){
@@ -86,6 +90,7 @@ class SelectAjax extends HTML_QuickForm_select
                         tags: $tags,
                         ajax: {
                             url: $url,
+                            delay: $delay,
                             dataType: 'json',
                             data: function(params) {
                                 return {

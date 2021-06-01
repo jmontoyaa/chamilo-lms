@@ -1,108 +1,67 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * CGlossary.
+ * Course glossary.
  *
  * @ORM\Table(
- *  name="c_glossary",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="session_id", columns={"session_id"})
- *  }
+ *     name="c_glossary"
  * )
  * @ORM\Entity
  */
-class CGlossary
+class CGlossary extends AbstractResource implements ResourceInterface
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
-     */
-    protected $cId;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="glossary_id", type="integer")
-     */
-    protected $glossaryId;
-
-    /**
-     * @var string
-     *
+     * @Assert\NotBlank()
      * @ORM\Column(name="name", type="text", nullable=false)
      */
-    protected $name;
+    protected string $name;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="description", type="text", nullable=false)
      */
-    protected $description;
+    protected ?string $description = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="display_order", type="integer", nullable=true)
      */
-    protected $displayOrder;
+    protected ?int $displayOrder = null;
 
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="session_id", type="integer", nullable=true)
-     */
-    protected $sessionId;
+    public function __toString(): string
+    {
+        return $this->getName();
+    }
 
-    /**
-     * Set name.
-     *
-     * @param string $name
-     *
-     * @return CGlossary
-     */
-    public function setName($name)
+    public function setName(string $name): self
     {
         $this->name = $name;
 
         return $this;
     }
 
-    /**
-     * Get name.
-     *
-     * @return string
-     */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
 
-    /**
-     * Set description.
-     *
-     * @param string $description
-     *
-     * @return CGlossary
-     */
-    public function setDescription($description)
+    public function setDescription(string $description): self
     {
         $this->description = $description;
 
@@ -119,14 +78,7 @@ class CGlossary
         return $this->description;
     }
 
-    /**
-     * Set displayOrder.
-     *
-     * @param int $displayOrder
-     *
-     * @return CGlossary
-     */
-    public function setDisplayOrder($displayOrder)
+    public function setDisplayOrder(int $displayOrder): self
     {
         $this->displayOrder = $displayOrder;
 
@@ -143,75 +95,23 @@ class CGlossary
         return $this->displayOrder;
     }
 
-    /**
-     * Set sessionId.
-     *
-     * @param int $sessionId
-     *
-     * @return CGlossary
-     */
-    public function setSessionId($sessionId)
+    public function getIid(): int
     {
-        $this->sessionId = $sessionId;
-
-        return $this;
+        return $this->iid;
     }
 
-    /**
-     * Get sessionId.
-     *
-     * @return int
-     */
-    public function getSessionId()
+    public function getResourceIdentifier(): int
     {
-        return $this->sessionId;
+        return $this->getIid();
     }
 
-    /**
-     * Set glossaryId.
-     *
-     * @param int $glossaryId
-     *
-     * @return CGlossary
-     */
-    public function setGlossaryId($glossaryId)
+    public function getResourceName(): string
     {
-        $this->glossaryId = $glossaryId;
-
-        return $this;
+        return $this->getName();
     }
 
-    /**
-     * Get glossaryId.
-     *
-     * @return int
-     */
-    public function getGlossaryId()
+    public function setResourceName(string $name): self
     {
-        return $this->glossaryId;
-    }
-
-    /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CGlossary
-     */
-    public function setCId($cId)
-    {
-        $this->cId = $cId;
-
-        return $this;
-    }
-
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
-    {
-        return $this->cId;
+        return $this->setName($name);
     }
 }

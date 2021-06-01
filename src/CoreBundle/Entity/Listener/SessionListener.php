@@ -1,14 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity\Listener;
 
 use Chamilo\CoreBundle\Entity\AccessUrl;
-use Chamilo\CoreBundle\Entity\AccessUrlRelSession;
 use Chamilo\CoreBundle\Entity\Session;
 use Chamilo\CoreBundle\Repository\SessionRepository;
 use Doctrine\ORM\Event\LifecycleEventArgs;
+use Exception;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Security\Core\Security;
 
 /**
  * Class SessionListener
@@ -16,50 +20,55 @@ use Doctrine\ORM\Event\LifecycleEventArgs;
  */
 class SessionListener
 {
+    protected RequestStack $request;
+    protected Security $security;
+
+    public function __construct(RequestStack $request, Security $security)
+    {
+        $this->security = $security;
+        $this->request = $request;
+    }
+
     /**
      * This code is executed when a new session is created.
      *
      * new object : prePersist
      * edited object: preUpdate
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    public function prePersist(Session $session, LifecycleEventArgs $args)
+    public function prePersist(Session $session, LifecycleEventArgs $args): void
     {
-        /** @var AccessUrlRelSession $urlRelSession */
-        $urlRelSession = $session->getUrls()->first();
-
-        $url = $urlRelSession->getUrl();
-        $repo = $args->getEntityManager()->getRepository('ChamiloCoreBundle:Session');
-
-        $this->checkLimit($repo, $url);
+        $em = $args->getEntityManager();
+        $id = $this->request->getCurrentRequest()->getSession()->get('access_url_id');
+        $url = $em->getRepository(AccessUrl::class)->find($id);
+        $session->addUrl($url);
+        //$this->checkLimit($repo, $url);
     }
 
     /**
      * This code is executed when a session is updated.
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    public function preUpdate(Session $session, LifecycleEventArgs $args)
+    public function preUpdate(Session $session, LifecycleEventArgs $args): void
     {
     }
 
     /**
-     * @param SessionRepository $repo
-     *
-     * @throws \Exception
+     * @throws Exception
      */
-    protected function checkLimit($repo, AccessUrl $url)
+    protected function checkLimit(SessionRepository $repo, AccessUrl $url): void
     {
         $limit = $url->getLimitSessions();
 
         if (!empty($limit)) {
-            $count = $repo->getCountSessionByUrl($url);
+            /*$count = $repo->getCountSessionByUrl($url);
             if ($count >= $limit) {
                 api_warn_hosting_contact('hosting_limit_sessions', $limit);
 
                 throw new \Exception('PortalSessionsLimitReached');
-            }
+            }*/
         }
     }
 }

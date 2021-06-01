@@ -2,8 +2,6 @@
 /* For licensing terms, see /license.txt */
 /**
  * Manage specific fields.
- *
- * @package chamilo.admin
  */
 // Resetting the course id.
 $cidReset = true;
@@ -19,8 +17,6 @@ $interbreadcrumb[] = ['url' => 'index.php', 'name' => get_lang('Administration')
 $interbreadcrumb[] = ['url' => 'settings.php?category=Search', 'name' => get_lang('Configuration settings')];
 
 $libpath = api_get_path(LIBRARY_PATH);
-
-include_once $libpath.'specific_fields_manager.lib.php';
 
 // Create an add-field box
 $form = new FormValidator('add_field', 'post', '', '', null, false);
@@ -64,7 +60,7 @@ function edit_filter($id, $url_params, $row)
     return $return;
 }
 
-if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'delete') {
+if (isset($_REQUEST['action']) && 'delete' == $_REQUEST['action']) {
     delete_specific_field($_REQUEST['field_id']);
     header('Location: specific_fields.php?message='.get_lang('Field removed'));
     exit;

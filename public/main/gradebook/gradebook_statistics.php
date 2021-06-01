@@ -1,11 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * Script.
- *
- * @package chamilo.gradebook
- */
 require_once __DIR__.'/../inc/global.inc.php';
 
 api_block_anonymous_users();
@@ -86,7 +82,7 @@ if (!$displayScore->is_custom() || empty($displays)) {
     }
 
     // Generate table
-    $html = '<table class="data_table" cellspacing="0" cellpadding="3">';
+    $html = '<table class="table table-hover table-striped data_table" cellspacing="0" cellpadding="3">';
     $html .= '<tr><th>'.get_lang('Skills ranking').'</th>';
     $html .= '<th>'.get_lang('Percentage').'</th>';
     $html .= '<th>'.get_lang('Number of users').'</th></tr>';
@@ -95,7 +91,7 @@ if (!$displayScore->is_custom() || empty($displays)) {
     $model = ExerciseLib::getCourseScoreModel();
     foreach ($keys as $key) {
         $bar = ($highest_ratio > 0 ? ($nr_items[$key] / $highest_ratio) * 100 : 0);
-        $html .= '<tr class="row_'.($counter % 2 == 0 ? 'odd' : 'even').'">';
+        $html .= '<tr class="row_'.(0 == $counter % 2 ? 'odd' : 'even').'">';
         $html .= '<td width="150">'.$key.'</td>';
         if (empty($model)) {
             $html .= '<td width="550">'.Display::bar_progress($bar).'</td>';

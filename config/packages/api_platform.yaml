@@ -1,0 +1,40 @@
+api_platform:
+    title: 'Chamilo Api'
+    version: '1.0.0'
+    mapping:
+        paths: ['%kernel.project_dir%/src/CoreBundle/Entity', '%kernel.project_dir%/src/CourseBundle/Entity']
+    patch_formats:
+        json: ['application/merge-patch+json']
+    swagger:
+        versions: [3]
+        api_keys:
+            apiKey:
+                name: Authorization
+                type: header
+    formats:
+        jsonld:
+            mime_types: ['application/ld+json']
+        json:
+            mime_types: ['application/json']
+        html:
+            mime_types: ['text/html']
+        graphql:
+            mime_types: ['application/graphql']
+    collection:
+        pagination:
+            items_per_page_parameter_name: itemsPerPage # Default value
+    http_cache:
+        invalidation:
+            enabled: true
+    enable_docs: true
+    enable_entrypoint: true
+    show_webby: false
+    defaults:
+        pagination_client_items_per_page: true
+        cache_headers:
+            # Automatically generate etags for API responses.
+            etag: true
+            # Default value for the response max age.
+            max_age: 0
+#    mercure:
+#        hub_url: '%env(MERCURE_SUBSCRIBE_URL)%'

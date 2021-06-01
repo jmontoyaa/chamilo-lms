@@ -1,14 +1,9 @@
 <?php
-/* For licensing terms, see /license.txt */
 
-use Chamilo\CoreBundle\Framework\Container;
-use Chamilo\CoreBundle\Hook\HookAdminBlock;
-use League\Flysystem\Filesystem;
+/* For licensing terms, see /license.txt */
 
 /**
  * Index page of the admin tools.
- *
- * @package chamilo.admin
  */
 // Resetting the course id.
 $cidReset = true;
@@ -31,7 +26,12 @@ if (api_is_platform_admin()) {
         !is_writable(api_get_path(SYS_ARCHIVE_PATH))
     ) {
         Display::addFlash(
-            Display::return_message(get_lang('The app/cache/ directory, used by this tool, is not writeable. Please contact your platform administrator.'), 'warning')
+            Display::return_message(
+                get_lang(
+                    'The app/cache/ directory, used by this tool, is not writeable. Please contact your platform administrator.'
+                ),
+                'warning'
+            )
         );
     }
 
@@ -45,20 +45,6 @@ if (api_is_platform_admin()) {
 }
 $blocks = [];
 
-// Instantiate Hook Event for Admin Block
-$hook = Container::instantiateHook(HookAdminBlock::class);
-
-if (!empty($hook)) {
-    // If not empty, then notify Pre process to Hook Observers for Admin Block
-    $hook->setEventData(['blocks' => $blocks]);
-    $data = $hook->notifyAdminBlock(HOOK_EVENT_TYPE_PRE);
-    // Check if blocks data is not null
-    if (isset($data['blocks'])) {
-        // Get modified blocks
-        $blocks = $data['blocks'];
-    }
-}
-
 /* Users */
 $blocks['users']['icon'] = Display::return_icon(
     'members.png',
@@ -71,26 +57,26 @@ $blocks['users']['description'] = get_lang('Here you can manage registered users
 $blocks['users']['label'] = api_ucfirst(get_lang('User management'));
 $blocks['users']['class'] = 'block-admin-users';
 
-$search_form = '
-    <form method="get" class="form-inline" action="user_list.php">
-        <div class="form-group mb-2">
-            <input class="form-control" type="text" name="keyword" value=""
-             aria-label="'.get_lang('Search').'">
-        </div>
-        <button class="btn btn-primary mb-2" type="submit">
-            <em class="fa fa-search"></em> '.get_lang('Search').'
-        </button>
-    </form>';
-$blocks['users']['search_form'] = $search_form;
+$searchForm = new FormValidator(
+    'search_user',
+    'GET',
+    api_get_path(WEB_CODE_PATH).'admin/user_list.php',
+    null,
+    null,
+    FormValidator::LAYOUT_BOX_SEARCH
+);
+$searchForm->addText('keyword', get_lang('Keyword'));
+$searchForm->addButtonSearch(get_lang('Search'));
+$blocks['users']['search_form'] = $searchForm->returnForm();
 
 if (api_is_platform_admin()) {
     $blocks['users']['editable'] = true;
     $items = [
         ['url' => 'user_list.php', 'label' => get_lang('User list')],
         ['url' => 'user_add.php', 'label' => get_lang('Add a user')],
-        ['url' => 'user_export.php', 'label' => get_lang('ExportUser listXMLCSV')],
-        ['url' => 'user_import.php', 'label' => get_lang('ImportUser listXMLCSV')],
-        ['url' => 'user_update_import.php', 'label' => get_lang('EditUser listCSV')],
+        ['url' => 'user_export.php', 'label' => get_lang('Export users list')],
+        ['url' => 'user_import.php', 'label' => get_lang('Import users list')],
+        ['url' => 'user_update_import.php', 'label' => get_lang('Edit users list')],
     ];
 
     if (isset($extAuthSource) && isset($extAuthSource['extldap']) && count($extAuthSource['extldap']) > 0) {
@@ -108,7 +94,7 @@ if (api_is_platform_admin()) {
     $items = [
         ['url' => 'user_list.php', 'label' => get_lang('User list')],
         ['url' => 'user_add.php', 'label' => get_lang('Add a user')],
-        ['url' => 'user_import.php', 'label' => get_lang('ImportUser listXMLCSV')],
+        ['url' => 'user_import.php', 'label' => get_lang('Import users list')],
         ['url' => 'usergroups.php', 'label' => get_lang('Classes')],
     ];
 
@@ -147,22 +133,25 @@ if (api_is_platform_admin()) {
     $blocks['courses']['description'] = get_lang('Create and manage your courses in a simple way');
     $blocks['courses']['class'] = 'block-admin-courses';
     $blocks['courses']['editable'] = true;
-    $search_form = ' <form method="get" class="form-inline" action="course_list.php">
-            <div class="form-group mb-2">
-                <input class="form-control" type="text" name="keyword" value=""
-                 aria-label="'.get_lang('Search').'">
-            </div>
-            <button class="btn btn-primary mb-2" type="submit">
-                <em class="fa fa-search"></em> '.get_lang('Search').'
-            </button>
-        </form>';
-    $blocks['courses']['search_form'] = $search_form;
+
+    $searchForm = new FormValidator(
+        'search_course',
+        'GET',
+        api_get_path(WEB_CODE_PATH).'admin/course_list.php',
+        null,
+        null,
+        FormValidator::LAYOUT_BOX_SEARCH
+    );
+    $searchForm->addText('keyword', get_lang('Keyword'));
+    $searchForm->addButtonSearch(get_lang('Search'));
+
+    $blocks['courses']['search_form'] = $searchForm->returnForm();
 
     $items = [];
     $items[] = ['url' => 'course_list.php', 'label' => get_lang('Course list')];
     $items[] = ['url' => 'course_add.php', 'label' => get_lang('Add course')];
 
-    if (api_get_setting('course_validation') == 'true') {
+    if ('true' === api_get_setting('course_validation')) {
         $items[] = ['url' => 'course_request_review.php', 'label' => get_lang('Review incoming course requests')];
         $items[] = ['url' => 'course_request_accepted.php', 'label' => get_lang('Accepted course requests')];
         $items[] = ['url' => 'course_request_rejected.php', 'label' => get_lang('Rejected course requests')];
@@ -174,7 +163,7 @@ if (api_is_platform_admin()) {
     $items[] = ['url' => 'subscribe_user2course.php', 'label' => get_lang('Add a user to a course')];
     $items[] = ['url' => 'course_user_import.php', 'label' => get_lang('Import users list')];
 
-    if (api_get_setting('gradebook_enable_grade_model') == 'true') {
+    if ('true' === api_get_setting('gradebook_enable_grade_model')) {
         $items[] = ['url' => 'grade_models.php', 'label' => get_lang('Grading model')];
     }
 
@@ -208,26 +197,29 @@ if (api_is_platform_admin()) {
     }
     $sessionPath = api_get_path(WEB_CODE_PATH).'session/';
 
-    $search_form = ' <form method="GET" class="form-inline" action="'.$sessionPath.'session_list.php">
-                    <div class="form-group mb-2">
-                        <input class="form-control"
-                        type="text"
-                        name="keyword"
-                        value=""
-                        aria-label="'.get_lang('Search').'">
-
-                    </div>
-                    <button class="btn btn-primary mb-2" type="submit">
-                            <em class="fa fa-search"></em> '.get_lang('Search').'
-                        </button>
-                </form>';
-    $blocks['sessions']['search_form'] = $search_form;
+    $searchForm = new FormValidator(
+        'search_session',
+        'GET',
+        $sessionPath.'session_list.php',
+        null,
+        null,
+        FormValidator::LAYOUT_BOX_SEARCH
+    );
+    $searchForm->addText('keyword', get_lang('Keyword'));
+    $searchForm->addButtonSearch(get_lang('Search'));
+    $blocks['sessions']['search_form'] = $searchForm->returnForm();
     $items = [];
     $items[] = ['url' => $sessionPath.'session_list.php', 'label' => get_lang('Training sessions list')];
     $items[] = ['url' => $sessionPath.'session_add.php', 'label' => get_lang('Add a training session')];
-    $items[] = ['url' => $sessionPath.'session_category_list.php', 'label' => get_lang('Training sessions listCategory')];
+    $items[] = [
+        'url' => $sessionPath.'session_category_list.php',
+        'label' => get_lang('Sessions categories list'),
+    ];
     $items[] = ['url' => $sessionPath.'session_import.php', 'label' => get_lang('Import sessions list')];
-    $items[] = ['url' => $sessionPath.'session_import_drh.php', 'label' => get_lang('Import list of HR directors into sessions')];
+    $items[] = [
+        'url' => $sessionPath.'session_import_drh.php',
+        'label' => get_lang('Import list of HR directors into sessions'),
+    ];
     if (isset($extAuthSource) && isset($extAuthSource['ldap']) && count($extAuthSource['ldap']) > 0) {
         $items[] = [
             'url' => 'ldap_import_students_to_session.php',
@@ -261,7 +253,7 @@ if (api_is_platform_admin()) {
     $blocks['sessions']['extra'] = null;
 
     // Skills
-    if (Skill::isToolAvailable()) {
+    if (SkillModel::isToolAvailable()) {
         $blocks['skills']['icon'] = Display::return_icon(
             'skill-badges.png',
             get_lang('Skills'),
@@ -316,7 +308,6 @@ if (api_is_platform_admin()) {
     }
 
     /* Platform */
-
     $blocks['platform']['icon'] = Display::return_icon(
         'platform.png',
         get_lang('Platform management'),
@@ -328,18 +319,18 @@ if (api_is_platform_admin()) {
     $blocks['platform']['description'] = get_lang('Configure your platform, view reports, publish and send announcements globally');
     $blocks['platform']['class'] = 'block-admin-platform';
     $blocks['platform']['editable'] = true;
-    $search_form = ' <form method="get" action="'.api_get_path(WEB_PUBLIC_PATH).'admin/settings/search_settings'.'" class="form-inline">
-            <div class="form-group mb-2">
-                <input class="form-control"
-                type="text"
-                name="keyword" value=""
-                aria-label="'.get_lang('Search').'" >
-            </div>
-            <button class="btn btn-primary mb-2" type="submit">
-                    <em class="fa fa-search"></em> '.get_lang('Search').'
-                </button>
-        </form>';
-    $blocks['platform']['search_form'] = $search_form;
+
+    $searchForm = new FormValidator(
+        'search_setting',
+        'GET',
+        api_get_path(WEB_CODE_PATH).'admin/settings/search_settings/',
+        null,
+        null,
+        FormValidator::LAYOUT_BOX_SEARCH
+    );
+    $searchForm->addText('keyword', get_lang('Keyword'));
+    $searchForm->addButtonSearch(get_lang('Search'));
+    $blocks['platform']['search_form'] = $searchForm->returnForm();
 
     //$url = Container::getRouter()->generate('chamilo_platform_settings', ['namespace' => 'platform']);
     $url = api_get_path(WEB_PUBLIC_PATH).'admin/settings/platform';
@@ -381,14 +372,14 @@ if (api_is_platform_admin()) {
         }
     }
 
-    if (api_get_plugin_setting('dictionary', 'enable_plugin_dictionary') == 'true') {
+    if ('true' == api_get_plugin_setting('dictionary', 'enable_plugin_dictionary')) {
         $items[] = [
             'url' => api_get_path(WEB_PLUGIN_PATH).'dictionary/terms.php',
             'label' => get_lang('Dictionary'),
         ];
     }
 
-    if (api_get_setting('allow_terms_conditions') == 'true') {
+    if ('true' == api_get_setting('allow_terms_conditions')) {
         $items[] = ['url' => 'legal_add.php', 'label' => get_lang('Terms and Conditions')];
     }
 
@@ -452,7 +443,7 @@ if (api_is_platform_admin()) {
         'label' => get_lang('Tickets'),
     ];
 
-    if (api_get_configuration_value('db_manager_enabled') == true &&
+    /*if (true == api_get_configuration_value('db_manager_enabled') &&
         api_is_global_platform_admin()
     ) {
         $host = $_configuration['db_host'];
@@ -463,7 +454,7 @@ if (api_is_platform_admin()) {
             'url' => "db.php?username=$username&db=$databaseName&server=$host",
             'label' => get_lang('Database manager'),
         ];
-    }
+    }*/
 
     $blocks['settings']['items'] = $items;
     $blocks['settings']['extra'] = null;
@@ -558,42 +549,6 @@ if (api_is_platform_admin()) {
     $blocks['version_check']['search_form'] = null;
     $blocks['version_check']['items'] = '<div class="block-admin-version_check"></div>';
     $blocks['version_check']['class'] = '';
-
-    // Check Hook Event for Admin Block Object
-    if (!empty($hook)) {
-        // If not empty, then notify Post process to Hook Observers for Admin Block
-        $hook->setEventData(['blocks' => $blocks]);
-        $data = $hook->notifyAdminBlock(HOOK_EVENT_TYPE_POST);
-        // Check if blocks data is not null
-        if (isset($data['blocks'])) {
-            // Get modified blocks
-            $blocks = $data['blocks'];
-        }
-    }
-
-    //Hack for fix migration on session_rel_user
-    $tableColumns = Database::getManager()
-        ->getConnection()
-        ->getSchemaManager()
-        ->listTableColumns(
-            Database::get_main_table(TABLE_MAIN_SESSION_USER)
-        );
-
-    if (!array_key_exists('duration', $tableColumns)) {
-        try {
-            $dbSchema = Database::getManager()->getConnection()->getSchemaManager();
-            $durationColumn = new \Doctrine\DBAL\Schema\Column(
-                'duration',
-                Doctrine\DBAL\Types\Type::getType(\Doctrine\DBAL\Types\Type::INTEGER),
-                ['notnull' => false]
-            );
-            $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('session_rel_user', [$durationColumn]);
-            $dbSchema->alterTable($tableDiff);
-        } catch (Exception $e) {
-            error_log($e->getMessage());
-        }
-    }
-    //end hack
 }
 $admin_ajax_url = api_get_path(WEB_AJAX_PATH).'admin.ajax.php';
 
@@ -601,7 +556,7 @@ $tpl = new Template();
 
 // Display the Site Use Cookie Warning Validation
 $useCookieValidation = api_get_setting('cookie_warning');
-if ($useCookieValidation === 'true') {
+if ('true' === $useCookieValidation) {
     if (isset($_POST['acceptCookies'])) {
         api_set_site_use_cookie_warning_cookie();
     } elseif (!api_site_use_cookie_warning_cookie_exist()) {
@@ -673,5 +628,3 @@ $template = $tpl->get_template('admin/index.html.twig');
 $content = $tpl->fetch($template);
 $tpl->assign('content', $content);
 $tpl->display_one_col_template();
-
-//$tpl->display($template);

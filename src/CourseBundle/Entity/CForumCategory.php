@@ -1,95 +1,77 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * CForumCategory.
  *
  * @ORM\Table(
- *  name="c_forum_category",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="session_id", columns={"session_id"})
- *  }
+ *     name="c_forum_category",
+ *     indexes={
+ *     }
  * )
- * @ORM\Entity(repositoryClass="Chamilo\CourseBundle\Repository\CForumCategoryRepository")
+ * @ORM\Entity
  */
-class CForumCategory
+class CForumCategory extends AbstractResource implements ResourceInterface
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
-     */
-    protected $cId;
-
-    /**
-     * @var string
+     * @Assert\NotBlank()
      *
      * @ORM\Column(name="cat_title", type="string", length=255, nullable=false)
      */
-    protected $catTitle;
+    protected string $catTitle;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="cat_comment", type="text", nullable=true)
      */
-    protected $catComment;
+    protected ?string $catComment;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="cat_order", type="integer", nullable=false)
      */
-    protected $catOrder;
+    protected int $catOrder;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="locked", type="integer", nullable=false)
      */
-    protected $locked;
+    protected int $locked;
 
     /**
-     * @var int
+     * @var Collection|CForum[]
      *
-     * @ORM\Column(name="session_id", type="integer", nullable=false)
+     * @ORM\OneToMany(targetEntity="Chamilo\CourseBundle\Entity\CForum", mappedBy="forumCategory")
      */
-    protected $sessionId;
+    protected Collection $forums;
 
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="cat_id", type="integer")
-     */
-    protected $catId;
+    public function __construct()
+    {
+        $this->catComment = '';
+        $this->locked = 0;
+        $this->forums = new ArrayCollection();
+    }
 
-    /**
-     * @var CItemProperty
-     */
-    private $itemProperty;
-
-    /**
-     * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="Chamilo\CourseBundle\Entity\CForumForum", mappedBy="forumCategory")
-     */
-    private $forums;
+    public function __toString(): string
+    {
+        return $this->getCatTitle();
+    }
 
     /**
      * Get iid.
@@ -101,14 +83,7 @@ class CForumCategory
         return $this->iid;
     }
 
-    /**
-     * Set catTitle.
-     *
-     * @param string $catTitle
-     *
-     * @return CForumCategory
-     */
-    public function setCatTitle($catTitle)
+    public function setCatTitle(string $catTitle): self
     {
         $this->catTitle = $catTitle;
 
@@ -125,38 +100,19 @@ class CForumCategory
         return $this->catTitle;
     }
 
-    /**
-     * Set catComment.
-     *
-     * @param string $catComment
-     *
-     * @return CForumCategory
-     */
-    public function setCatComment($catComment)
+    public function setCatComment(string $catComment): self
     {
         $this->catComment = $catComment;
 
         return $this;
     }
 
-    /**
-     * Get catComment.
-     *
-     * @return string
-     */
-    public function getCatComment()
+    public function getCatComment(): ?string
     {
         return $this->catComment;
     }
 
-    /**
-     * Set catOrder.
-     *
-     * @param int $catOrder
-     *
-     * @return CForumCategory
-     */
-    public function setCatOrder($catOrder)
+    public function setCatOrder(int $catOrder): self
     {
         $this->catOrder = $catOrder;
 
@@ -173,14 +129,7 @@ class CForumCategory
         return $this->catOrder;
     }
 
-    /**
-     * Set locked.
-     *
-     * @param int $locked
-     *
-     * @return CForumCategory
-     */
-    public function setLocked($locked)
+    public function setLocked(int $locked): self
     {
         $this->locked = $locked;
 
@@ -198,102 +147,27 @@ class CForumCategory
     }
 
     /**
-     * Set sessionId.
-     *
-     * @param int $sessionId
-     *
-     * @return CForumCategory
-     */
-    public function setSessionId($sessionId)
-    {
-        $this->sessionId = $sessionId;
-
-        return $this;
-    }
-
-    /**
-     * Get sessionId.
-     *
-     * @return int
-     */
-    public function getSessionId()
-    {
-        return $this->sessionId;
-    }
-
-    /**
-     * Set catId.
-     *
-     * @param int $catId
-     *
-     * @return CForumCategory
-     */
-    public function setCatId($catId)
-    {
-        $this->catId = $catId;
-
-        return $this;
-    }
-
-    /**
-     * Get catId.
-     *
-     * @return int
-     */
-    public function getCatId()
-    {
-        return $this->catId;
-    }
-
-    /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CForumCategory
-     */
-    public function setCId($cId)
-    {
-        $this->cId = $cId;
-
-        return $this;
-    }
-
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
-    {
-        return $this->cId;
-    }
-
-    /**
      * Get forums.
      *
-     * @return ArrayCollection|CForumForum[]
+     * @return Collection|CForum[]
      */
     public function getForums()
     {
         return $this->forums;
     }
 
-    /**
-     * @return CForumCategory
-     */
-    public function setItemProperty(CItemProperty $itemProperty)
+    public function getResourceIdentifier(): int
     {
-        $this->itemProperty = $itemProperty;
-
-        return $this;
+        return $this->getIid();
     }
 
-    /**
-     * @return CItemProperty
-     */
-    public function getItemProperty()
+    public function getResourceName(): string
     {
-        return $this->itemProperty;
+        return $this->getCatTitle();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setCatTitle($name);
     }
 }

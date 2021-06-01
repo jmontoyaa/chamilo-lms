@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
@@ -15,43 +17,29 @@ use Doctrine\ORM\Mapping as ORM;
 class Tag
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="tag", type="string", length=255, nullable=false)
      */
-    protected $tag;
+    protected string $tag;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="field_id", type="integer", nullable=false)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\ExtraField", inversedBy="tags")
+     * @ORM\JoinColumn(name="field_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $fieldId;
+    protected ExtraField $field;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="count", type="integer", nullable=false)
      */
-    protected $count;
+    protected int $count;
 
-    /**
-     * Set tag.
-     *
-     * @param string $tag
-     *
-     * @return Tag
-     */
-    public function setTag($tag)
+    public function setTag(string $tag): self
     {
         $this->tag = $tag;
 
@@ -68,38 +56,7 @@ class Tag
         return $this->tag;
     }
 
-    /**
-     * Set fieldId.
-     *
-     * @param int $fieldId
-     *
-     * @return Tag
-     */
-    public function setFieldId($fieldId)
-    {
-        $this->fieldId = $fieldId;
-
-        return $this;
-    }
-
-    /**
-     * Get fieldId.
-     *
-     * @return int
-     */
-    public function getFieldId()
-    {
-        return $this->fieldId;
-    }
-
-    /**
-     * Set count.
-     *
-     * @param int $count
-     *
-     * @return Tag
-     */
-    public function setCount($count)
+    public function setCount(int $count): self
     {
         $this->count = $count;
 
@@ -124,5 +81,17 @@ class Tag
     public function getId()
     {
         return $this->id;
+    }
+
+    public function getField(): ExtraField
+    {
+        return $this->field;
+    }
+
+    public function setField(ExtraField $field): self
+    {
+        $this->field = $field;
+
+        return $this;
     }
 }

@@ -1,27 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\EventListener;
 
 use Sylius\Bundle\SettingsBundle\Event\SettingsEvent;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
-/**
- * Class SettingListener.
- */
 class SettingListener
 {
-    /** @var ContainerInterface */
-    protected $container;
-
-    public function __construct(ContainerInterface $container)
+    public function __construct()
     {
-        $this->container = $container;
     }
 
-    public function onSettingPreSave(SettingsEvent $event)
+    public function onSettingPreSave(SettingsEvent $event): void
     {
         /*$urlId = $this->container->get('request')->getSession()->get('access_url_id');
         $url = $this->container->get('doctrine')->getRepository('ChamiloCoreBundle:AccessUrl')->find($urlId);

@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Component\Utils\ChamiloApi;
@@ -6,15 +7,13 @@ use Chamilo\CourseBundle\Entity\CLpItemView;
 
 /**
  * Learning paths reporting.
- *
- * @package chamilo.reporting
  */
 require_once __DIR__.'/../inc/global.inc.php';
 
 $cidReset = true;
 $from_myspace = false;
 $from_link = '';
-if (isset($_GET['from']) && $_GET['from'] == 'myspace') {
+if (isset($_GET['from']) && 'myspace' === $_GET['from']) {
     $from_link = '&from=myspace';
     $this_section = SECTION_TRACKING;
 } else {
@@ -22,7 +21,7 @@ if (isset($_GET['from']) && $_GET['from'] == 'myspace') {
 }
 
 $session_id = isset($_REQUEST['id_session']) ? (int) $_REQUEST['id_session'] : api_get_session_id();
-$export_csv = isset($_GET['export']) && $_GET['export'] == 'csv';
+$export_csv = isset($_GET['export']) && 'csv' === $_GET['export'];
 $user_id = isset($_GET['student_id']) ? (int) $_GET['student_id'] : api_get_user_id();
 $courseCode = isset($_GET['course']) ? Security::remove_XSS($_GET['course']) : api_get_course_id();
 $origin = api_get_origin();
@@ -31,8 +30,9 @@ $csv_content = [];
 $courseInfo = api_get_course_info($courseCode);
 
 if (empty($courseInfo) || empty($lp_id)) {
-    api_not_allowed(api_get_origin() !== 'learnpath');
+    api_not_allowed('learnpath' !== api_get_origin());
 }
+$courseId = $courseInfo['real_id'];
 $userInfo = api_get_user_info($user_id);
 $name = $userInfo['complete_name'];
 $isBoss = UserManager::userIsBossOfStudent(api_get_user_id(), $user_id);
@@ -41,24 +41,24 @@ if (!$isBoss &&
     !api_is_platform_admin(true) &&
     !api_is_drh() &&
     !api_is_course_tutor() &&
-    !CourseManager::is_course_teacher(api_get_user_id(), $courseCode) &&
+    !CourseManager::isCourseTeacher(api_get_user_id(), $courseInfo['real_id']) &&
     !Tracking::is_allowed_to_coach_student(api_get_user_id(), $user_id)
 ) {
-    api_not_allowed(api_get_origin() !== 'learnpath');
+    api_not_allowed('learnpath' !== api_get_origin());
 }
 
-if ($origin === 'user_course') {
+if ('user_course' === $origin) {
     $interbreadcrumb[] = [
         'url' => api_get_path(WEB_COURSE_PATH).$courseInfo['directory'],
         'name' => $courseInfo['name'],
     ];
     $interbreadcrumb[] = [
-        'url' => "../user/user.php?cidReq=$courseCode",
+        'url' => "../user/user.php?cid=$courseId",
         'name' => get_lang('Users'),
     ];
-} elseif ($origin === 'tracking_course') {
+} elseif ('tracking_course' === $origin) {
     $interbreadcrumb[] = [
-        'url' => "../tracking/courseLog.php?cidReq=$courseCode&id_session=$session_id",
+        'url' => "../tracking/courseLog.php?cid=$courseId&sid=$session_id",
         'name' => get_lang('Reporting'),
     ];
 } else {
@@ -73,14 +73,13 @@ $interbreadcrumb[] = [
     'name' => get_lang('Learner details in course'),
 ];
 $nameTools = get_lang('Learnpath details');
-$sql = 'SELECT name	FROM '.Database::get_course_table(TABLE_LP_MAIN).' 
-        WHERE c_id = '.$courseInfo['real_id'].' AND id='.$lp_id;
-$rs = Database::query($sql);
-$lp_title = Database::result($rs, 0, 0);
 
+$lpRepo = \Chamilo\CoreBundle\Framework\Container::getLpRepository();
+/** @var \Chamilo\CourseBundle\Entity\CLp $lp */
+$lp = $lpRepo->find($lp_id);
+$lp_title = $lp->getName();
 $origin = 'tracking';
-
-$action = isset($_REQUEST['action']) ? $_REQUEST['action'] : '';
+$action = $_REQUEST['action'] ?? '';
 switch ($action) {
     case 'export_stats':
         if (!api_is_allowed_to_edit(false, false, true)) {
@@ -91,7 +90,7 @@ switch ($action) {
         $itemViewId = isset($_REQUEST['extend_attempt_id']) ? $_REQUEST['extend_attempt_id'] : 0;
         $em = Database::getManager();
 
-        $repo = $em->getRepository('ChamiloCourseBundle:CLpItemView');
+        $repo = $em->getRepository(CLpItemView::class);
         /** @var CLpItemView $itemView */
         $itemView = $repo->find($itemViewId);
 
@@ -99,8 +98,8 @@ switch ($action) {
             api_not_allowed();
         }
 
-        $view = $em->getRepository('ChamiloCourseBundle:CLpView')->find($itemView->getLpViewId());
-        $lp = $em->getRepository('ChamiloCourseBundle:CLp')->find($view->getLpId());
+        $view = $em->getRepository(\Chamilo\CourseBundle\Entity\CLpView::class)->find($itemView->getLpViewId());
+        $lp = $em->getRepository(\Chamilo\CourseBundle\Entity\CLp::class)->find($view->getLpId());
 
         $duration = learnpathItem::getScormTimeFromParameter('js', $itemView->getTotalTime());
         $endTime = $itemView->getStartTime() + $itemView->getTotalTime();
@@ -118,9 +117,9 @@ switch ($action) {
         $categories = [];
         foreach ($list1 as $id => $interaction) {
             $counter++;
-            if ($counter === 1) {
+            if (1 === $counter) {
                 continue;
-            } elseif ($counter === 2) {
+            } elseif (2 === $counter) {
                 $studentName = $interaction['student_response_formatted'];
             } else {
                 $data = $interaction['student_response_formatted'];
@@ -150,7 +149,7 @@ switch ($action) {
         }
 
         $counter = 1;
-        $table = new HTML_Table(['class' => 'table data_table']);
+        $table = new HTML_Table(['class' => 'table table-hover table-striped  data_table']);
         $row = 0;
         $scoreDisplay = new ScoreDisplay();
         $globalTotal = 0;
@@ -164,14 +163,14 @@ switch ($action) {
             $total = 0;
             // Question options
             foreach ($data['options'] as $option) {
-                if ($option['result'] === 'correct') {
+                if ('correct' === $option['result']) {
                     $total++;
                     $globalTotal++;
                 }
                 $table->setCellContents($row, 0, 'Q'.$choiceCounter);
                 $table->setCellContents($row, 1, $option['student_response_formatted']);
                 $result = Display::return_icon('icon_check.png', null, [], ICON_SIZE_SMALL);
-                if ($option['result'] === 'wrong') {
+                if ('wrong' === $option['result']) {
                     $result = Display::return_icon('icon_error.png', null, [], ICON_SIZE_SMALL);
                 }
 
@@ -239,7 +238,7 @@ switch ($action) {
 
         $table = new HTML_Table(['class' => 'table', 'style' => 'display: block; margin-bottom: 50px;']);
         $logo = ChamiloApi::getPlatformLogo(
-            $theme,
+            api_get_visual_theme(),
             [
                 'title' => '',
                 'style' => 'max-width:180px, margin-bottom: 100px;',
@@ -248,9 +247,13 @@ switch ($action) {
         );
         $table->setCellContents(0, 0, $logo);
 
-        $secondLogo = api_get_path(SYS_PATH).'custompages/url-images/'.api_get_current_access_url_id().'_url_image_2.png';
-        $logo2 = Display::img($secondLogo, null, ['style' => 'height:70px;']);
-        $table->setCellContents(0, 1, $logo2);
+        $addLogo = (isset($_GET['add_logo']) && 1 === (int) $_GET['add_logo']);
+        if ($addLogo) {
+            $secondLogo = api_get_path(SYS_PATH).'custompages/url-images/'.api_get_current_access_url_id().'_url_image_2.png';
+            $logo2 = Display::img($secondLogo, null, ['style' => 'height:70px;']);
+            $table->setCellContents(0, 1, $logo2);
+        }
+
         $table->setCellAttributes(0, 1, ['style' => 'display:block;float:right;text-align:right']);
         $pdf->set_custom_header($table->toHtml());
 
@@ -288,11 +291,7 @@ $actions[] = Display::url(
 );
 
 Display::display_header($nameTools);
-echo Display::toolbarAction(
-    'actions',
-    [implode(PHP_EOL, $actions)]
-);
-
+echo Display::toolbarAction('actions', [implode(PHP_EOL, $actions)]);
 $table_title = $session_id
     ? Display::return_icon('session.png', get_lang('Session')).PHP_EOL.api_get_session_name($session_id).PHP_EOL
     : PHP_EOL;

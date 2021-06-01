@@ -1,14 +1,11 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.group
- */
 require_once __DIR__.'/../inc/global.inc.php';
 $this_section = SECTION_COURSES;
 $current_course_tool = TOOL_GROUP;
 
-// Notice for unauthorized people.
 api_protect_course_script(true);
 
 if (!api_is_allowed_to_edit(false, true)) {
@@ -16,6 +13,16 @@ if (!api_is_allowed_to_edit(false, true)) {
 }
 
 $currentUrl = api_get_path(WEB_CODE_PATH).'group/group.php?'.api_get_cidreq();
+$allowGroupCategories = 'true' === api_get_setting('allow_group_categories');
+
+$categories = [];
+$numberOfGroups = GroupManager::get_number_of_groups() + 1;
+if ($allowGroupCategories) {
+    $groupCategories = GroupManager::get_categories();
+    foreach ($groupCategories as $category) {
+        $categories[$category['iid']] = $category['title'];
+    }
+}
 
 /*	Create the groups */
 if (isset($_POST['action'])) {
@@ -57,6 +64,7 @@ if (isset($_POST['action'])) {
             Display::addFlash(Display::return_message(get_lang('group(s) has (have) been added')));
             header('Location: '.$currentUrl);
             exit;
+
             break;
         case 'create_subgroups':
             GroupManager::create_subgroups(
@@ -66,12 +74,14 @@ if (isset($_POST['action'])) {
             Display::addFlash(Display::return_message(get_lang('group(s) has (have) been added')));
             header('Location: '.$currentUrl);
             exit;
+
             break;
         case 'create_class_groups':
             GroupManager::create_class_groups($_POST['group_category']);
             Display::addFlash(Display::return_message(get_lang('group(s) has (have) been added')));
             header('Location: '.$currentUrl);
             exit;
+
             break;
     }
 }
@@ -84,7 +94,7 @@ $interbreadcrumb[] = [
 Display::display_header($nameTools, 'Group');
 
 if (isset($_POST['number_of_groups'])) {
-    if (!is_numeric($_POST['number_of_groups']) || intval($_POST['number_of_groups']) < 1) {
+    if (!is_numeric($_POST['number_of_groups']) || (int) ($_POST['number_of_groups']) < 1) {
         echo Display::return_message(
             get_lang('Please enter the desired number of groups').'<br /><br />
             <a href="group_creation.php?'.api_get_cidreq().'">&laquo; '.get_lang('Back').'</a>',
@@ -92,7 +102,7 @@ if (isset($_POST['number_of_groups'])) {
             false
         );
     } else {
-        $number_of_groups = intval($_POST['number_of_groups']);
+        $number_of_groups = (int) ($_POST['number_of_groups']);
         if ($number_of_groups > 1) {
             ?>
     <script>
@@ -106,7 +116,7 @@ if (isset($_POST['number_of_groups'])) {
             disabled = element.disabled;
             $(id).prop('disabled', disabled);
             $(id).prop('value', ref.value);
-            $(id).selectpicker('refresh');
+            //$(id).selectpicker('refresh');
         }
         if (disabled) {
             ref.addEventListener("change", copy, false);
@@ -132,12 +142,6 @@ if (isset($_POST['number_of_groups'])) {
     }
     </script>
     <?php
-        }
-        $group_categories = GroupManager::get_categories();
-        $group_id = GroupManager::get_number_of_groups() + 1;
-        $cat_options = [];
-        foreach ($group_categories as $index => $category) {
-            $cat_options[$category['id']] = $category['title'];
         }
         $form = new FormValidator('create_groups_step2', 'POST', api_get_self().'?'.api_get_cidreq());
 
@@ -167,16 +171,16 @@ EOT;
         $group_el = [];
         $group_el[] = $form->createElement('static', null, null, '<b>'.get_lang('Group name').'</b>');
 
-        if (api_get_setting('allow_group_categories') === 'true') {
+        if ($allowGroupCategories) {
             $group_el[] = $form->createElement('static', null, null, '<b>'.get_lang('Group category').'</b>');
         }
         $group_el[] = $form->createElement('static', null, null, '<b>'.get_lang('seats (optional)').'</b>');
-        $form->addGroup($group_el, 'groups', null, "</td><td>", false);
+        $form->addGroup($group_el, 'groups', null, '</td><td>', false);
         // Checkboxes
         if ($_POST['number_of_groups'] > 1) {
             $group_el = [];
             $group_el[] = $form->createElement('static', null, null, ' ');
-            if (api_get_setting('allow_group_categories') === 'true') {
+            if ($allowGroupCategories) {
                 $group_el[] = $form->createElement(
                     'checkbox',
                     'same_category',
@@ -198,17 +202,18 @@ EOT;
         for ($group_number = 0; $group_number < $_POST['number_of_groups']; $group_number++) {
             $group_el = [];
             $group_el[] = $form->createElement('text', 'group_'.$group_number.'_name');
-            if (api_get_setting('allow_group_categories') === 'true') {
+            if ($allowGroupCategories) {
                 $group_el[] = $form->createElement(
                     'select',
                     'group_'.$group_number.'_category',
                     null,
-                    $cat_options,
+                    $categories,
                     ['id' => 'category_'.$group_number]
                 );
             } else {
                 $group_el[] = $form->createElement('hidden', 'group_'.$group_number.'_category', 0);
-                $defaults['group_'.$group_number.'_category'] = array_keys($cat_options)[0];
+
+                $defaults['group_'.$group_number.'_category'] = null;
             }
             $group_el[] = $form->createElement(
                 'text',
@@ -218,18 +223,18 @@ EOT;
             );
 
             if ($_POST['number_of_groups'] < 10000) {
-                if ($group_id < 10) {
+                if ($numberOfGroups < 10) {
                     $prev = '000';
-                } elseif ($group_id < 100) {
+                } elseif ($numberOfGroups < 100) {
                     $prev = '00';
-                } elseif ($group_id < 1000) {
+                } elseif ($numberOfGroups < 1000) {
                     $prev = '0';
                 } else {
                     $prev = '';
                 }
             }
 
-            $defaults['group_'.$group_number.'_name'] = get_lang('Group').' '.$prev.$group_id++;
+            $defaults['group_'.$group_number.'_name'] = get_lang('Group').' '.$prev.$numberOfGroups++;
             $form->addGroup($group_el, 'group_'.$group_number, null, '</td><td>', false);
         }
         $defaults['action'] = 'create_groups';
@@ -245,7 +250,7 @@ EOT;
     $create_groups_form = new FormValidator('create_groups', 'post', api_get_self().'?'.api_get_cidreq());
     $create_groups_form->addElement('header', $nameTools);
     $create_groups_form->addText('number_of_groups', get_lang('Number of groups to create'), null, ['value' => '1']);
-    $create_groups_form->addButton('submit', get_lang('ProceedToCreate group(s)'), 'plus', 'primary');
+    $create_groups_form->addButton('submit', get_lang('Proceed to create group(s)'), 'plus', 'primary');
     $defaults = [];
     $defaults['number_of_groups'] = 1;
     $create_groups_form->setDefaults($defaults);
@@ -254,18 +259,18 @@ EOT;
     /*
      * Show form to generate subgroups
      */
-    if (api_get_setting('allow_group_categories') === 'true') {
+    if ($allowGroupCategories) {
         $groups = GroupManager::get_group_list();
         if (!empty($groups)) {
             $base_group_options = [];
             foreach ($groups as $index => $group) {
-                $number_of_students = GroupManager::number_of_students($group['id']);
+                $groupId = $group['iid'];
+                $number_of_students = GroupManager::number_of_students($groupId);
                 if ($number_of_students > 0) {
-                    $base_group_options[$group['id']] =
-                        $group['name'].' ('.$number_of_students.' '.get_lang('Users').')';
+                    $base_group_options[$groupId] = $group['name'].' ('.$number_of_students.' '.get_lang('Users').')';
                 }
             }
-            if (count($base_group_options) > 0) {
+            /*if (count($base_group_options) > 0) {
                 $create_subgroups_form = new FormValidator(
                     'create_subgroups',
                     'post',
@@ -290,7 +295,7 @@ EOT;
                 $defaults['action'] = 'create_subgroups';
                 $create_subgroups_form->setDefaults($defaults);
                 $create_subgroups_form->display();
-            }
+            }*/
         }
     }
 
@@ -321,13 +326,8 @@ EOT;
 
         $classForm->addHtml($description);
         $classForm->addElement('hidden', 'action');
-        if (api_get_setting('allow_group_categories') === 'true') {
-            $group_categories = GroupManager :: get_categories();
-            $cat_options = [];
-            foreach ($group_categories as $index => $category) {
-                $cat_options[$category['id']] = $category['title'];
-            }
-            $classForm->addElement('select', 'group_category', null, $cat_options);
+        if ($allowGroupCategories) {
+            $classForm->addElement('select', 'group_category', null, $categories);
         } else {
             $classForm->addElement('hidden', 'group_category');
         }

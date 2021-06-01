@@ -3,8 +3,6 @@
 
 /**
  * Process purchase confirmation script for the Buy Courses plugin.
- *
- * @package chamilo.plugin.buycourses
  */
 require_once '../config.php';
 
@@ -31,7 +29,7 @@ switch ($sale['payment_type']) {
     case BuyCoursesPlugin::PAYMENT_TYPE_PAYPAL:
         $paypalParams = $plugin->getPaypalParams();
 
-        $pruebas = $paypalParams['sandbox'] == 1;
+        $pruebas = 1 == $paypalParams['sandbox'];
         $paypalUsername = $paypalParams['username'];
         $paypalPassword = $paypalParams['password'];
         $paypalSignature = $paypalParams['signature'];
@@ -52,9 +50,9 @@ switch ($sale['payment_type']) {
             $extra
         );
 
-        if ($expressCheckout["ACK"] !== 'Success') {
+        if ('Success' !== $expressCheckout["ACK"]) {
             $erroMessage = vsprintf(
-                $plugin->get_lang('An error occurred.'),
+                $plugin->get_lang('ErrorOccurred'),
                 [$expressCheckout['L_ERRORCODE0'], $expressCheckout['L_LONGMESSAGE0']]
             );
             Display::addFlash(
@@ -140,9 +138,8 @@ switch ($sale['payment_type']) {
             );
             $messageTemplate->assign('transfer_accounts', $transferAccounts);
 
-            api_mail_html(
-                $userInfo['complete_name'],
-                $userInfo['email'],
+            MessageManager::send_message_simple(
+                $userInfo['user_id'],
                 $plugin->get_lang('bc_subject'),
                 $messageTemplate->fetch('buycourses/view/message_transfer.tpl')
             );

@@ -1,11 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * Script.
- *
- * @package chamilo.gradebook
- */
 require_once __DIR__.'/../inc/global.inc.php';
 
 api_block_anonymous_users();
@@ -58,7 +54,7 @@ if (isset($_GET['exportpdf'])) {
         $newarray[] = array_slice($data, 1);
     }
     $userInfo = api_get_user_info($userId);
-    $html .= get_lang('Results and feedback').' : '.$userInfo['complete_name_with_username'].' ('.api_get_local_time().')';
+    $html = get_lang('Results and feedback').' : '.$userInfo['complete_name_with_username'].' ('.api_get_local_time().')';
 
     if ($displayscore->is_custom()) {
         $header_names = [
@@ -101,8 +97,8 @@ if (isset($_GET['exportpdf'])) {
     $pdf->content_to_pdf($html);
     exit;
 }
-$actions = '<div class="actions">';
 
+$actions = '<div class="actions">';
 if (!empty($categoryId)) {
     $interbreadcrumb[] = [
         'url' => 'gradebook_flatview.php?selectcat='.$categoryId.'&'.api_get_cidreq(),

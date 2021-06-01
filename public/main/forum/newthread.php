@@ -1,5 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CForum;
 
 /**
  * These files are a complete rework of the forum. The database structure is
@@ -18,13 +22,8 @@
  * @Author Patrick Cool <patrick.cool@UGent.be>, Ghent University
  * @Copyright Ghent University
  * @Copyright Patrick Cool
- *
- * @package chamilo.forum
  */
 require_once __DIR__.'/../inc/global.inc.php';
-
-// The section (tabs).
-$this_section = SECTION_COURSES;
 
 // Notification for unauthorized people.
 api_protect_course_script(true);
@@ -34,20 +33,80 @@ $_user = api_get_user_info();
 
 $nameTools = get_lang('Forums');
 
-require_once 'forumfunction.inc.php';
+$htmlHeadXtra[] = api_get_jquery_libraries_js(['jquery-ui', 'jquery-upload']);
+$htmlHeadXtra[] = '<script>
+
+function check_unzip() {
+    if (document.upload.unzip.checked){
+        document.upload.if_exists[0].disabled=true;
+        document.upload.if_exists[1].checked=true;
+        document.upload.if_exists[2].disabled=true;
+    } else {
+        document.upload.if_exists[0].checked=true;
+        document.upload.if_exists[0].disabled=false;
+        document.upload.if_exists[2].disabled=false;
+    }
+}
+function setFocus() {
+    $("#title_file").focus();
+}
+</script>';
+// The next javascript script is to manage ajax upload file
+$htmlHeadXtra[] = api_get_jquery_libraries_js(['jquery-ui', 'jquery-upload']);
+
+// Recover Thread ID, will be used to generate delete attachment URL to do ajax
+$threadId = isset($_REQUEST['thread']) ? (int) ($_REQUEST['thread']) : 0;
+$forumId = isset($_REQUEST['forum']) ? (int) ($_REQUEST['forum']) : 0;
+
+$ajaxUrl = api_get_path(WEB_AJAX_PATH).'forum.ajax.php?'.api_get_cidreq();
+// The next javascript script is to delete file by ajax
+$htmlHeadXtra[] = '<script>
+$(function () {
+    $(document).on("click", ".deleteLink", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var l = $(this);
+        var id = l.closest("tr").attr("id");
+        var filename = l.closest("tr").find(".attachFilename").html();
+        if (confirm("'.get_lang('Are you sure to delete').'", filename)) {
+            $.ajax({
+                type: "POST",
+                url: "'.$ajaxUrl.'&a=delete_file&attachId=" + id +"&thread='.$threadId.'&forum='.$forumId.'",
+                dataType: "json",
+                success: function(data) {
+                    if (data.error == false) {
+                        l.closest("tr").remove();
+                        if ($(".files td").length < 1) {
+                            $(".files").closest(".control-group").hide();
+                        }
+                    }
+                }
+            })
+        }
+    });
+});
+</script>';
 
 // Are we in a lp ?
 $origin = api_get_origin();
-/* MAIN DISPLAY SECTION */
-$current_forum = get_forum_information($_GET['forum']);
-$current_forum_category = get_forumcategory_information($current_forum['forum_category']);
+
+$forumId = isset($_GET['forum']) ? (int) $_GET['forum'] : 0;
+$repo = Container::getForumRepository();
+
+$forumEntity = null;
+if (!empty($forumId)) {
+    /** @var CForum $forumEntity */
+    $forumEntity = $repo->find($forumId);
+}
+
+$courseEntity = api_get_course_entity(api_get_course_int_id());
+$sessionEntity = api_get_session_entity(api_get_session_id());
+$current_forum_category = $forumEntity->getForumCategory();
 
 $logInfo = [
     'tool' => TOOL_FORUM,
-    'tool_id' => (int) $_GET['forum'],
-    'tool_id_detail' => 0,
+    'tool_id' => $forumId,
     'action' => 'add-thread',
-    'action_details' => '',
 ];
 Event::registerLog($logInfo);
 
@@ -59,39 +118,41 @@ if (api_is_in_gradebook()) {
 }
 
 /* Is the user allowed here? */
-
 // The user is not allowed here if:
-
 // 1. the forumcategory or forum is invisible (visibility==0) and the user is not a course manager
-if (!api_is_allowed_to_edit(false, true) &&
-    (($current_forum_category && $current_forum_category['visibility'] == 0) || $current_forum['visibility'] == 0)
+if (!api_is_allowed_to_edit(false, true) && //is a student
+    (
+        ($current_forum_category && false == $current_forum_category->isVisible($courseEntity, $sessionEntity)) ||
+        false == $current_forum_category->isVisible($courseEntity, $sessionEntity)
+    )
 ) {
-    api_not_allowed();
+    api_not_allowed(true);
 }
 
 // 2. the forumcategory or forum is locked (locked <>0) and the user is not a course manager
 if (!api_is_allowed_to_edit(false, true) &&
-    (($current_forum_category['visibility'] && $current_forum_category['locked'] != 0) || $current_forum['locked'] != 0)
+    (($current_forum_category->isVisible($courseEntity, $sessionEntity) &&
+        0 != $current_forum_category->getLocked()) || 0 != $forumEntity->getLocked())
 ) {
     api_not_allowed();
 }
 
 // 3. new threads are not allowed and the user is not a course manager
 if (!api_is_allowed_to_edit(false, true) &&
-    $current_forum['allow_new_threads'] != 1
+    1 != $forumEntity->getAllowNewThreads()
 ) {
     api_not_allowed();
 }
 // 4. anonymous posts are not allowed and the user is not logged in
-if (!$_user['user_id'] && $current_forum['allow_anonymous'] != 1) {
+if (!$_user['user_id'] && 1 != $forumEntity->getAllowAnonymous()) {
     api_not_allowed();
 }
 
 // 5. Check user access
-if ($current_forum['forum_of_group'] != 0) {
-    $show_forum = GroupManager::user_has_access(
+if (0 != $forumEntity->getForumOfGroup()) {
+    $show_forum = GroupManager::userHasAccess(
         api_get_user_id(),
-        $current_forum['forum_of_group'],
+        api_get_group_entity($forumEntity->getForumOfGroup()),
         GroupManager::GROUP_TOOL_FORUM
     );
     if (!$show_forum) {
@@ -116,22 +177,24 @@ if (!empty($groupId)) {
         'name' => get_lang('Group area').' '.$groupProperties['name'],
     ];
     $interbreadcrumb[] = [
-        'url' => api_get_path(WEB_CODE_PATH).'forum/viewforum.php?'.$cidreq.'&forum='.intval($_GET['forum']),
-        'name' => $current_forum['forum_title'],
+        'url' => api_get_path(WEB_CODE_PATH).'forum/viewforum.php?'.$cidreq.'&forum='.(int) ($_GET['forum']),
+        'name' => $forumEntity->getForumTitle(),
     ];
     $interbreadcrumb[] = [
-        'url' => api_get_path(WEB_CODE_PATH).'forum/newthread.php?'.$cidreq.'&forum='.intval($_GET['forum']),
+        'url' => api_get_path(WEB_CODE_PATH).'forum/newthread.php?'.$cidreq.'&forum='.(int) ($_GET['forum']),
         'name' => get_lang('Create thread'),
     ];
 } else {
     $interbreadcrumb[] = ['url' => api_get_path(WEB_CODE_PATH).'forum/index.php?'.$cidreq, 'name' => $nameTools];
+    if ($current_forum_category) {
+        $interbreadcrumb[] = [
+            'url' => api_get_path(WEB_CODE_PATH).'forum/index.php?'.$cidreq.'&forumcategory='.$current_forum_category->getIid(),
+            'name' => $current_forum_category->getCatTitle(),
+        ];
+    }
     $interbreadcrumb[] = [
-        'url' => api_get_path(WEB_CODE_PATH).'forum/viewforumcategory.php?'.$cidreq.'&forumcategory='.$current_forum_category['cat_id'],
-        'name' => $current_forum_category['cat_title'],
-    ];
-    $interbreadcrumb[] = [
-        'url' => api_get_path(WEB_CODE_PATH).'forum/viewforum.php?'.$cidreq.'&forum='.intval($_GET['forum']),
-        'name' => $current_forum['forum_title'],
+        'url' => api_get_path(WEB_CODE_PATH).'forum/viewforum.php?'.$cidreq.'&forum='.$forumId,
+        'name' => $forumEntity->getForumTitle(),
     ];
     $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Create thread')];
 }
@@ -141,7 +204,6 @@ $htmlHeadXtra[] = "
         $(function() {
             $('#reply-add-attachment').on('click', function(e) {
                 e.preventDefault();
-    
                 var newInputFile = $('<input>', {
                     type: 'file',
                     name: 'user_upload[]'
@@ -152,34 +214,30 @@ $htmlHeadXtra[] = "
     </script>
 ";
 
-$form = show_add_post_form(
-    $current_forum,
-    'newthread',
+$form = newThread(
+    $forumEntity,
     isset($_SESSION['formelements']) ? $_SESSION['formelements'] : null
 );
 
-if ($origin == 'learnpath') {
+if ('learnpath' === $origin) {
     Display::display_reduced_header();
 } else {
     Display::display_header();
 }
-handle_forum_and_forumcategories();
 
-// Action links
-echo '<div class="actions">';
-echo '<span style="float:right;">'.search_link().'</span>';
-echo '<a href="viewforum.php?forum='.intval($_GET['forum']).'&'.$cidreq.'">'.
+//$actions  '<span style="float:right;">'.search_link().'</span>';
+$actions = '<a href="viewforum.php?forum='.(int) ($_GET['forum']).'&'.$cidreq.'">'.
     Display::return_icon('back.png', get_lang('Back to forum'), '', ICON_SIZE_MEDIUM).'</a>';
-echo '</div>';
+echo Display::toolbarAction('toolbar', [$actions]);
 
 // Set forum attachment data into $_SESSION
-getAttachedFiles($current_forum['forum_id'], 0, 0);
+getAttachedFiles($forumEntity->getIid(), 0, 0);
 
 if ($form) {
     $form->display();
 }
 
-if ($origin == 'learnpath') {
+if ('learnpath' == $origin) {
     Display::display_reduced_footer();
 } else {
     Display::display_footer();

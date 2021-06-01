@@ -1,20 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Composer;
 
 use Symfony\Component\Filesystem\Filesystem;
 
-/**
- * Class DumpTheme.
- */
 class ScriptHandler
 {
     /**
      * Dump files to the web/css folder.
      */
-    public static function dumpCssFiles()
+    public static function dumpCssFiles(): void
     {
         /*$appCss = __DIR__.'/../../../assets/libs';
         $newPath = __DIR__.'/../../../public/libs/';
@@ -24,7 +23,7 @@ class ScriptHandler
         $fs = new Filesystem();
         $fs->mirror($appCss, $newPath, null, ['override' => true]);*/
 
-        if (function_exists('opcache_reset')) {
+        if (\function_exists('opcache_reset')) {
             opcache_reset();
         }
     }
@@ -33,7 +32,7 @@ class ScriptHandler
      * Delete old Symfony folder before update (generates conflicts with composer)
      * This method also applies to 1.10 folders removed for 1.11.
      */
-    public static function deleteOldFilesFrom19x()
+    public static function deleteOldFilesFrom19x(): void
     {
         $paths = self::getFoldersToDelete();
 
@@ -58,6 +57,10 @@ class ScriptHandler
     public static function getFoldersToDelete()
     {
         return [
+            __DIR__.'/../../../../app/Resources/public/assets/bootstrap/docs',
+            __DIR__.'/../../../../app/Resources/public/assets/bootstrap/nuget',
+            __DIR__.'/../../../../app/Resources/public/assets/bootstrap/grunt',
+            __DIR__.'/../../../../app/Resources/public/assets/bootstrap/test-infra',
             __DIR__.'/../../../../archive/',
             __DIR__.'/../../../../main/announcements/resources',
             __DIR__.'/../../../../main/conference/',
@@ -97,15 +100,12 @@ class ScriptHandler
             __DIR__.'/../../../../main/pear/excelreader/',
             __DIR__.'/../../../../main/resourcelinker',
             // Remove from 1.10
-            __DIR__.'/../../../../plugin/ticket',
-            __DIR__.'/../../../../plugin/skype',
             __DIR__.'/../../../../main/newscorm',
             __DIR__.'/../../../../main/exercice',
+            __DIR__.'/../../../../plugin/ticket',
+            __DIR__.'/../../../../plugin/skype',
             // js files
-            __DIR__.'/../../../../app/Resources/public/assets/bootstrap/docs',
-            __DIR__.'/../../../../app/Resources/public/assets/bootstrap/nuget',
-            __DIR__.'/../../../../app/Resources/public/assets/bootstrap/grunt',
-            __DIR__.'/../../../../app/Resources/public/assets/bootstrap/test-infra',
+            __DIR__.'/../../../../vendor/pclzip',
             __DIR__.'/../../../../web/assets/bootstrap/grunt',
             __DIR__.'/../../../../web/assets/bootstrap/nuget',
             __DIR__.'/../../../../web/assets/bootstrap/docs',
@@ -150,6 +150,7 @@ class ScriptHandler
             __DIR__.'/../../../../main/exercice/export/scorm/scorm_export.php',
             __DIR__.'/../../../../main/exercice/testheaderpage.php',
             __DIR__.'/../../../../main/exercise/hotspot_lang_conversion.php',
+            __DIR__.'/../../../../main/exercise/export/qti2/qti2_classes.php',
             __DIR__.'/../../../../main/inc/lib/main_api.lib.php',
             //__DIR__.'/../../../../main/inc/lib/nusoap/class.soapclient.php',
             __DIR__.'/../../../../main/inc/lib/nusoap/nusoap.php',
@@ -211,6 +212,7 @@ class ScriptHandler
             __DIR__.'/../../../../main/ticket/update_report.php',
             __DIR__.'/../../../../main/tracking/toolaccess_details.php',
             __DIR__.'/../../../../main/tracking/course_access_details.php',
+            __DIR__.'/../../../../src/DataFixtures/AppFixtures.php',
             __DIR__.'/../../../../src/Chamilo/CoreBundle/Entity/GroupRelGroup.php',
             __DIR__.'/../../../../src/Chamilo/CoreBundle/Entity/GroupRelTag.php',
             __DIR__.'/../../../../src/Chamilo/CoreBundle/Entity/GroupRelUser.php',
@@ -226,6 +228,10 @@ class ScriptHandler
             __DIR__.'/../../../../web/assets/bootstrap/Gruntfile.js',
             __DIR__.'/../../../../web/assets/bootstrap/package.js',
             __DIR__.'/../../../../web/assets/bootstrap/package.json',
+
+            // v2
+            __DIR__.'/../../../../src/CourseBundle/Entity/CQuizQuestionRelCategory.php',
+            __DIR__.'/../../../../main/inc/lib/tablesort.lib.php',
         ];
     }
 
@@ -233,7 +239,7 @@ class ScriptHandler
      * Update the basis css files.
      * Avoid use the ScriptHandler::dumpCssFiles.
      */
-    public static function updateCss()
+    public static function updateCss(): void
     {
         $appCss = __DIR__.'/../../../../app/Resources/public/css/';
         $newPath = __DIR__.'/../../../../web/css/';
@@ -258,13 +264,9 @@ class ScriptHandler
     /**
      * Copied from chamilo rmdirr function.
      *
-     * @param string     $dirname
-     * @param bool|false $delete_only_content_in_folder
-     * @param bool|false $strict
-     *
      * @return bool
      */
-    private static function rmdirr($dirname, $delete_only_content_in_folder = false, $strict = false)
+    private static function rmdirr(string $dirname, bool $delete_only_content_in_folder = false, bool $strict = false)
     {
         $res = true;
 
@@ -280,24 +282,24 @@ class ScriptHandler
         // Loop through the folder.
         $dir = dir($dirname);
         // A sanity check.
-        $is_object_dir = is_object($dir);
+        $is_object_dir = \is_object($dir);
         if ($is_object_dir) {
             while (false !== $entry = $dir->read()) {
                 // Skip pointers.
-                if ('.' == $entry || '..' == $entry) {
+                if ('.' === $entry || '..' === $entry) {
                     continue;
                 }
 
                 // Recurse.
                 if ($strict) {
-                    $result = self::rmdirr("$dirname/$entry");
-                    if (false == $result) {
+                    $result = self::rmdirr(sprintf('%s/%s', $dirname, $entry));
+                    if (!$result) {
                         $res = false;
 
                         break;
                     }
                 } else {
-                    self::rmdirr("$dirname/$entry");
+                    self::rmdirr(sprintf('%s/%s', $dirname, $entry));
                 }
             }
         }
@@ -307,7 +309,7 @@ class ScriptHandler
             $dir->close();
         }
 
-        if (false == $delete_only_content_in_folder) {
+        if (!$delete_only_content_in_folder) {
             $res = rmdir($dirname);
         }
 

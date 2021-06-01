@@ -5,8 +5,6 @@
  * List all certificates filtered by session/course and month/year.
  *
  * @author Angel Fernando Quiroz Campos <angel.quiroz@beeznest.com>
- *
- * @package chamilo.gradebook
  */
 $cidReset = true;
 
@@ -51,6 +49,8 @@ if (api_is_student_boss()) {
 foreach ($sessionsList as $session) {
     $sessions[$session['id']] = $session['name'];
 }
+
+$selfUrl = api_get_self();
 
 if ($selectedSession > 0) {
     if (!SessionManager::isValidId($selectedSession)) {

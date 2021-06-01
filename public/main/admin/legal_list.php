@@ -1,12 +1,11 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Entity\Legal;
 use Chamilo\CoreBundle\Repository\LegalRepository;
 
 /**
  * Sessions list script.
- *
- * @package chamilo.admin
  */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
@@ -31,7 +30,7 @@ echo '</div>';
 
 $em = Database::getManager();
 /** @var LegalRepository $legalTermsRepo */
-$legalTermsRepo = $em->getRepository('ChamiloCoreBundle:Legal');
+$legalTermsRepo = $em->getRepository(Legal::class);
 $legalCount = $legalTermsRepo->countAllActiveLegalTerms();
 $languages = api_get_languages();
 $available_languages = count($languages['folder']);

@@ -1,6 +1,8 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Framework\Container;
 use ChamiloSession as Session;
 
 /**
@@ -14,8 +16,6 @@ use ChamiloSession as Session;
  * @author Roan Embrechts, initial self-unsubscribe code, code cleaning, virtual course support
  * @author Bart Mollet, code cleaning, use of Display-library, list of courseAdmin-tools, use of GroupManager
  * @author Isaac Flores, code cleaning and improvements
- *
- * @package chamilo.group
  */
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -33,7 +33,9 @@ $htmlHeadXtra[] = '<script>
 $(function() {
     var i;
 	for (i=0; i<$(".actions").length; i++) {
-		if ($(".actions:eq("+i+")").html()=="<table border=\"0\"></table>" || $(".actions:eq("+i+")").html()=="" || $(".actions:eq("+i+")").html()==null) {
+		if ($(".actions:eq("+i+")").html()=="<table border=\"0\"></table>" || $(".actions:eq("+i+")").html()=="" ||
+		    $(".actions:eq("+i+")").html()==null
+		) {
 			$(".actions:eq("+i+")").hide();
 		}
 	}
@@ -44,11 +46,16 @@ $nameTools = get_lang('Groups management');
 /*
  * Self-registration and un-registration
  */
-$my_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : null;
-$my_group = isset($_REQUEST['group']) ? Security::remove_XSS($_REQUEST['group']) : null;
+$my_group_id = $_GET['group_id'] ?? null;
+$categoryId = $_GET['category_id'] ?? null;
 $my_get_id1 = isset($_GET['id1']) ? Security::remove_XSS($_GET['id1']) : null;
 $my_get_id2 = isset($_GET['id2']) ? Security::remove_XSS($_GET['id2']) : null;
-$my_get_id = isset($_GET['id']) ? Security::remove_XSS($_GET['id']) : null;
+
+$groupRepo = Container::getGroupRepository();
+$groupEntity = null;
+if (!empty($my_group_id)) {
+    $groupEntity = $groupRepo->find($my_group_id);
+}
 
 $currentUrl = api_get_path(WEB_CODE_PATH).'group/group.php?'.api_get_cidreq();
 $groupInfo = GroupManager::get_group_properties($my_group_id);
@@ -56,24 +63,26 @@ $groupInfo = GroupManager::get_group_properties($my_group_id);
 if (isset($_GET['action']) && $is_allowed_in_course) {
     switch ($_GET['action']) {
         case 'set_visible':
-            if (api_is_allowed_to_edit()) {
-                GroupManager::setVisible($my_get_id);
+            if ($groupEntity && api_is_allowed_to_edit()) {
+                GroupManager::setVisible($groupEntity);
                 Display::addFlash(Display::return_message(get_lang('Item updated')));
                 header("Location: $currentUrl");
                 exit;
             }
+
             break;
         case 'set_invisible':
-            if (api_is_allowed_to_edit()) {
-                GroupManager::setInvisible($my_get_id);
+            if ($groupEntity && api_is_allowed_to_edit()) {
+                GroupManager::setInvisible($groupEntity);
                 Display::addFlash(Display::return_message(get_lang('Item updated')));
                 header("Location: $currentUrl");
                 exit;
             }
+
             break;
         case 'self_reg':
-            if (GroupManager::is_self_registration_allowed($userId, $groupInfo)) {
-                GroupManager::subscribe_users($userId, $groupInfo);
+            if (GroupManager::is_self_registration_allowed($userId, $groupEntity)) {
+                GroupManager::subscribeUsers($userId, $groupEntity);
                 Display::addFlash(Display::return_message(get_lang('You are now a member of this group.')));
                 header("Location: $currentUrl");
                 exit;
@@ -82,14 +91,16 @@ if (isset($_GET['action']) && $is_allowed_in_course) {
                 header("Location: $currentUrl");
                 exit;
             }
+
             break;
         case 'self_unreg':
-            if (GroupManager::is_self_unregistration_allowed($userId, $groupInfo)) {
-                GroupManager::unsubscribe_users($userId, $groupInfo);
+            if (GroupManager::is_self_unregistration_allowed($userId, $groupEntity)) {
+                GroupManager::subscribeUsers($userId, $groupEntity);
                 Display::addFlash(Display::return_message(get_lang('You\'re now unsubscribed.')));
                 header("Location: $currentUrl");
                 exit;
             }
+
             break;
     }
 }
@@ -104,37 +115,39 @@ if (api_is_allowed_to_edit(false, true)) {
             case 'delete_selected':
                 if (is_array($_POST['group'])) {
                     foreach ($_POST['group'] as $myGroupId) {
-                        $groupInfo = GroupManager::get_group_properties($myGroupId);
-                        GroupManager::deleteGroup($groupInfo);
+                        $group = $groupRepo->find($myGroupId);
+                        GroupManager::deleteGroup($group);
                     }
 
                     Display::addFlash(Display::return_message(get_lang('All selected groups have been deleted')));
                     header("Location: $currentUrl");
                     exit;
                 }
+
                 break;
             case 'empty_selected':
                 if (is_array($_POST['group'])) {
                     foreach ($_POST['group'] as $myGroupId) {
-                        $groupInfo = GroupManager::get_group_properties($myGroupId);
-                        GroupManager::unsubscribe_all_users($groupInfo);
+                        GroupManager::unsubscribeAllUsers($myGroupId);
                     }
 
                     Display::addFlash(Display::return_message(get_lang('All selected groups are now empty')));
                     header("Location: $currentUrl");
                     exit;
                 }
+
                 break;
             case 'fill_selected':
                 if (is_array($_POST['group'])) {
                     foreach ($_POST['group'] as $myGroupId) {
-                        $groupInfo = GroupManager::get_group_properties($myGroupId);
-                        GroupManager::fillGroupWithUsers($groupInfo);
+                        $group = $groupRepo->find($myGroupId);
+                        GroupManager::fillGroupWithUsers($group);
                     }
                     Display::addFlash(Display::return_message(get_lang('All selected groups have been filled')));
                     header("Location: $currentUrl");
                     exit;
                 }
+
                 break;
         }
     }
@@ -147,53 +160,52 @@ if (api_is_allowed_to_edit(false, true)) {
                 Display::addFlash(Display::return_message(get_lang('The category order was changed')));
                 header("Location: $currentUrl");
                 exit;
+
                 break;
             case 'delete_one':
-                $groupInfo = GroupManager::get_group_properties($my_get_id);
-                GroupManager::deleteGroup($groupInfo);
+                GroupManager::deleteGroup($groupEntity);
                 Display::addFlash(Display::return_message(get_lang('Group deleted')));
                 header("Location: $currentUrl");
                 exit;
+
                 break;
             case 'fill_one':
-                $groupInfo = GroupManager::get_group_properties($my_get_id);
-                GroupManager::fillGroupWithUsers($groupInfo);
-                Display::addFlash(Display::return_message(get_lang('Groups have been filled (or completed) by users present in the \'Users\' list.')));
+                GroupManager::fillGroupWithUsers($groupEntity);
+                Display::addFlash(
+                    Display::return_message(
+                        get_lang('Groups have been filled (or completed) by users present in the \'Users\' list.')
+                    )
+                );
                 header("Location: $currentUrl");
                 exit;
+
                 break;
             case 'delete_category':
                 if (empty($sessionId)) {
-                    GroupManager::delete_category($my_get_id);
+                    GroupManager::delete_category($categoryId);
                     Display::addFlash(
                         Display::return_message(get_lang('The category has been deleted.'))
                     );
                     header("Location: $currentUrl");
                     exit;
                 }
+
                 break;
         }
     }
 }
 
-/*	Header */
 Display::display_header(get_lang('Groups'));
-
-// Tool introduction
 Display::display_introduction_section(TOOL_GROUP);
 
 $actionsLeft = '';
-
 if (api_is_allowed_to_edit(false, true)) {
     $actionsLeft .= '<a href="group_creation.php?'.api_get_cidreq().'">'.
         Display::return_icon('add-groups.png', get_lang('Create new group(s)'), '', ICON_SIZE_MEDIUM).'</a>';
 
-    if (api_get_setting('allow_group_categories') === 'true' && empty($sessionId)) {
+    if (empty($sessionId) && 'true' === api_get_setting('allow_group_categories')) {
         $actionsLeft .= '<a href="group_category.php?'.api_get_cidreq().'&action=add_category">'.
-            Display::return_icon('new_folder.png', get_lang('Add category'), '', ICON_SIZE_MEDIUM).'</a>';
-    } else {
-        $actionsLeft .= '<a href="group_category.php?'.api_get_cidreq().'&id=2">'.
-            Display::return_icon('settings.png', get_lang('Edit settings'), '', ICON_SIZE_MEDIUM).'</a>';
+            Display::return_icon('new_folder.png', get_lang('AddCategory'), '', ICON_SIZE_MEDIUM).'</a>';
     }
 
     $actionsLeft .= '<a href="import.php?'.api_get_cidreq().'&action=import">'.
@@ -214,75 +226,92 @@ if (api_is_allowed_to_edit(false, true)) {
 
 $actionsRight = GroupManager::getSearchForm();
 $toolbar = Display::toolbarAction('toolbar-groups', [$actionsLeft, $actionsRight]);
-$group_cats = GroupManager::get_categories(api_get_course_id());
+$categories = GroupManager::get_categories();
+
 echo $toolbar;
 echo UserManager::getUserSubscriptionTab(3);
 
 /*  List all categories */
-if (api_get_setting('allow_group_categories') === 'true') {
+if ('true' === api_get_setting('allow_group_categories')) {
     $defaultCategory = [
-        'id' => 0,
-        'iid' => 0,
+        'iid' => null,
         'description' => '',
         'title' => get_lang('Default groups'),
     ];
-    $group_cats = array_merge([$defaultCategory], $group_cats);
+    $categories = array_merge([$defaultCategory], $categories);
+    $course = api_get_course_entity();
+    foreach ($categories as $index => $category) {
+        $categoryId = $category['iid'];
+        $groupList = GroupManager::get_group_list(
+            $categoryId,
+            $course,
+            null,
+            null,
+            false,
+            null,
+            true
+        );
+        $groupToShow = GroupManager::processGroups($groupList, $categoryId);
 
-    foreach ($group_cats as $index => $category) {
-        $categoryId = $category['id'];
-        $group_list = GroupManager::get_group_list($categoryId);
-        $groupToShow = GroupManager::process_groups($group_list, $categoryId);
-
-        if (empty($groupToShow)) {
+        if (empty($categoryId) && empty($groupList)) {
             continue;
         }
 
-        if (empty($categoryId) && empty($group_list)) {
-            continue;
-        }
-
-        $label = Display::label(count($group_list).' '.get_lang('Groups'), 'info');
+        $label = Display::label(count($groupList).' '.get_lang('Groups'), 'info');
         $actions = null;
         if (api_is_allowed_to_edit(false, true) && !empty($categoryId) && empty($sessionId)) {
             // Edit
-            $actions .= '<a href="group_category.php?'.api_get_cidreq().'&id='.$categoryId.'" title="'.get_lang('Edit').'">'.
+            $actions .= '<a
+                href="group_category.php?'.api_get_cidreq().'&id='.$categoryId.'" title="'.get_lang('Edit').'">'.
                 Display::return_icon('edit.png', get_lang('Edit this category'), '', ICON_SIZE_SMALL).'</a>';
 
             // Delete
             $actions .= Display::url(
                 Display::return_icon('delete.png', get_lang('Delete'), '', ICON_SIZE_SMALL),
-                'group.php?'.api_get_cidreq().'&action=delete_category&id='.$categoryId,
+                'group.php?'.api_get_cidreq().'&action=delete_category&category_id='.$categoryId,
                 [
                     'onclick' => 'javascript:if(!confirm('."'".addslashes(api_htmlentities(get_lang('Please confirm your choice'), ENT_QUOTES))."'".')) return false;',
                 ]
             );
             // Move
-            if ($index != 0) {
-                $actions .= ' <a href="group.php?'.api_get_cidreq().'&action=swap_cat_order&id1='.$categoryId.'&id2='.$group_cats[$index - 1]['id'].'">'.
+            if (0 != $index) {
+                $actions .= ' <a
+                    href="group.php?'.api_get_cidreq().'&action=swap_cat_order&id1='.$categoryId.'&id2='.$categories[$index - 1]['iid'].'">'.
                     Display::return_icon('up.png', '&nbsp;', '', ICON_SIZE_SMALL).'</a>';
             }
-            if ($index != count($group_cats) - 1) {
-                $actions .= ' <a href="group.php?'.api_get_cidreq().'&action=swap_cat_order&id1='.$categoryId.'&id2='.$group_cats[$index + 1]['id'].'">'.
+            if ($index != count($categories) - 1) {
+                $actions .= ' <a
+                    href="group.php?'.api_get_cidreq().'&action=swap_cat_order&id1='.$categoryId.'&id2='.$categories[$index + 1]['iid'].'">'.
                     Display::return_icon('down.png', '&nbsp;', '', ICON_SIZE_SMALL).'</a>';
             }
         }
 
-        echo Display::page_header(
-            Security::remove_XSS($category['title'].' '.$label.' ').$actions,
+        $header = Display::page_header(
+            Security::remove_XSS($category['title'].' '.$label.' '),
             null,
             'h4',
             false
         );
 
+        echo Display::toolbarAction('category_'.$categoryId, [$header.$actions]);
         echo $category['description'];
         echo $groupToShow;
     }
 } else {
-    $group_list = GroupManager::get_group_list();
-    echo GroupManager::process_groups($group_list);
+    echo GroupManager::processGroups(
+        GroupManager::get_group_list(
+            null,
+            null,
+            null,
+            null,
+            false,
+            null,
+            true
+        )
+    );
 }
 
-if (!isset($_GET['origin']) || $_GET['origin'] != 'learnpath') {
+if (!isset($_GET['origin']) || 'learnpath' !== $_GET['origin']) {
     Display::display_footer();
 }
 

@@ -5,8 +5,6 @@
  *  It displays a list of users and a list of courses;
  *  you can select multiple users and courses and then click on.
  *
- *  @package chamilo.admin
- *
  *  @author Julio Montoya <gugli100@gmail.com>
  */
 $cidReset = true;
@@ -31,12 +29,15 @@ $interbreadcrumb[] = ['url' => 'access_urls.php', 'name' => get_lang('Multiple a
 
 Display::display_header($tool_name);
 
-echo '<div class="actions">';
-echo Display::url(
-    Display::return_icon('edit.png', get_lang('Edit groups for one URL'), ''),
-    api_get_path(WEB_CODE_PATH).'admin/access_url_edit_usergroup_to_url.php'
+echo Display::toolbarAction(
+    'url',
+    [
+        Display::url(
+            Display::return_icon('edit.png', get_lang('Edit groups for one URL'), ''),
+            api_get_path(WEB_CODE_PATH).'admin/access_url_edit_usergroup_to_url.php'
+        ),
+    ]
 );
-echo '</div>';
 
 api_display_tool_title($tool_name);
 
@@ -46,8 +47,8 @@ if (isset($_POST['form_sent']) && $_POST['form_sent']) {
     $urlList = is_array($_POST['url_list']) ? $_POST['url_list'] : [];
     $firstLetterUserGroup = $_POST['first_letter_user_group'];
 
-    if ($form_sent == 1) {
-        if (count($userGroups) == 0 || count($urlList) == 0) {
+    if (1 == $form_sent) {
+        if (0 == count($userGroups) || 0 == count($urlList)) {
             echo Display::return_message(get_lang('You need to select at least one group and one site'), 'error');
         } else {
             UrlManager::addUserGroupListToUrl($userGroups, $urlList);

@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use ChamiloSession as Session;
@@ -9,11 +10,8 @@ use ChamiloSession as Session;
 class GlobalMultipleAnswer extends Question
 {
     public $typePicture = 'mcmagl.png';
-    public $explanationLangVar = 'GlobalMultipleAnswer';
+    public $explanationLangVar = 'Global multiple answer';
 
-    /**
-     * GlobalMultipleAnswer constructor.
-     */
     public function __construct()
     {
         parent::__construct();
@@ -21,9 +19,6 @@ class GlobalMultipleAnswer extends Question
         $this->isContent = $this->getIsContent();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function createAnswersForm($form)
     {
         $nb_answers = isset($_POST['nb_answers']) ? $_POST['nb_answers'] : 4;
@@ -31,27 +26,18 @@ class GlobalMultipleAnswer extends Question
 
         $obj_ex = Session::read('objExercise');
 
+        $form->addHeader(get_lang('Answers'));
         /* Mise en variable de Affichage "Reponses" et son icone, "N�", "Vrai", "Reponse" */
-        $html = '<table class="data_table">
+        $html = '<table class="table table-striped table-hover">
                 <tr>
-                    <th width="10px">
-                        '.get_lang('N°').'
-                    </th>
-                    <th width="10px">
-                        '.get_lang('True').'
-                    </th>
-                    <th width="50%">
-                        '.get_lang('Answer').'
-                    </th>';
+                    <th width="10px">'.get_lang('Number').'</th>
+                    <th width="10px">'.get_lang('True').'</th>
+                    <th width="50%">'.get_lang('Answer').'</th>
+                    <th width="50%">'.get_lang('Comment').'</th>
+                </tr>
+                ';
+        $form->addHtml($html);
 
-        $html .= '<th>'.get_lang('Comment').'</th>';
-        $html .= '</tr>';
-        $form->addElement(
-            'label',
-            get_lang('Answers').
-            '<br /> '.Display::return_icon('fill_field.png'),
-            $html
-        );
         $defaults = [];
         $correct = 0;
         $answer = false;
@@ -93,7 +79,7 @@ class GlobalMultipleAnswer extends Question
             }
             //------------- Fin
             //------------- Debut si un des scores par reponse est egal � 0 : la coche vaut 1 (coch�)
-            if ($scoreA == 0) {
+            if (0 == $scoreA) {
                 $defaults['pts'] = 1;
             }
 
@@ -124,14 +110,14 @@ class GlobalMultipleAnswer extends Question
             );
             $answer_number->freeze();
 
-            $form->addElement('checkbox', 'correct['.$i.']', null, null, 'class="checkbox"');
+            $form->addCheckBox('correct['.$i.']', null);
             $boxes_names[] = 'correct['.$i.']';
 
-            $form->addElement(
-                'html_editor',
+            $form->addHtmlEditor(
                 'answer['.$i.']',
                 null,
-                [],
+                true,
+                false,
                 [
                     'ToolbarSet' => 'TestProposedAnswer',
                     'Width' => '100%',
@@ -139,11 +125,11 @@ class GlobalMultipleAnswer extends Question
                 ]
             );
             $form->addRule('answer['.$i.']', get_lang('Required field'), 'required');
-            $form->addElement(
-                'html_editor',
+            $form->addHtmlEditor(
                 'comment['.$i.']',
                 null,
-                [],
+                true,
+                false,
                 [
                     'ToolbarSet' => 'TestProposedAnswer',
                     'Width' => '100%',
@@ -154,7 +140,7 @@ class GlobalMultipleAnswer extends Question
             $form->addElement('html', '</tr>');
         }
         //--------- Mise en variable du score global lors d'une modification de la question/r�ponse
-        $defaults['weighting[1]'] = (round($scoreG));
+        $defaults['weighting[1]'] = round($scoreG);
         $form->addElement('html', '</div></div></table>');
         $form->add_multiple_required_rule(
             $boxes_names,
@@ -166,8 +152,8 @@ class GlobalMultipleAnswer extends Question
         $form->addElement('text', 'weighting[1]', get_lang('Score'));
 
         //--------- Creation coche pour ne pas prendre en compte les n�gatifs
-        $form->addElement('checkbox', 'pts', '', get_lang('No negative score'));
-        $form->addElement('html', '<br />');
+        $form->addCheckBox('pts', '', get_lang('No negative score'));
+        $form->addHtml('html', '<br />');
 
         // Affiche un message si le score n'est pas renseign�
         $form->addRule('weighting[1]', get_lang('Required field'), 'required');
@@ -194,16 +180,13 @@ class GlobalMultipleAnswer extends Question
         if (!empty($this->id)) {
             $form->setDefaults($defaults);
         } else {
-            if ($this->isContent == 1) {
+            if (1 == $this->isContent) {
                 $form->setDefaults($defaults);
             }
         }
         $form->setConstants(['nb_answers' => $nb_answers]);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function processAnswersCreation($form, $exercise)
     {
         $objAnswer = new Answer($this->id);
@@ -224,10 +207,10 @@ class GlobalMultipleAnswer extends Question
         $questionWeighting = $answer_score;
 
         // Set score per answer
-        $nbr_corrects = $nbr_corrects == 0 ? 1 : $nbr_corrects;
-        $answer_score = $nbr_corrects == 0 ? 0 : $answer_score;
+        $nbr_corrects = 0 == $nbr_corrects ? 1 : $nbr_corrects;
+        $answer_score = 0 == $nbr_corrects ? 0 : $answer_score;
 
-        $answer_score = $answer_score / $nbr_corrects;
+        $answer_score /= $nbr_corrects;
 
         //$answer_score �quivaut � la valeur d'une bonne r�ponse
         // cr�ation variable pour r�cuperer la valeur de la coche pour la prise en compte des n�gatifs
@@ -241,7 +224,7 @@ class GlobalMultipleAnswer extends Question
             if ($goodAnswer) {
                 $weighting = abs($answer_score);
             } else {
-                if ($test == 1) {
+                if (1 == $test) {
                     $weighting = 0;
                 } else {
                     $weighting = -abs($answer_score);
@@ -258,9 +241,6 @@ class GlobalMultipleAnswer extends Question
         $this->save($exercise);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function return_header(Exercise $exercise, $counter = null, $score = [])
     {
         $header = parent::return_header($exercise, $counter, $score);
@@ -269,7 +249,7 @@ class GlobalMultipleAnswer extends Question
         if (!in_array($exercise->results_disabled, [RESULT_DISABLE_SHOW_ONLY_IN_CORRECT_ANSWER])) {
             $header .= '<th>'.get_lang('Your choice').'</th>';
             if ($exercise->showExpectedChoiceColumn()) {
-                $header .= '<th>'.get_lang('ExpectedYour choice').'</th>';
+                $header .= '<th>'.get_lang('Expected choice').'</th>';
             }
         }
 

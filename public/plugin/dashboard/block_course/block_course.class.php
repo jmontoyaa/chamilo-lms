@@ -3,16 +3,12 @@
  * This file is part of course block plugin for dashboard,
  * it should be required inside dashboard controller for showing it into dashboard interface from plattform.
  *
- * @package chamilo.dashboard
- *
  * @author Christian Fasanando
  */
 /**
  * This class is used like controller for this course block plugin,
  * the class name must be registered inside path.info file
  * (e.g: controller = "BlockCourse"), so dashboard controller will be instantiate it.
- *
- * @package chamilo.dashboard
  */
 class BlockCourse extends Block
 {
@@ -35,7 +31,7 @@ class BlockCourse extends Block
     /**
      * This method check if a user is allowed to see the block inside dashboard interface.
      *
-     * @param    int        User id
+     * @param int $user_id User id
      *
      * @return bool Is block visible for user
      */
@@ -96,7 +92,7 @@ class BlockCourse extends Block
 	    					</tr>';
             $i = 1;
             foreach ($course_data as $course) {
-                if ($i % 2 == 0) {
+                if (0 == $i % 2) {
                     $class_tr = 'row_odd';
                 } else {
                     $class_tr = 'row_even';
@@ -150,6 +146,7 @@ class BlockCourse extends Block
             $course_code = $row_course['code'];
             $courseInfo = api_get_course_info($course_code);
             $courseId = $courseInfo['real_id'];
+            $course = api_get_course_entity($courseId);
             $nb_students_in_course = $avg_progress_in_course = $avg_score_in_course = $avg_time_spent_in_course = $avg_score_in_exercise = 0;
 
             // students directly subscribed to the course
@@ -169,8 +166,8 @@ class BlockCourse extends Block
                 $avg_time_spent_in_course = null;
             }
             $tematic_advance = $thematic->get_total_average_of_thematic_advances(
-                $course_code,
-                0
+                $course,
+                null
             );
 
             if (!empty($tematic_advance)) {

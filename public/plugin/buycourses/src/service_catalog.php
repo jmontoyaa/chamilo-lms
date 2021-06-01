@@ -1,16 +1,14 @@
 <?php
 /**
  * List of services.
- *
- * @package chamilo.plugin.buycourses
  */
 $cidReset = true;
 
 require_once '../../../main/inc/global.inc.php';
 
 $plugin = BuyCoursesPlugin::create();
-$includeSessions = $plugin->get('include_sessions') === 'true';
-$includeServices = $plugin->get('include_services') === 'true';
+$includeSessions = 'true' === $plugin->get('include_sessions');
+$includeServices = 'true' === $plugin->get('include_services');
 
 $nameFilter = null;
 $minFilter = 0;
@@ -50,11 +48,11 @@ $form->addElement(
 );
 $appliesToOptions = [
     '' => get_lang('Any'),
-    0 => get_lang('none'),
+    0 => get_lang('None'),
     1 => get_lang('User'),
     2 => get_lang('Course'),
     3 => get_lang('Session'),
-    4 => get_lang('Certificate of completion'),
+    4 => get_lang('TemplateTitleCertificate'),
 ];
 $form->addSelect('applies_to', $plugin->get_lang('AppliesTo'), $appliesToOptions);
 $form->addHtml('<hr>');

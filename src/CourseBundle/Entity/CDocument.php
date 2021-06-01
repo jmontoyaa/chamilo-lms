@@ -1,34 +1,160 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
-use APY\DataGridBundle\Grid\Mapping as GRID;
-use Chamilo\CoreBundle\Entity\Course;
-use Chamilo\CoreBundle\Entity\Resource\AbstractResource;
-use Chamilo\CoreBundle\Entity\Resource\ResourceInterface;
-use Chamilo\CoreBundle\Entity\Session;
+use ApiPlatform\Core\Annotation\ApiFilter;
+use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Core\Serializer\Filter\PropertyFilter;
+use Chamilo\CoreBundle\Controller\Api\CreateDocumentFileAction;
+use Chamilo\CoreBundle\Controller\Api\UpdateDocumentFileAction;
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
 use Chamilo\CourseBundle\Traits\ShowCourseResourcesInSessionTrait;
-use Doctrine\ORM\Event\LifecycleEventArgs;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * CDocument.
+ * @ApiResource(
+ *     shortName="Documents",
+ *     normalizationContext={"groups"={"document:read", "resource_node:read"}},
+ *     denormalizationContext={"groups"={"document:write"}},
+ *     itemOperations={
+ *         "put" ={
+ *             "controller"=UpdateDocumentFileAction::class,
+ *             "deserialize"=false,
+ *             "security" = "is_granted('EDIT', object.resourceNode)",
+ *             "validation_groups"={"media_object_create", "document:write"},
+ *         },
+ *         "get" = {
+ *             "security" = "is_granted('VIEW', object.resourceNode)",
+ *         },
+ *         "delete" = {
+ *             "security" = "is_granted('DELETE', object.resourceNode)",
+ *         },
+ *     },
+ *     collectionOperations={
+ *         "post"={
+ *             "controller"=CreateDocumentFileAction::class,
+ *             "deserialize"=false,
+ *             "security"="is_granted('ROLE_CURRENT_COURSE_TEACHER') or is_granted('ROLE_CURRENT_COURSE_SESSION_TEACHER')",
+ *             "validation_groups"={"Default", "media_object_create", "document:write"},
+ *             "openapi_context"={
+ *                 "requestBody"={
+ *                     "content"={
+ *                         "multipart/form-data"={
+ *                             "schema"={
+ *                                 "type"="object",
+ *                                 "properties"={
+ *                                     "title"={
+ *                                         "type"="string",
+ *                                     },
+ *                                     "filetype"={
+ *                                         "type"="string",
+ *                                         "enum"={"folder", "file"},
+ *                                     },
+ *                                     "comment"={
+ *                                         "type"="string",
+ *                                     },
+ *                                     "contentFile"={
+ *                                         "type"="string",
+ *                                     },
+ *                                     "uploadFile"={
+ *                                         "type"="string",
+ *                                         "format"="binary"
+ *                                     },
+ *                                     "parentResourceNodeId"={
+ *                                         "type"="integer",
+ *                                     },
+ *                                     "resourceLinkList"={
+ *                                         "type"="array",
+ *                                         "items": {
+ *                                             "type": "object",
+ *                                             "properties"={
+ *                                                 "visibility"={
+ *                                                     "type"="integer",
+ *                                                 },
+ *                                                 "c_id"={
+ *                                                     "type"="integer",
+ *                                                 },
+ *                                                 "session_id"={
+ *                                                     "type"="integer",
+ *                                                 },
+ *                                             }
+ *                                         }
+ *                                     },
+ *                                 }
+ *                             }
+ *                         }
+ *                     }
+ *                 }
+ *             }
+ *         },
+ *         "get" = {
+ *             "openapi_context" = {
+ *                 "parameters" = {
+ *                     {
+ *                         "name" = "resourceNode.parent",
+ *                         "in" = "query",
+ *                         "required" = true,
+ *                         "description" = "Resource node Parent",
+ *                         "schema" = {
+ *                             "type" = "integer"
+ *                         }
+ *                     },
+ *                     {
+ *                         "name" = "cid",
+ *                         "in" = "query",
+ *                         "required" = true,
+ *                         "description" = "Course id",
+ *                         "schema" = {
+ *                             "type" = "integer"
+ *                         }
+ *                     },
+ *                     {
+ *                         "name" = "sid",
+ *                         "in" = "query",
+ *                         "required" = false,
+ *                         "description" = "Session id",
+ *                         "schema" = {
+ *                             "type" = "integer"
+ *                         }
+ *                     }
+ *                 }
+ *             }
+ *         }
+ *     },
+ * )
+ *
+ * //resourceNode.resourceLinks.course can be used but instead cid/sid/gid is used
+ *
+ * @ApiFilter(SearchFilter::class, properties={"title": "partial", "resourceNode.parent": "exact"})
+ * @ApiFilter(PropertyFilter::class)
+ * @ApiFilter(
+ *     OrderFilter::class,
+ *     properties={
+ *         "id",
+ *         "filetype",
+ *         "resourceNode.title",
+ *         "resourceNode.createdAt",
+ *         "resourceNode.resourceFile.size",
+ *         "resourceNode.updatedAt"
+ *     }
+ * )
  *
  * @ORM\Table(
- *  name="c_document",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="idx_cdoc_path", columns={"path"}),
- *      @ORM\Index(name="idx_cdoc_size", columns={"size"}),
- *      @ORM\Index(name="idx_cdoc_id", columns={"id"}),
- *      @ORM\Index(name="idx_cdoc_type", columns={"filetype"}),
- *      @ORM\Index(name="idx_cdoc_sid", columns={"session_id"}),
- *  }
+ *     name="c_document",
+ *     indexes={
+ *         @ORM\Index(name="idx_cdoc_type", columns={"filetype"}),
+ *     }
  * )
- * @GRID\Source(columns="iid, title, filetype, resourceNode.createdAt", filterable=false, groups={"resource"})
- * @GRID\Source(columns="iid, title", filterable=false, groups={"editor"})
+ * @ORM\EntityListeners({"Chamilo\CoreBundle\Entity\Listener\ResourceListener"})
  * @ORM\Entity
  */
 class CDocument extends AbstractResource implements ResourceInterface
@@ -36,93 +162,49 @@ class CDocument extends AbstractResource implements ResourceInterface
     use ShowCourseResourcesInSessionTrait;
 
     /**
-     * @var int
-     *
+     * @Groups({"document:read"})
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
+     * @Assert\NotBlank
+     * @Groups({"document:read", "document:write", "document:browse"})
+     * @ORM\Column(name="title", type="string", length=255, nullable=false)
      */
-    protected $id;
+    protected string $title;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(name="path", type="string", length=255, nullable=true)
-     */
-    protected $path;
-
-    /**
-     * @var string
-     *
+     * @Groups({"document:read", "document:write"})
      * @ORM\Column(name="comment", type="text", nullable=true)
      */
-    protected $comment;
+    protected ?string $comment;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(name="title", type="string", length=255, nullable=true)
-     */
-    protected $title;
-
-    /**
-     * @var string
-     *
+     * @Groups({"document:read", "document:write"})
+     * @Assert\Choice({"folder", "file"}, message="Choose a valid filetype.")
      * @ORM\Column(name="filetype", type="string", length=10, nullable=false)
      */
-    protected $filetype;
+    protected string $filetype;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="size", type="integer", nullable=false)
-     */
-    protected $size;
-
-    /**
-     * @var bool
-     *
      * @ORM\Column(name="readonly", type="boolean", nullable=false)
      */
-    protected $readonly;
+    protected bool $readonly;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="template", type="boolean", nullable=false)
      */
-    protected $template;
+    protected bool $template;
 
-    /**
-     * @var Course
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course", cascade={"persist"})
-     * @ORM\JoinColumn(name="c_id", referencedColumnName="id", onDelete="CASCADE" )
-     */
-    protected $course;
-
-    /**
-     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Session", cascade={"persist"})
-     * @ORM\JoinColumn(name="session_id", referencedColumnName="id", onDelete="CASCADE" )
-     */
-    protected $session;
-
-    /**
-     * CDocument constructor.
-     */
     public function __construct()
     {
+        $this->comment = '';
+        $this->filetype = 'folder';
         $this->readonly = false;
         $this->template = false;
-        $this->size = 0;
-        $this->id = 0;
     }
 
     public function __toString(): string
@@ -142,38 +224,7 @@ class CDocument extends AbstractResource implements ResourceInterface
         return $this;
     }
 
-    /**
-     * Set path.
-     *
-     * @param string $path
-     *
-     * @return CDocument
-     */
-    public function setPath($path)
-    {
-        $this->path = $path;
-
-        return $this;
-    }
-
-    /**
-     * Get path.
-     *
-     * @return string
-     */
-    public function getPath()
-    {
-        return $this->path;
-    }
-
-    /**
-     * Set comment.
-     *
-     * @param string $comment
-     *
-     * @return CDocument
-     */
-    public function setComment($comment)
+    public function setComment(?string $comment): self
     {
         $this->comment = $comment;
 
@@ -190,14 +241,7 @@ class CDocument extends AbstractResource implements ResourceInterface
         return $this->comment;
     }
 
-    /**
-     * Set title.
-     *
-     * @param string $title
-     *
-     * @return CDocument
-     */
-    public function setTitle($title)
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
@@ -205,124 +249,35 @@ class CDocument extends AbstractResource implements ResourceInterface
     }
 
     /**
-     * Get title.
-     *
-     * @return string
+     * Document title.
      */
-    public function getTitle()
+    public function getTitle(): string
     {
-        return (string) $this->title;
+        return $this->title;
     }
 
-    /**
-     * Set filetype.
-     *
-     * @param string $filetype
-     *
-     * @return CDocument
-     */
-    public function setFiletype($filetype)
+    public function setFiletype(string $filetype): self
     {
         $this->filetype = $filetype;
 
         return $this;
     }
 
-    /**
-     * Get filetype.
-     *
-     * @return string
-     */
-    public function getFiletype()
+    public function getFiletype(): string
     {
         return $this->filetype;
     }
 
-    /**
-     * Set size.
-     *
-     * @return CDocument
-     */
-    public function setSize(int $size)
-    {
-        $this->size = $size ?: 0;
-
-        return $this;
-    }
-
-    /**
-     * Get size.
-     *
-     * @return int
-     */
-    public function getSize()
-    {
-        return $this->size;
-    }
-
-    /**
-     * Set readonly.
-     *
-     * @param bool $readonly
-     *
-     * @return CDocument
-     */
-    public function setReadonly($readonly)
+    public function setReadonly(bool $readonly): self
     {
         $this->readonly = $readonly;
 
         return $this;
     }
 
-    /**
-     * Get readonly.
-     *
-     * @return bool
-     */
-    public function getReadonly()
+    public function getReadonly(): bool
     {
         return $this->readonly;
-    }
-
-    /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CDocument
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    public function getCourse(): Course
-    {
-        return $this->course;
-    }
-
-    /**
-     * @param Course $course
-     *
-     * @return CDocument
-     */
-    public function setCourse($course)
-    {
-        $this->course = $course;
-
-        return $this;
     }
 
     /**
@@ -333,38 +288,6 @@ class CDocument extends AbstractResource implements ResourceInterface
         return $this->iid;
     }
 
-    /**
-     * @return Session
-     */
-    public function getSession()
-    {
-        return $this->session;
-    }
-
-    /**
-     * @param Session $session
-     *
-     * @return CDocument
-     */
-    public function setSession($session)
-    {
-        $this->session = $session;
-
-        return $this;
-    }
-
-    public function postPersist(LifecycleEventArgs $args)
-    {
-        // Update id with iid value
-        $em = $args->getEntityManager();
-        $this->setId($this->getIid());
-        $em->persist($this);
-        $em->flush();
-    }
-
-    /**
-     * Resource identifier.
-     */
     public function getResourceIdentifier(): int
     {
         return $this->getIid();
@@ -373,5 +296,10 @@ class CDocument extends AbstractResource implements ResourceInterface
     public function getResourceName(): string
     {
         return $this->getTitle();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setTitle($name);
     }
 }

@@ -1,100 +1,51 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * CQuizQuestionOption.
  *
  * @ORM\Table(
- *  name="c_quiz_question_option",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_quiz_question_option",
+ *     indexes={
+ *     }
  * )
  * @ORM\Entity
  */
 class CQuizQuestionOption
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
+     * @ORM\Column(name="name", type="string", length=255, nullable=false)
      */
-    protected $cId;
+    protected string $name;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="question_id", type="integer", nullable=false)
-     */
-    protected $questionId;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="name", type="string", length=255, nullable=true)
-     */
-    protected $name;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="position", type="integer", nullable=false)
      */
-    protected $position;
+    protected int $position;
 
     /**
-     * Set questionId.
-     *
-     * @param int $questionId
-     *
-     * @return CQuizQuestionOption
+     * @Assert\NotBlank()
+     * @ORM\ManyToOne(targetEntity="CQuizQuestion", cascade={"persist"}, inversedBy="options")
+     * @ORM\JoinColumn(name="question_id", referencedColumnName="iid", onDelete="CASCADE")
      */
-    public function setQuestionId($questionId)
-    {
-        $this->questionId = $questionId;
+    protected CQuizQuestion $question;
 
-        return $this;
-    }
-
-    /**
-     * Get questionId.
-     *
-     * @return int
-     */
-    public function getQuestionId()
-    {
-        return $this->questionId;
-    }
-
-    /**
-     * Set name.
-     *
-     * @param string $name
-     *
-     * @return CQuizQuestionOption
-     */
-    public function setName($name)
+    public function setName(string $name): self
     {
         $this->name = $name;
 
@@ -111,14 +62,7 @@ class CQuizQuestionOption
         return $this->name;
     }
 
-    /**
-     * Set position.
-     *
-     * @param int $position
-     *
-     * @return CQuizQuestionOption
-     */
-    public function setPosition($position)
+    public function setPosition(int $position): self
     {
         $this->position = $position;
 
@@ -135,70 +79,14 @@ class CQuizQuestionOption
         return $this->position;
     }
 
-    /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CQuizQuestionOption
-     */
-    public function setId($id)
+    public function getQuestion(): CQuizQuestion
     {
-        $this->id = $id;
-
-        return $this;
+        return $this->question;
     }
 
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
+    public function setQuestion(CQuizQuestion $question): self
     {
-        return $this->id;
-    }
-
-    /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CQuizQuestionOption
-     */
-    public function setCId($cId)
-    {
-        $this->cId = $cId;
-
-        return $this;
-    }
-
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
-    {
-        return $this->cId;
-    }
-
-    /**
-     * @return int
-     */
-    public function getIid()
-    {
-        return $this->iid;
-    }
-
-    /**
-     * @param int $iid
-     *
-     * @return CQuizQuestionOption
-     */
-    public function setIid($iid)
-    {
-        $this->iid = $iid;
+        $this->question = $question;
 
         return $this;
     }

@@ -1,9 +1,8 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
- * @package chamilo.social
- *
  * @author Julio Montoya <gugli100@gmail.com>
  */
 $cidReset = true;
@@ -11,7 +10,7 @@ require_once __DIR__.'/../inc/global.inc.php';
 
 api_block_anonymous_users();
 
-if (api_get_setting('allow_social_tool') != 'true') {
+if ('true' != api_get_setting('allow_social_tool')) {
     api_not_allowed(true);
 }
 
@@ -51,7 +50,7 @@ $interbreadcrumb[] = ['url' => 'group_view.php?id='.$group_id, 'name' => $group_
 $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Members list')];
 
 //if i'm a moderator
-if (isset($_GET['action']) && $_GET['action'] == 'add') {
+if (isset($_GET['action']) && 'add' === $_GET['action']) {
     // we add a user only if is a open group
     $user_join = intval($_GET['u']);
     //if i'm a moderator
@@ -61,7 +60,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'add') {
     }
 }
 
-if (isset($_GET['action']) && $_GET['action'] == 'delete') {
+if (isset($_GET['action']) && 'delete' === $_GET['action']) {
     // we add a user only if is a open group
     $user_join = intval($_GET['u']);
     //if i'm a moderator
@@ -71,7 +70,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     }
 }
 
-if (isset($_GET['action']) && $_GET['action'] == 'set_moderator') {
+if (isset($_GET['action']) && 'set_moderator' === $_GET['action']) {
     // we add a user only if is a open group
     $user_moderator = intval($_GET['u']);
     //if i'm the admin
@@ -85,7 +84,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'set_moderator') {
     }
 }
 
-if (isset($_GET['action']) && $_GET['action'] == 'delete_moderator') {
+if (isset($_GET['action']) && 'delete_moderator' === $_GET['action']) {
     // we add a user only if is a open group
     $user_moderator = intval($_GET['u']);
     //only group admins can do that
@@ -161,7 +160,7 @@ foreach ($users as $user) {
                 get_lang('Moderator')
             );
             //only group admin can manage moderators
-            if ($user_role == GROUP_USER_PERMISSION_ADMIN) {
+            if (GROUP_USER_PERMISSION_ADMIN == $user_role) {
                 $user['link'] .= '<a href="group_members.php?id='.$group_id.'&u='.$user['id'].'&action=delete_moderator">'.
                     Display::return_icon(
                         'social_moderator_delete.png',

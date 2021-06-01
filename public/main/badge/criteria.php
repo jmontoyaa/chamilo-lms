@@ -1,12 +1,11 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
  * Show information about OpenBadge criteria.
  *
  * @author Angel Fernando Quiroz Campos <angel.quiroz@beeznest.com>
- *
- * @package chamilo.badge
  */
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -18,7 +17,7 @@ if (empty($skillId)) {
 
 $entityManager = Database::getManager();
 /** @var \Chamilo\CoreBundle\Entity\Skill $skill */
-$skill = $entityManager->find('ChamiloCoreBundle:Skill', $_GET['id']);
+$skill = $entityManager->find(\Chamilo\CoreBundle\Entity\Skill::class, $_GET['id']);
 
 if ($skill) {
     $skillInfo = [
@@ -26,7 +25,7 @@ if ($skill) {
         'short_code' => $skill->getShortCode(),
         'description' => $skill->getDescription(),
         'criteria' => $skill->getCriteria(),
-        'badge_image' => Skill::getWebIconPath($skill),
+        'badge_image' => SkillModel::getWebIconPath($skill),
     ];
 
     $template = new Template();

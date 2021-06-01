@@ -5,8 +5,7 @@
 use Chamilo\CoreBundle\Entity\Course;
 use Chamilo\CoreBundle\Entity\Portfolio;
 use Chamilo\CoreBundle\Entity\PortfolioCategory;
-use Chamilo\CoreBundle\Entity\Session;
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\User;
 
 // Make sure we void the course context if we are in the social network section
 if (empty($_GET['cidReq'])) {
@@ -24,12 +23,9 @@ $em = Database::getManager();
 
 $currentUserId = api_get_user_id();
 $userId = isset($_GET['user']) ? (int) $_GET['user'] : $currentUserId;
-/** @var User $user */
 $user = api_get_user_entity($userId);
-/** @var Course $course */
-$course = $em->find('ChamiloCoreBundle:Course', api_get_course_int_id());
-/** @var Session $session */
-$session = $em->find('ChamiloCoreBundle:Session', api_get_session_id());
+$course = api_get_course_entity(api_get_course_int_id());
+$session = api_get_session_entity(api_get_session_id());
 
 $action = isset($_GET['action']) ? $_GET['action'] : 'list';
 $cidreq = api_get_cidreq();
@@ -56,7 +52,7 @@ $isValid = function ($item) use ($user, $course, $session) {
         return false;
     }
 
-    if (get_class($item) == Portfolio::class) {
+    if (Portfolio::class == get_class($item)) {
         if ($session && $item->getSession()->getId() != $session->getId()) {
             return false;
         }

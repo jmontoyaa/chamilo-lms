@@ -9,7 +9,7 @@ if (empty($allow)) {
 }
 
 api_block_anonymous_users();
-$export_csv = isset($_GET['export']) && $_GET['export'] === 'csv' ? true : false;
+$export_csv = isset($_GET['export']) && 'csv' === $_GET['export'] ? true : false;
 $course_code = isset($_GET['course']) ? Security::remove_XSS($_GET['course']) : null;
 $_course = api_get_course_info();
 $coment = '';
@@ -29,7 +29,7 @@ if (!api_is_allowed_to_create_course() &&
     // Francois Belisle Kezber...
     // If user is NOT a teacher -> student, but IS the teacher of the course... Won't have the global teacher status
     // and won't be tutor... So have to check is_course_teacher
-    if (($user_course_status != 1) && !(CourseManager::is_course_teacher(api_get_user_id(), $course_code))) {
+    if ((1 != $user_course_status) && !(CourseManager::isCourseTeacher(api_get_user_id(), api_get_course_int_id()))) {
         api_not_allowed(true);
     }
 }
@@ -57,7 +57,7 @@ if ($export) {
 $csv_content = [];
 $from_myspace = false;
 
-if (isset($_GET['from']) && $_GET['from'] == 'myspace') {
+if (isset($_GET['from']) && 'myspace' == $_GET['from']) {
     $from_myspace = true;
     $this_section = SECTION_TRACKING;
 } else {
@@ -68,7 +68,7 @@ $nameTools = get_lang('Learner details');
 $em = Database::getManager();
 
 if (isset($_GET['details'])) {
-    if ($origin === 'user_course') {
+    if ('user_course' === $origin) {
         if (empty($cidReq)) {
             $interbreadcrumb[] = [
                 "url" => api_get_path(WEB_COURSE_PATH).$courseInfo['directory'],
@@ -80,13 +80,13 @@ if (isset($_GET['details'])) {
             "name" => get_lang('Users'),
         ];
     } else {
-        if ($origin === 'tracking_course') {
+        if ('tracking_course' === $origin) {
             $interbreadcrumb[] = [
                 "url" => "../tracking/courseLog.php?cidReq=".$course_code.'&id_session='.api_get_session_id(),
                 "name" => get_lang('Reporting'),
             ];
         } else {
-            if ($origin === 'resume_session') {
+            if ('resume_session' === $origin) {
                 $interbreadcrumb[] = [
                     'url' => "../session/session_list.php",
                     "name" => get_lang('Session list'),
@@ -124,7 +124,7 @@ if (isset($_GET['details'])) {
     }
     $nameTools = get_lang("Learner details in course");
 } else {
-    if ($origin == 'resume_session') {
+    if ('resume_session' == $origin) {
         $interbreadcrumb[] = [
             'url' => "../session/session_list.php",
             "name" => get_lang('Session list'),
@@ -188,7 +188,7 @@ $course_quiz_answer = 'quiz_answer';
 $course_student_publication = Database::get_course_table(TABLE_STUDENT_PUBLICATION);
 $TABLECALHORAIRE = Database:: get_course_table(TABLE_CAL_HORAIRE);
 
-if (isset($_GET['user_id']) && $_GET['user_id'] != '') {
+if (isset($_GET['user_id']) && '' != $_GET['user_id']) {
     $user_id = intval($_GET['user_id']);
 } else {
     $user_id = api_get_user_id();
@@ -242,7 +242,7 @@ switch ($action) {
 }
 
 // user info
-$user_info = api_get_user_info($studentId);
+$user_info = $userInfo = api_get_user_info($studentId);
 $courses_in_session = [];
 
 //See #4676
@@ -422,12 +422,12 @@ if (!empty($studentId)) {
 
     // get information about connections on the platform by student
     $first_connection_date = Tracking:: get_first_connection_date($user_info['user_id']);
-    if ($first_connection_date == '') {
+    if ('' == $first_connection_date) {
         $first_connection_date = get_lang('No connection');
     }
 
     $last_connection_date = Tracking:: get_last_connection_date($user_info['user_id'], true);
-    if ($last_connection_date == '') {
+    if ('' == $last_connection_date) {
         $last_connection_date = get_lang('No connection');
     }
 
@@ -530,10 +530,10 @@ if (!empty($studentId)) {
                 $timezone = null;
     $timezone_user = UserManager::get_extra_user_data_by_field($user_info['user_id'], 'timezone');
     $use_users_timezone = api_get_setting('use_users_timezone', 'timezones');
-    if ($timezone_user['timezone'] != null && $use_users_timezone == 'true') {
+    if (null != $timezone_user['timezone'] && 'true' == $use_users_timezone) {
         $timezone = $timezone_user['timezone'];
     }
-    if ($timezone !== null) {
+    if (null !== $timezone) {
         ?>
                     <tr>
                         <td> <?php echo get_lang('Timezone').' : '.$timezone; ?> </td>
@@ -559,7 +559,7 @@ if (!empty($studentId)) {
                     <td align="right"><?php echo get_lang('Latest login in platform'); ?></td>
                     <td align="left"><?php echo $last_connection_date; ?></td>
                 </tr>
-                <?php if (isset($_GET['details']) && $_GET['details'] == 'true') {
+                <?php if (isset($_GET['details']) && 'true' == $_GET['details']) {
         ?>
                     <tr>
                         <td align="right"><?php echo get_lang('Time spent in the course'); ?></td>
@@ -598,7 +598,7 @@ if (!empty($studentId)) {
                     <?php
     }
 
-    if (api_get_setting('allow_terms_conditions') === 'true') {
+    if ('true' === api_get_setting('allow_terms_conditions')) {
         $isBoss = UserManager::userIsBossOfStudent(api_get_user_id(), $studentId);
         if ($isBoss || api_is_platform_admin()) {
             $extraFieldValue = new ExtraFieldValue('user');
@@ -737,7 +737,7 @@ if (!empty($studentId)) {
                                     '<a title="'.get_lang('Go to attendances').'" href="'.api_get_path(
                                         WEB_CODE_PATH
                                     ).'attendance/index.php?cidReq='.$courseCodeItem.'&id_session='.$sId.'&student_id='.$studentId.'">'.
-                                    $results_faults_avg['faults'].'/'.$results_faults_avg['total'].' ('.$results_faults_avg['porcent'].'%)</a>';
+                                    $results_faults_avg['faults'].'/'.$results_faults_avg['total'].' ('.$results_faults_avg['percent'].'%)</a>';
                             } else {
                                 $attendances_faults_avg =
                                     $results_faults_avg['faults'].'/'.
@@ -818,7 +818,7 @@ if (!empty($studentId)) {
             echo '</div>';
         }
     } else {
-        if ($user_info['status'] != INVITEE) {
+        if (INVITEE != $user_info['status']) {
             $csv_content[] = [];
             $csv_content[] = [str_replace('&nbsp;', '', $table_title)];
             $t_lp = Database:: get_course_table(TABLE_LP_MAIN);
@@ -935,7 +935,7 @@ if (!empty($studentId)) {
                                 $sessionId
                             );
 
-                    if ($progress === null) {
+                    if (null === $progress) {
                         $progress = '0%';
                     } else {
                         $any_result = true;
@@ -989,7 +989,7 @@ if (!empty($studentId)) {
                                 true
                             );
 
-                    if ($i % 2 == 0) {
+                    if (0 == $i % 2) {
                         $css_class = "row_even";
                     } else {
                         $css_class = "row_odd";
@@ -1036,7 +1036,7 @@ if (!empty($studentId)) {
                     // which implies several other changes not a priority right now
                     echo Display::tag('td', $start_time);
 
-                    if ($any_result === true) {
+                    if (true === $any_result) {
                         $from = '';
                         if ($from_myspace) {
                             $from = '&from=myspace';
@@ -1051,7 +1051,7 @@ if (!empty($studentId)) {
 
                     if (api_is_allowed_to_edit()) {
                         echo '<td>';
-                        if ($any_result === true) {
+                        if (true === $any_result) {
                             echo '<a href="myStudents.php?action=reset_lp&sec_token='.$token.
                                 '&cidReq='.$course_code.
                                 '&course='.$course_code.
@@ -1081,7 +1081,7 @@ if (!empty($studentId)) {
             }
         } ?>
         <!-- line about exercises -->
-        <?php if ($user_info['status'] != INVITEE) {
+        <?php if (INVITEE != $user_info['status']) {
             ?>
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
@@ -1117,11 +1117,11 @@ if (!empty($studentId)) {
                 'quiz.session_id'
             );
 
-            $sql = "SELECT quiz.title, id FROM $t_quiz AS quiz
+            $sql = "SELECT quiz.title, iid FROM $t_quiz AS quiz
                             WHERE
                                 quiz.c_id = ".$courseInfo['real_id']." AND
                                 active IN (0, 1)
-                                $sessionCondition                    
+                                $sessionCondition
                             ORDER BY quiz.title ASC ";
 
             $result_exercices = Database::query($sql);
@@ -1217,7 +1217,7 @@ if (!empty($studentId)) {
                     }
                     echo '</td>';
                     echo '<td>';
-                    $all_attempt_url = "../exercise/exercise_report.php?exerciseId=$exercise_id&cidReq=$course_code&filter_by_user=$studentId&id_session=$sessionId";
+                    $all_attempt_url = "../exercise/exercise_report.php?id=$exercise_id&cidReq=$course_code&filter_by_user=$studentId&id_session=$sessionId";
                     echo Display::url(
                                 Display::return_icon(
                                     'test_results.png',
@@ -1404,8 +1404,8 @@ $nom_hor = $horaire_id['official_code'];
 $course_code_real = $_course['real_id'];
 //avec le nom d'horaire= official code, on trouve le nombre de jour a faire
 $sql = "SELECT * FROM $TABLECALHORAIRE
-        where 
-          name = '$nom_hor' and 
+        where
+          name = '$nom_hor' and
           c_id = $course_code_real ";
 
 $res = Database::query($sql);
@@ -1413,7 +1413,7 @@ $resulta = Database::fetch_array($res);
 
 $num_hours = $resulta['num_hours'];
 $num_minute = $resulta['num_minute'];
-if ($num_minute == '0') {
+if ('0' == $num_minute) {
     $num_minute = '1';
 }
 $minute_mod = $num_hours * 60;
@@ -1460,10 +1460,10 @@ while ($a_courses = Database::fetch_array($result2)) {
             $lp_item_id = $resulta['id'];
             $Req3 = "SELECT MAX(id)
                       FROM c_lp_item_view
-                      WHERE  
-                        lp_item_id =  $lp_item_id AND 
-                        lp_view_id =  $lp_id_view AND 
-                        c_id = $c_id_view AND 
+                      WHERE
+                        lp_item_id =  $lp_item_id AND
+                        lp_view_id =  $lp_id_view AND
+                        c_id = $c_id_view AND
                         status =  'completed'
                       ";
             $res3 = Database::query($Req3);
@@ -1471,8 +1471,8 @@ while ($a_courses = Database::fetch_array($result2)) {
                 $max = $resul['0'];
                 $Req4 = "SELECT COUNT( id )
                          FROM  c_lp_item_view
-                         WHERE  
-                            id = $max AND 
+                         WHERE
+                            id = $max AND
                             c_id = $c_id_view";
                 $res4 = Database::query($Req4);
                 while ($resultat = Database::fetch_array($res4)) {
@@ -1500,13 +1500,13 @@ while ($jtot = Database::fetch_array($resultjt)) {
 //recherche du jour inséré dans agenda par le calendrier
 $jour_agenda = '';
 $tour = -1;
-while ($jour_agenda == '') {
+while ('' == $jour_agenda) {
     $tour++;
     $date = date("Y-m-d", mktime(0, 0, 0, date("m"), date("d") - $tour, date("Y")));
     $sql4 = "SELECT *  FROM $tbl_personal_agenda
-             WHERE 
-              user = $studentId AND  
-                text='Pour le calendrier, ne pas effacer' AND 
+             WHERE
+              user = $studentId AND
+                text='Pour le calendrier, ne pas effacer' AND
                 date like '".$date." %:%' ";
     $result4 = Database::query($sql4);
     $res4 = Database::fetch_array($result4);
@@ -1531,7 +1531,7 @@ $goto = $num_days + $diff2;
 $goto = number_format($goto);
 $sqlgo = "SELECT *  FROM $tbl_personal_agenda
          WHERE user = $studentId
-            AND title = '".$goto."'  
+            AND title = '".$goto."'
          ";
 $result7 = Database::query($sqlgo);
 $res7 = Database::fetch_array($result7);
@@ -1684,10 +1684,10 @@ if ($end_date < '2010-01-01') {
         $tbl_stats_exercices = Database:: get_main_table(TABLE_STATISTIC_TRACK_E_EXERCISES);
         $sqlinter = "SELECT *
                      FROM $tbl_stats_exercices
-                     WHERE 
-                        exe_user_id = $studentId AND 
+                     WHERE
+                        exe_user_id = $studentId AND
                         level != 0
-                     ORDER BY exe_date ASC, level ASC 
+                     ORDER BY exe_date ASC, level ASC
                              ";
         $resultinter = Database::query($sqlinter);
         $mod_no = null;
@@ -1703,8 +1703,8 @@ if ($end_date < '2010-01-01') {
                 <td>
                      $inter_date
                     </td>
-                
-                    <td>$inter_coment 
+
+                    <td>$inter_coment
                 </td>
                 ";
             $exe_id = $a_inter['exe_id']; ?>
@@ -1767,12 +1767,12 @@ if (empty($_GET['details'])) {
         }
         $date_start = '';
 
-        if (!empty($session_info['date_start']) && $session_info['date_start'] != '0000-00-00') {
+        if (!empty($session_info['date_start']) && '0000-00-00' != $session_info['date_start']) {
             $date_start = api_format_date($session_info['date_start'], DATE_FORMAT_SHORT);
         }
 
         $date_end = '';
-        if (!empty($session_info['date_end']) && $session_info['date_end'] != '0000-00-00') {
+        if (!empty($session_info['date_end']) && '0000-00-00' != $session_info['date_end']) {
             $date_end = api_format_date($session_info['date_end'], DATE_FORMAT_SHORT);
         }
         if (!empty($date_start) && !empty($date_end)) {
@@ -1823,7 +1823,7 @@ if (empty($_GET['details'])) {
 
                     //  firts connection date
                     $sql2 = 'SELECT STR_TO_DATE(access_date,"%Y-%m-%d")
-                              FROM '.$tbl_stats_access.' 
+                              FROM '.$tbl_stats_access.'
                                 WHERE access_user_id = '.$studentId.'
                                 AND c_id = '.$c_id.'
                                     ORDER BY access_id ASC LIMIT 0,1
@@ -1860,9 +1860,9 @@ if (empty($_GET['details'])) {
                     $nombre_jours_module = number_format($nombre_jours_module, 0);
                     //on trouve la date de fin de chaque module AND date = date_format('$first_connection_date_to_module','%Y-%m-%d')
                     $sql = "SELECT * FROM `c_cal_dates`
-                            WHERE 
-                                horaire_name = '$nom_hor' AND 
-                                c_id = '$course_code_real' AND 
+                            WHERE
+                                horaire_name = '$nom_hor' AND
+                                c_id = '$course_code_real' AND
                                 STR_TO_DATE(date,'%Y-%m-%d') >= STR_TO_DATE('$first_connection_date_to_module','%Y-%m-%d')
                             ORDER BY STR_TO_DATE(date, '%Y-%m-%d') ASC ";
                     $res = Database::query($sql);
@@ -1878,11 +1878,13 @@ if (empty($_GET['details'])) {
                     );
                     if (!empty($results_faults_avg['total'])) {
                         if (api_is_drh()) {
-                            $attendances_faults_avg = '<a title="'.get_lang('Go to attendances').'" href="'.api_get_path(
-                                    WEB_CODE_PATH
-                                ).'attendance/index.php?cidReq='.$course_code.'&id_session='.$session_id.'&student_id='.$studentId.'">'.$results_faults_avg['faults'].'/'.$results_faults_avg['total'].' ('.$results_faults_avg['porcent'].'%)</a>';
+                            $attendances_faults_avg =
+                                '<a title="'.get_lang('Go to attendances').'" href="'.api_get_path(WEB_CODE_PATH).
+                                'attendance/index.php?cidReq='.$course_code.'&id_session='.$session_id.'&student_id='.$studentId.'">'.
+                                $results_faults_avg['faults'].'/'.$results_faults_avg['total'].' ('.$results_faults_avg['porcent'].'%)</a>';
                         } else {
-                            $attendances_faults_avg = $results_faults_avg['faults'].'/'.$results_faults_avg['total'].' ('.$results_faults_avg['porcent'].'%)';
+                            $attendances_faults_avg = $results_faults_avg['faults'].'/'.$results_faults_avg['total'].
+                                ' ('.$results_faults_avg['percent'].'%)';
                         }
                     } else {
                         $attendances_faults_avg = '0/0 (0%)';
@@ -1930,7 +1932,7 @@ if (empty($_GET['details'])) {
                     $warming = '';
                     $today = date('Y-m-d');
 
-                    if ($end_date_module <= $today and $progress != '100%') {
+                    if ($end_date_module <= $today and '100%' != $progress) {
                         $warming = '<b><font color=#CC0000>  '.get_lang('limite_atteinte').'</font></b>';
                     }
 
@@ -2041,7 +2043,7 @@ if (empty($_GET['details'])) {
 
         //  firts connection date
         $sql2 = 'SELECT access_date
-                FROM '.$tbl_stats_access.' 
+                FROM '.$tbl_stats_access.'
                 WHERE access_user_id = '.$studentId.'
                 AND c_id = '.$c_id.'
                 ORDER BY access_id ASC LIMIT 0,1
@@ -2063,7 +2065,7 @@ if (empty($_GET['details'])) {
                 $session_id
             );
 
-            if ($progress === null) {
+            if (null === $progress) {
                 $progress = '0%';
             } else {
                 $any_result = true;
@@ -2117,7 +2119,7 @@ if (empty($_GET['details'])) {
                 true
             );
 
-            if ($i % 2 == 0) {
+            if (0 == $i % 2) {
                 $css_class = "row_even";
             } else {
                 $css_class = "row_odd";
@@ -2165,7 +2167,7 @@ if (empty($_GET['details'])) {
             //which implies several other changes not a priority right now
             echo Display::tag('td', $start_time);
 
-            if ($any_result === true) {
+            if (true === $any_result) {
                 $from = '';
                 if ($from_myspace) {
                     $from = '&from=myspace';
@@ -2183,7 +2185,7 @@ if (empty($_GET['details'])) {
 
             if (api_is_allowed_to_edit()) {
                 echo '<td>';
-                if ($any_result === true) {
+                if (true === $any_result) {
                     echo '<a href="myStudents.php?action=reset_lp&sec_token='.$token.'&cidReq='.Security::remove_XSS(
                             $_GET['course']
                         ).'&course='.Security::remove_XSS($_GET['course']).'&details='.Security::remove_XSS(
@@ -2231,7 +2233,7 @@ if (empty($_GET['details'])) {
         ];
 
     $t_quiz = Database:: get_course_table(TABLE_QUIZ_TEST);
-    $sql = "SELECT quiz.title, id FROM ".$t_quiz." AS quiz
+    $sql = "SELECT quiz.title, iid FROM ".$t_quiz." AS quiz
                 WHERE
                     quiz.c_id = $c_id AND
                     (quiz.session_id = $session_id OR quiz.session_id = 0) AND
@@ -2324,7 +2326,7 @@ if (empty($_GET['details'])) {
             echo '</td>';
 
             echo '<td>';
-            $all_attempt_url = "../exercice/exercise_report.php?exerciseId=$exercise_id&cidReq=$course_code&filter_by_user=$studentId&id_session=$session_id";
+            $all_attempt_url = "../exercice/exercise_report.php?id=$exercise_id&cidReq=$course_code&filter_by_user=$studentId&id_session=$session_id";
             echo Display::url(
                     Display::return_icon('test_results.png', get_lang('All attempts'), [], ICON_SIZE_SMALL),
                     $all_attempt_url
@@ -2607,7 +2609,7 @@ if ($export_csv) {
 </form>
 <strong><?php echo get_lang('imprime_sommaire'); ?> </strong>
 <?php
-echo '<a target="_blank" 
+echo '<a target="_blank"
     href="print_myStudents.php?student='.$studentId.'&details=true&course='.$course_code.'&origin=tracking_course">
 <img src="'.api_get_path(WEB_IMG_PATH).'printmgr.gif" border="0" /></a>';
 // tableau pour date de fin prévue pour chaque module

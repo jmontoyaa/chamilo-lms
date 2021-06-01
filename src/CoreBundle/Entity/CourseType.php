@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
@@ -15,50 +17,33 @@ use Doctrine\ORM\Mapping as ORM;
 class CourseType
 {
     /**
-     * @var string
-     *
-     * @ORM\Column(name="name", type="string", length=50, nullable=false)
-     */
-    protected $name;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="translation_var", type="string", length=40, nullable=true)
-     */
-    protected $translationVar;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="description", type="text", nullable=true)
-     */
-    protected $description;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="props", type="text", nullable=true)
-     */
-    protected $props;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="IDENTITY")
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * Set name.
-     *
-     * @param string $name
-     *
-     * @return CourseType
+     * @ORM\Column(name="name", type="string", length=50, nullable=false)
      */
-    public function setName($name)
+    protected string $name;
+
+    /**
+     * @ORM\Column(name="translation_var", type="string", length=40, nullable=true)
+     */
+    protected ?string $translationVar = null;
+
+    /**
+     * @ORM\Column(name="description", type="text", nullable=true)
+     */
+    protected ?string $description = null;
+
+    /**
+     * @ORM\Column(name="props", type="text", nullable=true)
+     */
+    protected ?string $props = null;
+
+    public function setName(string $name): self
     {
         $this->name = $name;
 
@@ -75,14 +60,7 @@ class CourseType
         return $this->name;
     }
 
-    /**
-     * Set translationVar.
-     *
-     * @param string $translationVar
-     *
-     * @return CourseType
-     */
-    public function setTranslationVar($translationVar)
+    public function setTranslationVar(string $translationVar): self
     {
         $this->translationVar = $translationVar;
 
@@ -99,14 +77,7 @@ class CourseType
         return $this->translationVar;
     }
 
-    /**
-     * Set description.
-     *
-     * @param string $description
-     *
-     * @return CourseType
-     */
-    public function setDescription($description)
+    public function setDescription(string $description): self
     {
         $this->description = $description;
 
@@ -123,14 +94,7 @@ class CourseType
         return $this->description;
     }
 
-    /**
-     * Set props.
-     *
-     * @param string $props
-     *
-     * @return CourseType
-     */
-    public function setProps($props)
+    public function setProps(string $props): self
     {
         $this->props = $props;
 

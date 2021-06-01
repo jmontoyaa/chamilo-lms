@@ -9,8 +9,6 @@ use SkillRelUser as SkillRelUserManager;
  * Show information about all issued badges with same skill by user.
  *
  * @author José Loguercio Silva <jose.loguercio@beeznest.com>
- *
- * @package chamilo.badge
  */
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -21,11 +19,11 @@ if (!$userId || !$skillId) {
     api_not_allowed(true);
 }
 
-Skill::isAllowed($userId);
+SkillModel::isAllowed($userId);
 
 $em = Database::getManager();
 $user = api_get_user_entity($userId);
-$skill = $em->find('ChamiloCoreBundle:Skill', $skillId);
+$skill = $em->find(\Chamilo\CoreBundle\Entity\Skill::class, $skillId);
 $currentUserId = api_get_user_id();
 
 if (!$user || !$skill) {
@@ -37,9 +35,9 @@ if (!$user || !$skill) {
     exit;
 }
 
-$skillRepo = $em->getRepository('ChamiloCoreBundle:Skill');
-$skillUserRepo = $em->getRepository('ChamiloCoreBundle:SkillRelUser');
-$skillLevelRepo = $em->getRepository('ChamiloSkillBundle:Level');
+$skillRepo = $em->getRepository(\Chamilo\CoreBundle\Entity\Skill::class);
+$skillUserRepo = $em->getRepository(SkillRelUser::class);
+$skillLevelRepo = $em->getRepository(\Chamilo\CoreBundle\Entity\Level::class);
 
 $userSkills = $skillUserRepo->findBy([
     'user' => $user,
@@ -57,7 +55,7 @@ $skillInfo = [
     'short_code' => $skill->getShortCode(),
     'description' => $skill->getDescription(),
     'criteria' => $skill->getCriteria(),
-    'badge_image' => Skill::getWebIconPath($skill),
+    'badge_image' => SkillModel::getWebIconPath($skill),
     'courses' => [],
 ];
 
@@ -66,7 +64,7 @@ $allUserBadges = [];
 foreach ($userSkills as $index => $skillIssue) {
     $currentUser = api_get_user_entity($currentUserId);
     $allowDownloadExport = $currentUser ? $currentUser->getId() === $user->getId() : false;
-    $allowComment = $currentUser ? Skill::userCanAddFeedbackToUser($currentUser, $user) : false;
+    $allowComment = $currentUser ? SkillModel::userCanAddFeedbackToUser($currentUser, $user) : false;
     $skillIssueDate = api_get_local_time($skillIssue->getAcquiredSkillAt());
     $currentSkillLevel = get_lang('No level acquired yet');
     if ($skillIssue->getAcquiredLevel()) {
@@ -88,12 +86,12 @@ foreach ($userSkills as $index => $skillIssue) {
         'user_id' => $skillIssue->getUser()->getId(),
         'user_complete_name' => UserManager::formatUserFullName($skillIssue->getUser()),
         'skill_id' => $skillIssue->getSkill()->getId(),
-        'skill_badge_image' => Skill::getWebIconPath($skillIssue->getSkill()),
+        'skill_badge_image' => SkillModel::getWebIconPath($skillIssue->getSkill()),
         'skill_name' => $skillIssue->getSkill()->getName(),
         'skill_short_code' => $skillIssue->getSkill()->getShortCode(),
         'skill_description' => $skillIssue->getSkill()->getDescription(),
         'skill_criteria' => $skillIssue->getSkill()->getCriteria(),
-        'badge_assertion' => SkillRelUserManager::getAssertionUrl($skillIssue),
+        'badge_assertion' => SkillRelUserModel::getAssertionUrl($skillIssue),
         'comments' => [],
         'feedback_average' => $skillIssue->getAverage(),
     ];
@@ -130,7 +128,7 @@ foreach ($userSkills as $index => $skillIssue) {
                 break;
             }
 
-            if (!$profile && $parent['parent_id'] == 0) {
+            if (!$profile && 0 == $parent['parent_id']) {
                 $profile = $skillLevelRepo->findAll();
                 $profile = !empty($profile) ? $profile[0] : [];
             }
@@ -188,7 +186,12 @@ foreach ($userSkills as $index => $skillIssue) {
     $form->addRule('comment', get_lang('Required field'), 'required');
     $form->addSelect(
         'value',
-        [get_lang('Value'), get_lang('On a grade of 1 to 10, how well did you observe that this person could put this skill in practice?')],
+        [
+            get_lang('Value'),
+            get_lang(
+                'On a grade of 1 to 10, how well did you observe that this person could put this skill in practice?'
+            ),
+        ],
         ['-', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     );
     $form->addHidden('user', $skillIssue->getUser()->getId());
@@ -220,12 +223,15 @@ foreach ($userSkills as $index => $skillIssue) {
         $backpack = 'https://backpack.openbadges.org/';
         $configBackpack = api_get_setting('openbadges_backpack');
 
-        if (strcmp($backpack, $configBackpack) !== 0) {
+        if (0 !== strcmp($backpack, $configBackpack)) {
             $backpack = $configBackpack;
+            if ('/' !== substr($backpack, -1)) {
+                $backpack .= '/';
+            }
         }
 
         $htmlHeadXtra[] = '<script src="'.$backpack.'issuer.js"></script>';
-        $objSkill = new Skill();
+        $objSkill = new SkillModel();
         $assertionUrl = $skillIssueInfo['badge_assertion'];
         $skills = $objSkill->get($skillId);
         $unbakedBadge = api_get_path(SYS_UPLOAD_PATH)."badges/".$skills['icon'];
@@ -275,7 +281,7 @@ foreach ($userSkills as $index => $skillIssue) {
 
 $template = new Template(get_lang('Issued badge information'));
 $template->assign('user_badges', $allUserBadges);
-$template->assign('show_level', api_get_configuration_value('hide_skill_levels') == false);
+$template->assign('show_level', false == api_get_configuration_value('hide_skill_levels'));
 
 $content = $template->fetch(
     $template->get_template('skill/issued_all.tpl')

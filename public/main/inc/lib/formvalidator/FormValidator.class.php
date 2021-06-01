@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -12,49 +13,65 @@ class FormValidator extends HTML_QuickForm
     public const LAYOUT_BOX = 'box';
     public const LAYOUT_BOX_NO_LABEL = 'box-no-label';
     public const LAYOUT_BOX_SEARCH = 'box-search';
+    public const LAYOUT_GRID = 'grid';
 
     public $with_progress_bar = false;
     private $layout;
 
     /**
-     * Constructor.
-     *
-     * @param string $name        Name of the form
-     * @param string $method      (optional) Method ('post' (default) or 'get')
-     * @param string $action      (optional) Action (default is $PHP_SELF)
-     * @param string $target      (optional) Form's target defaults to '_self'
-     * @param mixed  $attributes  (optional) Extra attributes for <form> tag
-     * @param string $layout
-     * @param bool   $trackSubmit (optional) Whether to track if the form was
-     *                            submitted by adding a special hidden field (default = true)
+     * @param string      $name        Name of the form
+     * @param string      $method      (optional) Method ('post' (default) or 'get')
+     * @param string      $action      (optional) Action (default is $PHP_SELF)
+     * @param string|null $target      (optional) Form's target defaults to '_self'
+     * @param mixed       $attributes  (optional) Extra attributes for <form> tag
+     * @param string      $layout
+     * @param bool        $trackSubmit Whether to track if the form was submitted by adding a special hidden field
      */
     public function __construct(
-        $name,
-        $method = 'post',
-        $action = '',
-        $target = '',
-        $attributes = [],
-        $layout = self::LAYOUT_HORIZONTAL,
-        $trackSubmit = true
+        string $name,
+        ?string $method = 'post',
+        ?string $action = '',
+        ?string $target = '',
+        ?array $attributes = [],
+        string $layout = self::LAYOUT_HORIZONTAL,
+        bool $trackSubmit = true
     ) {
-        // Default form class.
-        if (is_array($attributes) && !isset($attributes['class']) || empty($attributes)) {
-            $attributes['class'] = 'form-horizontal';
+        if (null === $attributes) {
+            $attributes = [];
         }
 
-        if (isset($attributes['class']) && strpos($attributes['class'], 'form-search') !== false) {
+        // Default form class.
+        if (!isset($attributes['class']) || empty($attributes)) {
+            $attributes['class'] = 'form-horizontal q-pt-md';
+        }
+
+        if (isset($attributes['class']) && false !== strpos($attributes['class'], 'form-search')) {
             $layout = 'inline';
         }
 
         $this->setLayout($layout);
 
+        // Form template
+        $formTemplate = $this->getFormTemplate();
+
         switch ($layout) {
             case self::LAYOUT_HORIZONTAL:
-                $attributes['class'] = 'form-horizontal';
+                $attributes['class'] = 'ch w-full ';
+                break;
+            case self::LAYOUT_BOX_SEARCH:
+                $attributes['class'] = 'ch w-full flex gap-2';
+                $formTemplate = $this->getInLineTemplate();
                 break;
             case self::LAYOUT_INLINE:
+                $attributes['class'] = 'ch flex gap-2 ';
+                $formTemplate = $this->getInLineTemplate();
+                break;
             case self::LAYOUT_BOX:
-                $attributes['class'] = 'form-inline';
+                $attributes['class'] = 'ch flex gap-1 ';
+                break;
+            case self::LAYOUT_GRID:
+                $attributes['class'] = 'ch form-grid';
+                $formTemplate = $this->getGridFormTemplate();
                 break;
         }
 
@@ -62,16 +79,15 @@ class FormValidator extends HTML_QuickForm
 
         // Modify the default templates
         $renderer = &$this->defaultRenderer();
-
-        // Form template
-        $formTemplate = $this->getFormTemplate();
         $renderer->setFormTemplate($formTemplate);
 
         // Element template
-        if (isset($attributes['class']) && $attributes['class'] == 'form-inline') {
+        if ((isset($attributes['class']) && 'form-inline' === $attributes['class']) ||
+            (self::LAYOUT_INLINE === $layout || self::LAYOUT_BOX_SEARCH === $layout)
+        ) {
             $elementTemplate = ' {label}  {element} ';
             $renderer->setElementTemplate($elementTemplate);
-        } elseif (isset($attributes['class']) && $attributes['class'] == 'form-search') {
+        } elseif (isset($attributes['class']) && 'form-search' === $attributes['class']) {
             $elementTemplate = ' {label}  {element} ';
             $renderer->setElementTemplate($elementTemplate);
         } else {
@@ -84,13 +100,6 @@ class FormValidator extends HTML_QuickForm
             //Display a gray div in the buttons + makes the button available when scrolling
             $templateBottom = '<div class="form-actions bottom_actions bg-form">{label} {element}</div>';
             $renderer->setElementTemplate($templateBottom, 'submit_fixed_in_bottom');
-
-            //When you want to group buttons use something like this
-            /* $group = array();
-              $group[] = $form->createElement('button', 'mark_all', get_lang('Select all'));
-              $group[] = $form->createElement('button', 'unmark_all', get_lang('Unselect all'));
-              $form->addGroup($group, 'buttons_in_action');
-             */
             $renderer->setElementTemplate($templateSimple, 'buttons_in_action');
 
             $templateSimpleRight = '<div class="form-actions"> <div class="pull-right">{label} {element}</div></div>';
@@ -98,12 +107,14 @@ class FormValidator extends HTML_QuickForm
         }
 
         //Set Header template
-        $renderer->setHeaderTemplate('<legend>{header}</legend>');
+        $renderer->setHeaderTemplate(' <h1 class="text-2xl font-small text-gray-800 mb-4">{header}<hr /></h1>');
 
-        //Set required field template
-        $this->setRequiredNote(
-            '<span class="form_required">*</span> <small>'.get_lang('Required field').'</small>'
-        );
+        $required = '<span class="form_required">*</span> <small>'.get_lang('Required field').'</small>';
+        if ((self::LAYOUT_INLINE === $layout || self::LAYOUT_BOX_SEARCH === $layout)) {
+            $required = '';
+        }
+        // Set required field template
+        $this->setRequiredNote($required);
 
         $noteTemplate = <<<EOT
 	<div class="form-group">
@@ -113,28 +124,57 @@ EOT;
         $renderer->setRequiredNoteTemplate($noteTemplate);
     }
 
-    /**
-     * @return string
-     */
-    public function getFormTemplate()
+    public function getFormTemplate(): string
+    {
+        return '
+                <div class="pt-4">
+                    <div class="q-card p-4">
+                        <form{attributes}>
+                            {content}
+                            {hidden}
+                        </form>
+                    </div>
+                </div>
+        ';
+    }
+
+    public function getInLineTemplate(): string
     {
         return '<form{attributes}>
-        <fieldset>
             {content}
-        </fieldset>
+            {hidden}
+        </form>';
+    }
+
+    public function getGridFormTemplate(): string
+    {
+        return '
+        <style>
+            .form_list {
+                display: grid;
+                grid-template-columns:  repeat(auto-fill, minmax(300px, 1fr));;
+                grid-gap: 10px 30px;
+                gap: 10px 30px;
+            }
+            .form_list .input-group {
+                display:block;
+            }
+        </style>
+        <form{attributes}>
+            <div class="form_list">
+                {content}
+            </div>
         {hidden}
         </form>';
     }
 
     /**
      * @todo this function should be added in the element class
-     *
-     * @return string
      */
-    public function getDefaultElementTemplate()
+    public function getDefaultElementTemplate(): string
     {
         return '
-            <div class="form-group row {error_class}">
+            <div class="row mb-3 {error_class}">
                 <label {label-for} class="col-sm-2 col-form-label {extra_label_class}" >
                     <!-- BEGIN required --><span class="form_required">*</span><!-- END required -->
                     {label}
@@ -206,8 +246,8 @@ EOT;
      */
     public function addCourseHiddenParams()
     {
-        $this->addHidden('cidReq', api_get_course_id());
-        $this->addHidden('id_session', api_get_session_id());
+        $this->addHidden('cid', api_get_course_id());
+        $this->addHidden('sid', api_get_session_id());
     }
 
     /**
@@ -240,18 +280,6 @@ EOT;
      *
      * @return mixed
      */
-    public function addDatePicker($name, $label, $attributes = [])
-    {
-        return $this->addElement('DatePicker', $name, $label, $attributes);
-    }
-
-    /**
-     * @param string $name
-     * @param string $label
-     * @param array  $attributes
-     *
-     * @return mixed
-     */
     public function addSelectLanguage($name, $label, $options = [], $attributes = [])
     {
         return $this->addElement('SelectLanguage', $name, $label, $options, $attributes);
@@ -265,7 +293,7 @@ EOT;
      *
      * @throws Exception
      *
-     * @return HTML_QuickForm_element
+     * @return SelectAjax
      */
     public function addSelectAjax($name, $label, $options = [], $attributes = [])
     {
@@ -280,6 +308,18 @@ EOT;
             $options,
             $attributes
         );
+    }
+
+    /**
+     * @param string $name
+     * @param string $label
+     * @param array  $attributes
+     *
+     * @return DatePicker
+     */
+    public function addDatePicker($name, $label, $attributes = [])
+    {
+        return $this->addElement('DatePicker', $name, $label, $attributes);
     }
 
     /**
@@ -467,7 +507,7 @@ EOT;
         return $this->addButton(
             $name,
             $label,
-            'pencil',
+            'fa fas fa-pencil-alt',
             'primary',
             null,
             null,
@@ -845,10 +885,10 @@ EOT;
     }
 
     /**
-     * @param string $name
-     * @param string $label
-     * @param array  $options
-     * @param array  $attributes
+     * @param string       $name
+     * @param string|array $label
+     * @param array        $options
+     * @param array        $attributes
      *
      * @return HTML_QuickForm_select
      */
@@ -926,7 +966,7 @@ EOT;
 
     /**
      * @param string $name
-     * @param string $label
+     * @param string|array $label
      * @param array  $attributes
      *
      * @throws Exception if the file doesn't have an id
@@ -973,7 +1013,12 @@ EOT;
      */
     public function addHtml($snippet)
     {
+        if (empty($snippet)) {
+            return false;
+        }
         $this->addElement('html', $snippet);
+
+        return true;
     }
 
     /**
@@ -983,7 +1028,7 @@ EOT;
      * @param string $title     visible title
      * @param array  $groupList list of group or elements
      */
-    public function addPanelOption($name, $title, $groupList, $icon, $open = false, $parent)
+    public function addPanelOption($name, $title, $groupList, $icon, $open, $parent)
     {
         $html = '<div class="card">';
         $html .= '<div class="card-header" id="card_'.$name.'">';
@@ -1034,16 +1079,17 @@ EOT;
         $config = [],
         $attributes = []
     ) {
-        $attributes = [];
-        $attributes['rows'] = isset($config['rows']) ? $config['rows'] : 15;
-        $attributes['cols'] = isset($config['cols']) ? $config['cols'] : 80;
-        $attributes['cols-size'] = isset($config['cols-size']) ? $config['cols-size'] : [];
-        $attributes['class'] = isset($config['class']) ? $config['class'] : [];
-        $attributes['id'] = isset($config['id']) ? $config['id'] : '';
+        $attributes['rows'] = $config['rows'] ?? 15;
+        $attributes['cols'] = $config['cols'] ?? 80;
+        $attributes['cols-size'] = $config['cols-size'] ?? [];
+        $attributes['class'] = $config['class'] ?? [];
+        $cleanName = str_replace(['[', ']', '#'], '', $name);
 
         if (empty($attributes['id'])) {
-            $attributes['id'] = $name;
+            $attributes['id'] = $cleanName;
         }
+
+        //$attributes['id'] = $config['id'] ?? 'editor_'.$cleanName;
 
         $this->addElement('html_editor', $name, $label, $attributes, $config);
         $this->applyFilter($name, 'trim');
@@ -1053,7 +1099,7 @@ EOT;
 
         /** @var HtmlEditor $element */
         $element = $this->getElement($name);
-        $config['style'] = isset($config['style']) ? $config['style'] : false;
+        $config['style'] = $config['style'] ?? false;
         if ($fullPage) {
             $config['fullPage'] = true;
             // Adds editor_content.css in ckEditor
@@ -1075,9 +1121,9 @@ EOT;
     public function addGeoLocationMapField($name, $label, $dataValue, $hideGeoLocalizationDetails = false)
     {
         $gMapsPlugin = GoogleMapsPlugin::create();
-        $geolocalization = $gMapsPlugin->get('enable_api') === 'true';
+        $geolocalization = 'true' === $gMapsPlugin->get('enable_api');
 
-        if ($geolocalization && $gMapsPlugin->javascriptIncluded === false) {
+        if ($geolocalization && false === $gMapsPlugin->javascriptIncluded) {
             $gmapsApiKey = $gMapsPlugin->get('api_key');
             $url = '//maps.googleapis.com/maps/api/js?key='.$gmapsApiKey;
             $this->addHtml('<script type="text/javascript" src="'.$url.'" ></script>');
@@ -1116,12 +1162,12 @@ EOT;
     }
 
     /**
-     * @param string $name
-     * @param string $label
+     * @param string       $name
+     * @param string|array $label
      *
      * @return mixed
      */
-    public function addButtonAdvancedSettings($name, $label = '')
+    public function addButtonAdvancedSettings($name, $label = null)
     {
         $label = !empty($label) ? $label : get_lang('Advanced settings');
 
@@ -1174,9 +1220,9 @@ EOT;
     public function returnForm()
     {
         $returnValue = '';
-
         /** @var HTML_QuickForm_element $element */
-        foreach ($this->_elements as $element) {
+        foreach ($this->_elements as &$element) {
+            $element->setLayout($this->getLayout());
             $elementError = parent::getElementError($element->getName());
             if (!is_null($elementError)) {
                 $returnValue .= Display::return_message($elementError, 'warning').'<br />';
@@ -1188,12 +1234,8 @@ EOT;
         // Add div-element which is to hold the progress bar
         $id = $this->getAttribute('id');
         if (isset($this->with_progress_bar) && $this->with_progress_bar) {
-            // Deprecated
-            // $icon = Display::return_icon('progress_bar.gif');
-
             // @todo improve UI
             $returnValue .= '<br />
-
             <div id="loading_div_'.$id.'" class="loading_div" style="display:none;margin-left:40%; margin-top:10px; height:50px;">
                 <div class="wobblebar-loader"></div>
             </div>
@@ -1297,6 +1339,25 @@ EOT;
     }
 
     /**
+     * @param string $name
+     * @param string $label
+     * @param array  $attributes
+     * @param bool   $required
+     *
+     * @return HTML_QuickForm_element
+     */
+    public function addNumeric($name, $label, $attributes = [], $required = false)
+    {
+        $element = $this->addElement('Number', $name, $label, $attributes);
+
+        if ($required) {
+            $this->addRule($name, get_lang('ThisFieldIsRequired'), 'required');
+        }
+
+        return $element;
+    }
+
+    /**
      * Adds a text field for alphanumeric characters to the form.
      * A trim-filter is attached to the field.
      *
@@ -1382,7 +1443,7 @@ EOT;
             '/(^-?\d\d*\.\d*$)|(^-?\d\d*$)|(^-?\.\d\d*$)|(^-?\d\d*\,\d*$)|(^-?\,\d\d*$)/'
         );*/
 
-        if ($allowNegative == false) {
+        if (false == $allowNegative) {
             $this->addRule(
                 $name,
                 get_lang('Negative value'),
@@ -1557,7 +1618,7 @@ EOT;
      */
     public function addPasswordRule($elementName, $groupName = '')
     {
-        if (api_get_setting('security.check_password') == 'true') {
+        if ('true' == api_get_setting('security.check_password')) {
             $message = get_lang('this password  is too simple. Use a pass like this').': '.api_generate_password();
 
             if (!empty($groupName)) {
@@ -1566,7 +1627,7 @@ EOT;
                 if ($groupObj instanceof HTML_QuickForm_group) {
                     $elementName = $groupObj->getElementName($elementName);
 
-                    if ($elementName === false) {
+                    if (false === $elementName) {
                         throw new Exception("The $groupName doesn't have the element $elementName");
                     }
 
@@ -1592,7 +1653,7 @@ EOT;
 
     /**
      * Add an element with user ID and avatar to the form.
-     * It needs a Chamilo\UserBundle\Entity\User as value. The exported value is the Chamilo\UserBundle\Entity\User ID.
+     * It needs a Chamilo\CoreBundle\Entity\User as value. The exported value is the Chamilo\CoreBundle\Entity\User ID.
      *
      * @see \UserAvatar
      *
@@ -1626,7 +1687,7 @@ EOT;
                 $options[$item['id']] = $item['name'];
                 $name = $item['name'];
                 if (empty($defaultId)) {
-                    $defaultId = $item['default_template'] == 1 ? $item['id'] : '';
+                    $defaultId = 1 == $item['default_template'] ? $item['id'] : '';
                 }
             }
 
@@ -1649,37 +1710,49 @@ EOT;
             );
             $this->addHtml('</div>');
 
-            $this->addHtml("<script>            
+            $this->addHtml("<script>
             $(function() {
                 var defaultValue = '$defaultId';
                 $('#$typeNoDots').val(defaultValue);
                 $('#$typeNoDots').selectpicker('render');
                 if (defaultValue != '') {
-                    var selected = $('#$typeNoDots option:selected').val();                    
-                    $.ajax({ 
+                    var selected = $('#$typeNoDots option:selected').val();
+                    $.ajax({
                         url: '$url' + '&id=' + selected+ '&template_name=$type',
                         success: function (data) {
                             $('#$templateNoDots').html(data);
                             $('#$templateNoDotsBlock').show();
                             return;
-                        }, 
+                        },
                     });
                 }
-                                
-                $('#$typeNoDots').on('change', function(){                    
-                    var selected = $('#$typeNoDots option:selected').val();                    
-                    $.ajax({ 
+
+                $('#$typeNoDots').on('change', function(){
+                    var selected = $('#$typeNoDots option:selected').val();
+                    $.ajax({
                         url: '$url' + '&id=' + selected,
                         success: function (data) {
                             $('#$templateNoDots').html(data);
                             $('#$templateNoDotsBlock').show();
                             return;
-                        }, 
+                        },
                     });
                 });
             });
             </script>");
         }
+    }
+
+    /**
+     * Add email rule for an element.
+     */
+    public function addEmailRule(string $element)
+    {
+        $this->addRule(
+            $element,
+            get_lang('The email address is not complete or contains some invalid characters'),
+            'email'
+        );
     }
 
     /**
@@ -1724,8 +1797,8 @@ EOT;
                     data.submit().always(function () {
                         \$this.remove();
                     });
-                });               
-                
+                });
+
             $('#".$inputName."').fileupload({
                 url: url,
                 dataType: 'json',
@@ -1736,11 +1809,11 @@ EOT;
                 previewMaxWidth: 300,
                 previewMaxHeight: 169,
                 previewCrop: true,
-                dropzone: $('#dropzone'),                                
-            }).on('fileuploadadd', function (e, data) {                
+                dropzone: $('#dropzone'),
+            }).on('fileuploadadd', function (e, data) {
                 data.context = $('<div class=\"row\" />').appendTo('#files');
                 $.each(data.files, function (index, file) {
-                    var node = $('<div class=\"col-sm-5 file_name\">').text(file.name);                    
+                    var node = $('<div class=\"col-sm-5 file_name\">').text(file.name);
                     node.appendTo(data.context);
                 });
             }).on('fileuploadprocessalways', function (e, data) {
@@ -1790,8 +1863,8 @@ EOT;
                         $('<span class=\"message-image-success\"/>').text('".addslashes(get_lang('File upload succeeded!'))."')
                     );
                     $(data.context.children()[index]).parent().append(message);
-                });                
-                $('#dropzone').removeClass('hover');                
+                });
+                $('#dropzone').removeClass('hover');
                 ".$redirectCondition."
             }).on('fileuploadfail', function (e, data) {
                 $.each(data.files, function (index) {
@@ -1802,14 +1875,14 @@ EOT;
                     $(data.context.children()[index]).parent().append(error);
                 });
                 $('#dropzone').removeClass('hover');
-            }).prop('disabled', !$.support.fileInput).parent().addClass($.support.fileInput ? undefined : 'disabled');           
-            
+            }).prop('disabled', !$.support.fileInput).parent().addClass($.support.fileInput ? undefined : 'disabled');
+
             $('#dropzone').on('dragover', function (e) {
-                // dragleave callback implementation                
+                // dragleave callback implementation
                 $('#dropzone').addClass('hover');
             });
-            
-            $('#dropzone').on('dragleave', function (e) {                
+
+            $('#dropzone').on('dragleave', function (e) {
                 $('#dropzone').removeClass('hover');
             });
             $('.fileinput-button').hide();

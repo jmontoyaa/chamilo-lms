@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Doctrine\Common\Collections\Criteria;
@@ -19,7 +20,7 @@ $permissions = StudentFollowUpPlugin::getPermissions($studentId, $currentUserId)
 $isAllow = $permissions['is_allow'];
 $showPrivate = $permissions['show_private'];
 
-if ($isAllow === false) {
+if (false === $isAllow) {
     api_not_allowed(true);
 }
 
@@ -28,7 +29,7 @@ $qb = $em->createQueryBuilder();
 $criteria = Criteria::create();
 $criteria->where(Criteria::expr()->eq('user', $studentId));
 
-if ($showPrivate == false) {
+if (false == $showPrivate) {
     $criteria->andWhere(Criteria::expr()->eq('private', false));
 }
 

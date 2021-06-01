@@ -1,26 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Security\Authorization\Voter;
 
 use Chamilo\CoreBundle\Entity\Course;
-use Chamilo\CoreBundle\Entity\Resource\ResourceLink;
-use Chamilo\CoreBundle\Entity\Resource\ResourceNode;
-use Chamilo\CoreBundle\Entity\Resource\ResourceRight;
+use Chamilo\CoreBundle\Entity\ResourceLink;
+use Chamilo\CoreBundle\Entity\ResourceNode;
+use Chamilo\CoreBundle\Entity\ResourceRight;
 use Chamilo\CoreBundle\Entity\Session;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Chamilo\CourseBundle\Entity\CGroup;
+use Laminas\Permissions\Acl\Acl;
+use Laminas\Permissions\Acl\Resource\GenericResource;
+use Laminas\Permissions\Acl\Role\GenericRole;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Acl\Permission\MaskBuilder;
+use Symfony\Component\Security\Core\Authentication\Token\AnonymousToken;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+use Symfony\Component\Security\Core\Security;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Zend\Permissions\Acl\Acl;
-use Zend\Permissions\Acl\Resource\GenericResource as SecurityResource;
-use Zend\Permissions\Acl\Role\GenericRole as Role;
 
-/**
- * Class ResourceNodeVoter.
- */
 class ResourceNodeVoter extends Voter
 {
     public const VIEW = 'VIEW';
@@ -28,20 +30,20 @@ class ResourceNodeVoter extends Voter
     public const EDIT = 'EDIT';
     public const DELETE = 'DELETE';
     public const EXPORT = 'EXPORT';
-
     public const ROLE_CURRENT_COURSE_TEACHER = 'ROLE_CURRENT_COURSE_TEACHER';
     public const ROLE_CURRENT_COURSE_STUDENT = 'ROLE_CURRENT_COURSE_STUDENT';
-    public const ROLE_CURRENT_SESSION_COURSE_TEACHER = 'ROLE_CURRENT_SESSION_COURSE_TEACHER';
-    public const ROLE_CURRENT_SESSION_COURSE_STUDENT = 'ROLE_CURRENT_SESSION_COURSE_STUDENT';
+    public const ROLE_CURRENT_COURSE_GROUP_TEACHER = 'ROLE_CURRENT_COURSE_GROUP_TEACHER';
+    public const ROLE_CURRENT_COURSE_GROUP_STUDENT = 'ROLE_CURRENT_COURSE_GROUP_STUDENT';
+    public const ROLE_CURRENT_COURSE_SESSION_TEACHER = 'ROLE_CURRENT_COURSE_SESSION_TEACHER';
+    public const ROLE_CURRENT_COURSE_SESSION_STUDENT = 'ROLE_CURRENT_COURSE_SESSION_STUDENT';
 
-    protected $container;
+    private RequestStack $requestStack;
+    private Security $security;
 
-    /**
-     * Constructor.
-     */
-    public function __construct(ContainerInterface $container)
+    public function __construct(Security $security, RequestStack $requestStack)
     {
-        $this->container = $container;
+        $this->security = $security;
+        $this->requestStack = $requestStack;
     }
 
     public static function getReaderMask(): int
@@ -65,7 +67,7 @@ class ResourceNodeVoter extends Voter
         return $builder->get();
     }
 
-    protected function supports($attribute, $subject): bool
+    protected function supports(string $attribute, $subject): bool
     {
         $options = [
             self::VIEW,
@@ -75,183 +77,266 @@ class ResourceNodeVoter extends Voter
             self::EXPORT,
         ];
 
+        error_log('resourceNode supports');
         // if the attribute isn't one we support, return false
-        if (!in_array($attribute, $options)) {
+        if (!\in_array($attribute, $options, true)) {
             return false;
         }
-
-        // only vote on Post objects inside this voter
-        if (!$subject instanceof ResourceNode) {
-            return false;
-        }
-
-        return true;
+        // only vote on ResourceNode objects inside this voter
+        return $subject instanceof ResourceNode;
     }
 
-    /**
-     * @param string       $attribute
-     * @param ResourceNode $resourceNode
-     */
-    protected function voteOnAttribute($attribute, $resourceNode, TokenInterface $token): bool
+    protected function voteOnAttribute(string $attribute, $subject, TokenInterface $token): bool
     {
-        $user = $token->getUser();
-
+        error_log('resourceNode voteOnAttribute');
         // Make sure there is a user object (i.e. that the user is logged in)
-        if (!$user instanceof UserInterface) {
+        // Update. No, anons can enter a node depending in the visibility.
+        // $user = $token->getUser();
+        /*if (!$user instanceof UserInterface) {
             return false;
-        }
+        }*/
 
-        $authChecker = $this->container->get('security.authorization_checker');
-
-        // Checking admin roles.
-        if ($authChecker->isGranted('ROLE_ADMIN')) {
-            return true;
-        }
-
-        // Check if I'm the owner.
-        $creator = $resourceNode->getCreator();
+        /** @var ResourceNode $resourceNode */
+        $resourceNode = $subject;
+        $resourceTypeName = $resourceNode->getResourceType()->getName();
 
         // Illustrations are always visible.
-        if ($resourceNode->isIllustrationNode()) {
+        if ('illustrations' === $resourceTypeName) {
             return true;
         }
 
-        // Course access are protected using the CourseVoter.
-        if ($resourceNode->isCourseNode()) {
+        // Courses are also a Resource but courses are protected using the CourseVoter, not by ResourceNodeVoter.
+        if ('courses' === $resourceTypeName) {
             return true;
         }
 
+        // Checking admin role.
+        if ($this->security->isGranted('ROLE_ADMIN')) {
+            return true;
+        }
+
+        // @todo
+        switch ($attribute) {
+            case self::VIEW:
+            case self::EDIT:
+                break;
+        }
+
+        $user = $token->getUser();
+        // Check if I'm the owner.
+        $creator = $resourceNode->getCreator();
         if ($creator instanceof UserInterface &&
-            $user->getUsername() === $creator->getUsername()) {
+            $user instanceof UserInterface &&
+            $user->getUserIdentifier() === $creator->getUserIdentifier()
+        ) {
             return true;
         }
 
         // Checking links connected to this resource.
-        $request = $this->container->get('request_stack')->getCurrentRequest();
+        $request = $this->requestStack->getCurrentRequest();
 
-        // @todo fix parameters.
-        $courseId = $request->get('cid');
-        $sessionId = $request->get('sid');
+        $courseId = (int) $request->get('cid');
+        $sessionId = (int) $request->get('sid');
+        $groupId = (int) $request->get('gid');
 
         $links = $resourceNode->getResourceLinks();
-        $linkFound = false;
-        $courseManager = $this->container->get('Chamilo\CoreBundle\Repository\CourseRepository');
 
-        /** @var ResourceLink $link */
+        //$courseManager = $this->entityManager->getRepository(Course::class);
+        //$sessionManager = $this->entityManager->getRepository(Session::class);
+
+        $linkFound = 0;
+        $link = null;
+        // @todo implement view, edit, delete.
         foreach ($links as $link) {
-            // Block access if visibility is deleted.
+            // Block access if visibility is deleted. Creator and admin have already access.
             if (ResourceLink::VISIBILITY_DELETED === $link->getVisibility()) {
-                $linkFound = false;
-
-                break;
+                continue;
             }
 
-            $linkUser = $link->getUser();
             // Check if resource was sent to the current user.
+            $linkUser = $link->getUser();
             if ($linkUser instanceof UserInterface &&
-                $linkUser->getUsername() === $creator->getUsername()
-            ) {
-                $linkFound = true;
+                $user instanceof UserInterface &&
+                $linkUser->getUserIdentifier() === $user->getUserIdentifier()) {
+                $linkFound = 2;
 
                 break;
             }
 
             $linkCourse = $link->getCourse();
+
+            // Course found, but courseId not set, skip course checking.
+            if ($linkCourse instanceof Course && empty($courseId)) {
+                continue;
+            }
+
             $linkSession = $link->getSession();
+            $linkGroup = $link->getGroup();
             //$linkUserGroup = $link->getUserGroup();
 
             // @todo Check if resource was sent to a usergroup
-            // @todo Check if resource was sent to a group inside a course
-            // Check if resource was sent to a course inside a session
-            if ($linkSession instanceof Session && !empty($sessionId) &&
-                $linkCourse instanceof Course && !empty($courseId)
+
+            // Check if resource was sent inside a group in a course session.
+            if (null === $linkUser &&
+                $linkGroup instanceof CGroup && !empty($groupId) &&
+                $linkSession instanceof Session && !empty($sessionId) &&
+                $linkCourse instanceof Course && !empty($courseId) &&
+                ($linkCourse->getId() === $courseId &&
+                $linkSession->getId() === $sessionId &&
+                $linkGroup->getIid() === $groupId)
             ) {
-                $session = $this->container->get('chamilo_core.entity.manager.session_manager')->find($sessionId);
-                $course = $courseManager->find($courseId);
-                if ($session instanceof Session &&
-                    $course instanceof Course &&
-                    $linkCourse->getCode() === $course->getCode() &&
-                    $linkSession->getId() === $session->getId()
-                ) {
-                    $linkFound = true;
-
-                    break;
-                }
-            }
-
-            // Check if resource was sent to a course
-            if ($linkCourse instanceof Course && !empty($courseId)) {
-                $course = $courseManager->find($courseId);
-
-                if ($course instanceof Course &&
-                    $linkCourse->getCode() === $course->getCode()
-                ) {
-                    $linkFound = true;
-
-                    break;
-                }
-            }
-
-            if (ResourceLink::VISIBILITY_PUBLISHED === $link->getVisibility()) {
-                $linkFound = true;
+                $linkFound = 3;
 
                 break;
             }
-        }
 
-        // No link was found or not available
-        if (false === $linkFound) {
+            // Check if resource was sent inside a group in a base course.
+            if (null === $linkUser &&
+                empty($sessionId) &&
+                $linkGroup instanceof CGroup && !empty($groupId) &&
+                $linkCourse instanceof Course && !empty($courseId) && ($linkCourse->getId() === $courseId &&
+                $linkGroup->getIid() === $groupId)
+            ) {
+                $linkFound = 4;
+
+                break;
+            }
+
+            // Check if resource was sent to a course inside a session.
+            if (null === $linkUser &&
+                $linkSession instanceof Session && !empty($sessionId) &&
+                $linkCourse instanceof Course && !empty($courseId) && ($linkCourse->getId() === $courseId &&
+                $linkSession->getId() === $sessionId)
+            ) {
+                $linkFound = 5;
+
+                break;
+            }
+
+            // Check if resource was sent to a course.
+            if (null === $linkUser &&
+                $linkCourse instanceof Course && !empty($courseId) && $linkCourse->getId() === $courseId
+            ) {
+                $linkFound = 6;
+
+                break;
+            }
+
+            /*if (ResourceLink::VISIBILITY_PUBLISHED === $link->getVisibility()) {
+                $linkFound = true;
+
+                break;
+            }*/
+        }
+        //var_dump($linkFound, $link->getId(), $link->getVisibility()); exit;
+
+        // No link was found.
+        if (0 === $linkFound) {
             return false;
         }
 
         // Getting rights from the link
-        $rightFromResourceLink = $link->getResourceRight();
-
+        $rightsFromResourceLink = $link->getResourceRights();
+        $allowAnonsToSee = false;
         $rights = [];
-        if ($rightFromResourceLink->count() > 0) {
-            // Taken rights from the link
-            $rights = $rightFromResourceLink;
+        if ($rightsFromResourceLink->count() > 0) {
+            // Taken rights from the link.
+            $rights = $rightsFromResourceLink;
         } else {
             // Taken the rights from the default tool
             //$rights = $link->getResourceNode()->getTool()->getToolResourceRight();
             //$rights = $link->getResourceNode()->getResourceType()->getTool()->getToolResourceRight();
+
             // By default the rights are:
-            // teacher: CRUD
-            // student: read
+            // Teachers: CRUD.
+            // Students: Only read.
+            // Anons: Only read.
             $readerMask = self::getReaderMask();
             $editorMask = self::getEditorMask();
 
-            if (!empty($courseId)) {
-                $resourceRight = new ResourceRight();
-                $resourceRight
-                    ->setMask($editorMask)
-                    ->setRole(self::ROLE_CURRENT_COURSE_TEACHER);
-                $rights[] = $resourceRight;
+            if ($courseId && $link->hasCourse() && $link->getCourse()->getId() === $courseId) {
+                // If teacher.
+                if ($this->security->isGranted(self::ROLE_CURRENT_COURSE_TEACHER)) {
+                    $resourceRight = new ResourceRight();
+                    $resourceRight
+                        ->setMask($editorMask)
+                        ->setRole(self::ROLE_CURRENT_COURSE_TEACHER)
+                    ;
+                    $rights[] = $resourceRight;
+                }
 
-                $resourceRight = new ResourceRight();
-                $resourceRight
-                    ->setMask($readerMask)
-                    ->setRole(self::ROLE_CURRENT_COURSE_STUDENT);
-                $rights[] = $resourceRight;
+                // If student.
+                if ($this->security->isGranted(self::ROLE_CURRENT_COURSE_STUDENT) &&
+                    ResourceLink::VISIBILITY_PUBLISHED === $link->getVisibility()
+                ) {
+                    $resourceRight = new ResourceRight();
+                    $resourceRight
+                        ->setMask($readerMask)
+                        ->setRole(self::ROLE_CURRENT_COURSE_STUDENT)
+                    ;
+                    $rights[] = $resourceRight;
+                }
+
+                // For everyone.
+                if (ResourceLink::VISIBILITY_PUBLISHED === $link->getVisibility() &&
+                    $link->getCourse()->isPublic()
+                ) {
+                    $allowAnonsToSee = true;
+                    $resourceRight = new ResourceRight();
+                    $resourceRight
+                        ->setMask($readerMask)
+                        ->setRole('IS_AUTHENTICATED_ANONYMOUSLY')
+                    ;
+                    $rights[] = $resourceRight;
+                }
+            }
+
+            if (!empty($groupId)) {
+                /*var_dump($groupId);
+                foreach ($user->getRoles() as $role) {
+                    var_dump($role);
+                }*/
+                if ($this->security->isGranted(self::ROLE_CURRENT_COURSE_GROUP_TEACHER)) {
+                    $resourceRight = new ResourceRight();
+                    $resourceRight
+                        ->setMask($editorMask)
+                        ->setRole(self::ROLE_CURRENT_COURSE_GROUP_TEACHER)
+                    ;
+                    $rights[] = $resourceRight;
+                }
+
+                if ($this->security->isGranted(self::ROLE_CURRENT_COURSE_GROUP_STUDENT)) {
+                    $resourceRight = new ResourceRight();
+                    $resourceRight
+                        ->setMask($readerMask)
+                        ->setRole(self::ROLE_CURRENT_COURSE_GROUP_STUDENT)
+                    ;
+                    $rights[] = $resourceRight;
+                }
             }
 
             if (!empty($sessionId)) {
-                $resourceRight = new ResourceRight();
-                $resourceRight
-                    ->setMask($editorMask)
-                    ->setRole(self::ROLE_CURRENT_SESSION_COURSE_TEACHER)
-                ;
-                $rights[] = $resourceRight;
+                if ($this->security->isGranted(self::ROLE_CURRENT_COURSE_SESSION_TEACHER)) {
+                    $resourceRight = new ResourceRight();
+                    $resourceRight
+                        ->setMask($editorMask)
+                        ->setRole(self::ROLE_CURRENT_COURSE_SESSION_TEACHER)
+                    ;
+                    $rights[] = $resourceRight;
+                }
 
-                $resourceRight = new ResourceRight();
-                $resourceRight
-                    ->setMask($readerMask)
-                    ->setRole(self::ROLE_CURRENT_SESSION_COURSE_STUDENT)
-                ;
-                $rights[] = $resourceRight;
+                if ($this->security->isGranted(self::ROLE_CURRENT_COURSE_SESSION_STUDENT)) {
+                    $resourceRight = new ResourceRight();
+                    $resourceRight
+                        ->setMask($readerMask)
+                        ->setRole(self::ROLE_CURRENT_COURSE_SESSION_STUDENT)
+                    ;
+                    $rights[] = $resourceRight;
+                }
             }
+
             if (empty($rights) && ResourceLink::VISIBILITY_PUBLISHED === $link->getVisibility()) {
-                // Give just read access
+                // Give just read access.
                 $resourceRight = new ResourceRight();
                 $resourceRight
                     ->setMask($readerMask)
@@ -260,77 +345,100 @@ class ResourceNodeVoter extends Voter
                 $rights[] = $resourceRight;
             }
         }
+        //exit;
+        //var_dump($allowAnonsToSee);
+        /*foreach ($rights as $right) {
+            var_dump($right->getRole());
+        }*/
+
+        //exit;
 
         // Asked mask
         $mask = new MaskBuilder();
         $mask->add($attribute);
-        $askedMask = $mask->get();
 
-        // Setting zend simple ACL
-        $acl = new Acl();
+        $askedMask = (string) $mask->get();
 
         // Creating roles
         // @todo move this in a service
-        $userRole = new Role('ROLE_USER');
-        $teacher = new Role('ROLE_TEACHER');
-        $student = new Role('ROLE_STUDENT');
-        $currentTeacher = new Role(self::ROLE_CURRENT_COURSE_TEACHER);
-        $currentStudent = new Role(self::ROLE_CURRENT_COURSE_STUDENT);
+        $anon = new GenericRole('IS_AUTHENTICATED_ANONYMOUSLY');
+        $userRole = new GenericRole('ROLE_USER');
+        $student = new GenericRole('ROLE_STUDENT');
+        $teacher = new GenericRole('ROLE_TEACHER');
 
-        $currentTeacherSession = new Role(self::ROLE_CURRENT_SESSION_COURSE_TEACHER);
-        $currentStudentSession = new Role(self::ROLE_CURRENT_SESSION_COURSE_STUDENT);
+        $currentStudent = new GenericRole(self::ROLE_CURRENT_COURSE_STUDENT);
+        $currentTeacher = new GenericRole(self::ROLE_CURRENT_COURSE_TEACHER);
 
-        $superAdmin = new Role('ROLE_SUPER_ADMIN');
-        $admin = new Role('ROLE_ADMIN');
+        $currentStudentGroup = new GenericRole(self::ROLE_CURRENT_COURSE_GROUP_STUDENT);
+        $currentTeacherGroup = new GenericRole(self::ROLE_CURRENT_COURSE_GROUP_TEACHER);
 
-        // Adding roles to the ACL
+        $currentStudentSession = new GenericRole(self::ROLE_CURRENT_COURSE_SESSION_STUDENT);
+        $currentTeacherSession = new GenericRole(self::ROLE_CURRENT_COURSE_SESSION_TEACHER);
+
+        $superAdmin = new GenericRole('ROLE_SUPER_ADMIN');
+        $admin = new GenericRole('ROLE_ADMIN');
+
+        // Setting Simple ACL.
+        $acl = new Acl();
         $acl
+            ->addRole($anon)
             ->addRole($userRole)
             ->addRole($student)
             ->addRole($teacher)
+
             ->addRole($currentStudent)
             ->addRole($currentTeacher, self::ROLE_CURRENT_COURSE_STUDENT)
+
             ->addRole($currentStudentSession)
-            ->addRole($currentTeacherSession, self::ROLE_CURRENT_SESSION_COURSE_STUDENT)
+            ->addRole($currentTeacherSession, self::ROLE_CURRENT_COURSE_SESSION_STUDENT)
+
+            ->addRole($currentStudentGroup)
+            ->addRole($currentTeacherGroup, self::ROLE_CURRENT_COURSE_GROUP_STUDENT)
+
             ->addRole($superAdmin)
             ->addRole($admin)
         ;
 
-        // Adds a resource
-        $resource = new SecurityResource($link);
-        $acl->addResource($resource);
+        // Add a security resource.
+        $linkId = (string) $link->getId();
+        $acl->addResource(new GenericResource($linkId));
 
         // Check all the right this link has.
-        // $roles = [];
-        // Set rights from the ResourceRight
+        // Set rights from the ResourceRight.
         foreach ($rights as $right) {
-            //$roles[$right->getMask()] = $right->getRole();
-            //var_dump($right->getRole());
-            $acl->allow($right->getRole(), null, $right->getMask());
+            $acl->allow($right->getRole(), null, (string) $right->getMask());
         }
 
-        // var_dump($askedMask, $roles);
         // Role and permissions settings
         // Student can just view (read)
         //$acl->allow($student, null, self::getReaderMask());
 
         // Teacher can view/edit
-        $acl->allow(
+        /*$acl->allow(
             $teacher,
             null,
             [
                 self::getReaderMask(),
                 self::getEditorMask(),
             ]
-        );
+        );*/
+
+        // Anons can see.
+        if ($allowAnonsToSee) {
+            $acl->allow($anon, null, (string) self::getReaderMask());
+        }
 
         // Admin can do everything
         $acl->allow($admin);
         $acl->allow($superAdmin);
-        //var_dump($user->getRoles() );
+
+        if ($token instanceof AnonymousToken) {
+            return $acl->isAllowed('IS_AUTHENTICATED_ANONYMOUSLY', $linkId, $askedMask);
+        }
+
         foreach ($user->getRoles() as $role) {
-            //var_dump($acl->isAllowed($role, $resource, $askedMask), $role);
-            if ($acl->isAllowed($role, $resource, $askedMask)) {
+            //var_dump($role, $acl->isAllowed($role, $linkId, $askedMask));
+            if ($acl->isAllowed($role, $linkId, $askedMask)) {
                 return true;
             }
         }

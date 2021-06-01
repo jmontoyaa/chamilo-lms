@@ -1,13 +1,69 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CForum;
+use Chamilo\CourseBundle\Entity\CForumThread;
+
 /**
- * @package chamilo.forum
- *
  * @todo fix all this qualify files avoid including files, use classes POO jmontoya
  */
 require_once __DIR__.'/../inc/global.inc.php';
-require_once 'forumfunction.inc.php';
+
+$htmlHeadXtra[] = api_get_jquery_libraries_js(['jquery-ui', 'jquery-upload']);
+$htmlHeadXtra[] = '<script>
+
+function check_unzip() {
+    if (document.upload.unzip.checked){
+        document.upload.if_exists[0].disabled=true;
+        document.upload.if_exists[1].checked=true;
+        document.upload.if_exists[2].disabled=true;
+    } else {
+        document.upload.if_exists[0].checked=true;
+        document.upload.if_exists[0].disabled=false;
+        document.upload.if_exists[2].disabled=false;
+    }
+}
+function setFocus() {
+    $("#title_file").focus();
+}
+</script>';
+// The next javascript script is to manage ajax upload file
+$htmlHeadXtra[] = api_get_jquery_libraries_js(['jquery-ui', 'jquery-upload']);
+
+// Recover Thread ID, will be used to generate delete attachment URL to do ajax
+$threadId = isset($_REQUEST['thread']) ? (int) ($_REQUEST['thread']) : 0;
+$forumId = isset($_REQUEST['forum']) ? (int) ($_REQUEST['forum']) : 0;
+
+$ajaxUrl = api_get_path(WEB_AJAX_PATH).'forum.ajax.php?'.api_get_cidreq();
+// The next javascript script is to delete file by ajax
+$htmlHeadXtra[] = '<script>
+$(function () {
+    $(document).on("click", ".deleteLink", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var l = $(this);
+        var id = l.closest("tr").attr("id");
+        var filename = l.closest("tr").find(".attachFilename").html();
+        if (confirm("'.get_lang('Are you sure to delete').'", filename)) {
+            $.ajax({
+                type: "POST",
+                url: "'.$ajaxUrl.'&a=delete_file&attachId=" + id +"&thread='.$threadId.'&forum='.$forumId.'",
+                dataType: "json",
+                success: function(data) {
+                    if (data.error == false) {
+                        l.closest("tr").remove();
+                        if ($(".files td").length < 1) {
+                            $(".files").closest(".control-group").hide();
+                        }
+                    }
+                }
+            })
+        }
+    });
+});
+</script>';
 
 api_protect_course_script(true);
 
@@ -18,22 +74,28 @@ $message = '';
 $origin = api_get_origin();
 
 $currentUserId = api_get_user_id();
-$userIdToQualify = isset($_GET['user_id']) ? intval($_GET['user_id']) : null;
-$forumId = isset($_GET['forum']) ? intval($_GET['forum']) : 0;
-api_block_course_item_locked_by_gradebook($_GET['thread'], LINK_FORUM_THREAD);
+$userIdToQualify = isset($_GET['user_id']) ? (int) ($_GET['user_id']) : null;
+$forumId = isset($_GET['forum']) ? (int) ($_GET['forum']) : 0;
+$threadId = isset($_GET['thread']) ? (int) ($_GET['thread']) : 0;
+api_block_course_item_locked_by_gradebook($threadId, LINK_FORUM_THREAD);
 $nameTools = get_lang('Forums');
-
 $allowed_to_edit = api_is_allowed_to_edit(null, true);
-$currentThread = get_thread_information($forumId, $_GET['thread']);
-$forumId = $currentThread['forum_id'];
-$currentForum = get_forums($currentThread['forum_id']);
-$threadId = $currentThread['thread_id'];
+
+$repo = Container::getForumRepository();
+$repoThread = Container::getForumThreadRepository();
+/** @var CForum $forumEntity */
+$forumEntity = $repo->find($forumId);
+/** @var CForumThread $threadEntity */
+$threadEntity = $repoThread->find($threadId);
+
+$course = api_get_course_entity();
+$session = api_get_session_entity();
 
 $allowToQualify = false;
 if ($allowed_to_edit) {
     $allowToQualify = true;
 } else {
-    $allowToQualify = $currentThread['thread_peer_qualify'] == 1 && $currentForum['visibility'] == 1 && $userIdToQualify != $currentUserId;
+    $allowToQualify = $threadEntity->isThreadPeerQualify() && $forumEntity->isVisible($course, $session) && $userIdToQualify != $currentUserId;
 }
 
 if (!$allowToQualify) {
@@ -45,11 +107,11 @@ $maxQualify = showQualify('2', $userIdToQualify, $threadId);
 $score = 0;
 
 if (isset($_POST['idtextqualify'])) {
-    $score = floatval($_POST['idtextqualify']);
+    $score = (float) ($_POST['idtextqualify']);
 
     if ($score <= $maxQualify) {
         saveThreadScore(
-            $currentThread,
+            $threadEntity,
             $userIdToQualify,
             $threadId,
             $score,
@@ -85,10 +147,7 @@ $htmlHeadXtra[] = '<script>
         $(content).slideToggle(\'normal\');
     }
 </script>';
-
-$currentForumCategory = get_forumcategory_information(
-    $currentForum['forum_category']
-);
+$category = $forumEntity->getForumCategory();
 $groupId = api_get_group_id();
 
 if (api_is_in_gradebook()) {
@@ -100,102 +159,98 @@ if (api_is_in_gradebook()) {
 
 $search = isset($_GET['search']) ? Security::remove_XSS(urlencode($_GET['search'])) : '';
 
-if ($origin == 'learnpath') {
+if ('learnpath' === $origin) {
     Display::display_reduced_header();
 } else {
     if (!empty($groupId)) {
         $group_properties = GroupManager::get_group_properties($groupId);
         $interbreadcrumb[] = [
-            "url" => "../group/group.php?".api_get_cidreq(),
-            "name" => get_lang('Groups'),
+            'url' => '../group/group.php?'.api_get_cidreq(),
+            'name' => get_lang('Groups'),
         ];
         $interbreadcrumb[] = [
-            "url" => "../group/group_space.php?".api_get_cidreq(),
-            "name" => get_lang('Group area').' ('.$group_properties['name'].')',
+            'url' => '../group/group_space.php?'.api_get_cidreq(),
+            'name' => get_lang('Group area').' ('.$group_properties['name'].')',
         ];
         $interbreadcrumb[] = [
-            "url" => "viewforum.php?".api_get_cidreq()."&forum=".intval($_GET['forum'])."&search=".$search,
-            "name" => prepare4display($currentForum['forum_title']),
+            'url' => 'viewforum.php?'.api_get_cidreq().'&forum='.$forumId.'&search='.$search,
+            'name' => prepare4display($forumEntity->getForumTitle()),
         ];
-        if ($message != 'PostDeletedSpecial') {
+        if ('PostDeletedSpecial' != $message) {
             $interbreadcrumb[] = [
-                "url" => "viewthread.php?".api_get_cidreq()."&forum=".intval($_GET['forum'])."&thread=".intval($_GET['thread']),
-                "name" => prepare4display($currentThread['thread_title']),
+                'url' => 'viewthread.php?'.api_get_cidreq().'&forum='.$forumId.'&thread='.$threadId,
+                'name' => prepare4display($threadEntity->getThreadTitle()),
             ];
         }
 
         $interbreadcrumb[] = [
-            "url" => "#",
-            "name" => get_lang('Grade thread'),
+            'url' => '#',
+            'name' => get_lang('Grade thread'),
         ];
 
         // the last element of the breadcrumb navigation is already set in interbreadcrumb, so give empty string
         Display::display_header('');
         api_display_tool_title($nameTools);
     } else {
-        $info_thread = get_thread_information($currentForum['forum_id'], $_GET['thread']);
         $interbreadcrumb[] = [
-            "url" => "index.php?".api_get_cidreq()."&search=".$search,
-            "name" => $nameTools,
+            'url' => 'index.php?'.api_get_cidreq().'&search='.$search,
+            'name' => $nameTools,
         ];
         $interbreadcrumb[] = [
-            "url" => "viewforumcategory.php?".api_get_cidreq()."&forumcategory=".$currentForumCategory['cat_id']."&search=".$search,
-            "name" => prepare4display($currentForumCategory['cat_title']),
+            'url' => 'index.php?'.api_get_cidreq().'&forumcategory='.$category->getIid().'&search='.$search,
+            'name' => prepare4display($category->getCatTitle()),
         ];
         $interbreadcrumb[] = [
-            "url" => "viewforum.php?".api_get_cidreq()."&forum=".intval($_GET['forum'])."&search=".$search,
-            "name" => prepare4display($currentForum['forum_title']),
+            'url' => 'viewforum.php?'.api_get_cidreq().'&forum='.$forumId.'&search='.$search,
+            'name' => prepare4display($forumEntity->getForumTitle()),
         ];
 
-        if ($message != 'PostDeletedSpecial') {
+        if ('PostDeletedSpecial' != $message) {
             $interbreadcrumb[] = [
-                "url" => "viewthread.php?".api_get_cidreq()."&forum=".$info_thread['forum_id']."&thread=".intval($_GET['thread']),
-                "name" => prepare4display($currentThread['thread_title']),
+                'url' => 'viewthread.php?'.api_get_cidreq().'&forum='.$forumId.'&thread='.$threadId,
+                'name' => prepare4display($threadEntity->getThreadTitle()),
             ];
         }
         // the last element of the breadcrumb navigation is already set in interbreadcrumb, so give empty string
         $interbreadcrumb[] = [
-            "url" => "#",
-            "name" => get_lang('Grade thread'),
+            'url' => '#',
+            'name' => get_lang('Grade thread'),
         ];
         Display::display_header('');
     }
 }
 
-/*
-    Actions
-*/
+$postId = isset($_GET['id']) ? (int) ($_GET['id']) : 0;
+$repoPost = Container::getForumPostRepository();
+$postEntity = !empty($postId) ? $repoPost->find($postId) : null;
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 
-if ($action == 'delete' &&
+$currentUrl = api_get_self().'?forum='.$forumId.'&'.api_get_cidreq().'&thread='.$threadId;
+
+if ('delete' === $action &&
     isset($_GET['content']) &&
     isset($_GET['id']) && api_is_allowed_to_edit(false, true)
 ) {
-    $message = delete_post($_GET['id']);
+    deletePost($postEntity);
+    api_location($currentUrl);
 }
-if (($action == 'invisible' || $action == 'visible') &&
+if (('invisible' === $action || 'visible' === $action) &&
     isset($_GET['id']) && api_is_allowed_to_edit(false, true)
 ) {
-    $message = approve_post($_GET['id'], $action);
+    approvePost($postEntity, $action);
+    api_location($currentUrl);
 }
-if ($action == 'move' && isset($_GET['post'])) {
+if ('move' === $action && isset($_GET['post'])) {
     $message = move_post_form();
 }
 
-/*
-    Display the action messages
-*/
 if (!empty($message)) {
     echo Display::return_message(get_lang($message), 'confirm');
 }
 
 // show qualifications history
 $type = isset($_GET['type']) ? $_GET['type'] : '';
-$historyList = getThreadScoreHistory(
-    $userIdToQualify,
-    $threadId,
-    $type
-);
+$historyList = getThreadScoreHistory($userIdToQualify, $threadId, $type);
 
 $counter = count($historyList);
 
@@ -213,12 +268,12 @@ $result = get_statistical_information(
 );
 
 $url = api_get_path(WEB_CODE_PATH).'forum/forumqualify.php?'.
-    api_get_cidreq().'&forum='.intval($_GET['forum']).'&thread='.$threadId.'&user='.intval($_GET['user']).'&user_id='.intval($_GET['user']);
+    api_get_cidreq().'&forum='.$forumId.'&thread='.$threadId.'&user='.(int) ($_GET['user']).'&user_id='.(int) ($_GET['user']);
 
 $userToQualifyInfo = api_get_user_info($userIdToQualify);
 $form = new FormValidator('forum-thread-qualify', 'post', $url);
 $form->addHeader($userToQualifyInfo['complete_name']);
-$form->addLabel(get_lang('Thread'), $currentThread['thread_title']);
+$form->addLabel(get_lang('Thread'), $threadEntity->getThreadTitle());
 $form->addLabel(get_lang('Users in course'), $result['user_course']);
 $form->addLabel(get_lang('Number of posts'), $result['post']);
 $form->addLabel(get_lang('Number of posts for this user'), $result['user_post']);
@@ -232,31 +287,29 @@ $form->addText(
     $qualify
 );
 
-$course = api_get_course_info();
-
-$rows = get_thread_user_post($course['code'], $currentThread['thread_id'], $_GET['user']);
+$rows = get_thread_user_post($course, $threadId, $_GET['user']);
 if (isset($rows)) {
     $counter = 1;
     foreach ($rows as $row) {
-        if ($row['status'] == '0') {
+        $style = '';
+        if ('0' == $row['status']) {
             $style = " id = 'post".$post_en."' class=\"hide-me\" style=\"border:1px solid red; display:none; background-color:#F7F7F7; width:95%; margin: 0px 0px 4px 40px; \" ";
         } else {
-            $style = '';
             $post_en = $row['post_parent_id'];
         }
 
-        if ($row['user_id'] == '0') {
+        if ('0' == $row['user_id']) {
             $name = prepare4display($row['poster_name']);
         } else {
             $name = api_get_person_name($row['firstname'], $row['lastname']);
         }
-        if ($counter == 1) {
+        if (1 == $counter) {
             echo Display::page_subheader($name);
         }
 
-        echo "<div ".$style."><table class=\"data_table\">";
+        echo '<div '.$style.'><table class="data_table">';
 
-        if ($row['visible'] == '0') {
+        if ('0' == $row['visible']) {
             $titleclass = 'forum_message_post_title_2_be_approved';
             $messageclass = 'forum_message_post_text_2_be_approved';
             $leftclass = 'forum_message_left_2_be_approved';
@@ -266,22 +319,22 @@ if (isset($rows)) {
             $leftclass = 'forum_message_left';
         }
 
-        echo "<tr>";
+        echo '<tr>';
         echo "<td rowspan=\"3\" class=\"$leftclass\">";
         echo '<br /><b>'.api_convert_and_format_date($row['post_date'], DATE_TIME_FORMAT_LONG).'</b><br />';
-        echo "</td>";
+        echo '</td>';
 
         // The post title
-        echo "<td class=\"$titleclass\">".prepare4display($row['post_title'])."</td>";
-        echo "</tr>";
+        echo "<td class=\"$titleclass\">".prepare4display($row['post_title']).'</td>';
+        echo '</tr>';
 
         // The post message
-        echo "<tr >";
-        echo "<td class=\"$messageclass\">".prepare4display($row['post_text'])."</td>";
-        echo "</tr>";
+        echo '<tr >';
+        echo "<td class=\"$messageclass\">".prepare4display($row['post_text']).'</td>';
+        echo '</tr>';
 
         // The check if there is an attachment
-        $attachment_list = get_attachment($row['post_id']);
+        $attachment_list = get_attachment($row['iid']);
         if (!empty($attachment_list)) {
             echo '<tr ><td height="50%">';
             $realname = $attachment_list['path'];
@@ -294,7 +347,7 @@ if (isset($rows)) {
             echo '</td></tr>';
         }
 
-        echo "</table></div>";
+        echo '</table></div>';
         $counter++;
     }
 }
@@ -306,12 +359,16 @@ $form->display();
 // Show past data
 if (api_is_allowed_to_edit() && $counter > 0) {
     echo '<h4>'.get_lang('ScoreChangesHistory').'</h4>';
-    if (isset($_GET['type']) && $_GET['type'] === 'false') {
-        $buttons = '<a class="btn btn-default" href="forumqualify.php?'.api_get_cidreq().'&forum='.intval($_GET['forum']).'&origin='.$origin.'&thread='.$threadId.'&user='.intval($_GET['user']).'&user_id='.intval($_GET['user_id']).'&type=true&idtextqualify='.$score.'#history">'.
+    if (isset($_GET['type']) && 'false' === $_GET['type']) {
+        $buttons = '<a
+            class="btn btn-default"
+            href="forumqualify.php?'.api_get_cidreq().'&forum='.$forumId.'&origin='.$origin.'&thread='.$threadId.'&user='.(int) ($_GET['user']).'&user_id='.(int) ($_GET['user_id']).'&type=true&idtextqualify='.$score.'#history">'.
             get_lang('more recent').'</a> <a class="btn btn-default disabled" >'.get_lang('older').'</a>';
     } else {
         $buttons = '<a class="btn btn-default">'.get_lang('more recent').'</a>
-                        <a class="btn btn-default" href="forumqualify.php?'.api_get_cidreq().'&forum='.intval($_GET['forum']).'&origin='.$origin.'&thread='.$threadId.'&user='.intval($_GET['user']).'&user_id='.intval($_GET['user_id']).'&type=false&idtextqualify='.$score.'#history">'.
+                        <a
+                            class="btn btn-default"
+                            href="forumqualify.php?'.api_get_cidreq().'&forum='.$forumId.'&origin='.$origin.'&thread='.$threadId.'&user='.(int) ($_GET['user']).'&user_id='.(int) ($_GET['user_id']).'&type=false&idtextqualify='.$score.'#history">'.
             get_lang('older').'</a>';
     }
 
@@ -338,6 +395,6 @@ if (api_is_allowed_to_edit() && $counter > 0) {
     echo $table_list;
 }
 
-if ($origin != 'learnpath') {
+if ('learnpath' !== $origin) {
     Display:: display_footer();
 }

@@ -1,9 +1,6 @@
 <?php
+
 /**
- * Base class for form elements
- *
- * PHP versions 4 and 5
- *
  * LICENSE: This source file is subject to version 3.01 of the PHP license
  * that is available through the world-wide-web at the following URI:
  * http://www.php.net/license/3_01.txt If you did not receive a copy of
@@ -11,7 +8,6 @@
  * send a note to license@php.net so we can mail you a copy immediately.
  *
  * @category    HTML
- * @package     HTML_QuickForm
  * @author      Adam Daniel <adaniel1@eesus.jnj.com>
  * @author      Bertrand Mansion <bmansion@mamasam.com>
  * @author      Alexey Borzov <avb@php.net>
@@ -19,15 +15,6 @@
  * @license     http://www.php.net/license/3_01.txt PHP License 3.01
  * @version     CVS: $Id: element.php,v 1.37 2009/04/04 21:34:02 avb Exp $
  * @link        http://pear.php.net/package/HTML_QuickForm
- */
-
-/**
- * Base class for form elements
- *
- * @category    HTML
- * @package     HTML_QuickForm
- * @author      Adam Daniel <adaniel1@eesus.jnj.com>
- * @author      Bertrand Mansion <bmansion@mamasam.com>
  * @author      Alexey Borzov <avb@php.net>
  * @version     Release: 3.2.11
  * @since       1.0
@@ -38,7 +25,6 @@ class HTML_QuickForm_element extends HTML_Common
     private $layout;
     private $icon;
     private $template;
-    private $button;
     private $customFrozenTemplate = '';
     protected $inputSize;
 
@@ -78,18 +64,12 @@ class HTML_QuickForm_element extends HTML_Common
      * @access    private
      */
     public $_persistantFreeze = false;
-
     protected $columnsSize;
 
     /**
-     * Class constructor
-     *
      * @param string     Name of the element
      * @param string|array      Label(s) for the element
      * @param mixed      Associative array of tag attributes or HTML attributes name="value" pairs
-     *
-     * @return   void
-     * @since    1.0
      */
     public function __construct($elementName = null, $elementLabel = null, $attributes = null)
     {
@@ -110,23 +90,6 @@ class HTML_QuickForm_element extends HTML_Common
             $this->setLabel($elementLabel, $labelFor);
         }
     }
-
-    /**
-     * @return boolean
-     */
-    public function getButton()
-    {
-        return $this->button;
-    }
-
-    /**
-     * @param boolean $button
-     */
-    public function setButton($button): void
-    {
-        $this->button = $button;
-    }
-
 
      /**
      * @return null
@@ -200,7 +163,6 @@ class HTML_QuickForm_element extends HTML_Common
      * Returns element type
      *
      * @since     1.0
-     * @access    public
      * @return    string
      */
     public function getType()
@@ -213,7 +175,6 @@ class HTML_QuickForm_element extends HTML_Common
      *
      * @param     string    $name   Input field name attribute
      * @since     1.0
-     * @access    public
      * @return    void
      */
     public function setName($name)
@@ -224,7 +185,6 @@ class HTML_QuickForm_element extends HTML_Common
      * Returns the element name
      *
      * @since     1.0
-     * @access    public
      * @return    string
      */
     public function getName()
@@ -236,7 +196,6 @@ class HTML_QuickForm_element extends HTML_Common
      *
      * @param     string    $value      Default value of the form element
      * @since     1.0
-     * @access    public
      * @return    void
      */
     public function setValue($value)
@@ -258,30 +217,21 @@ class HTML_QuickForm_element extends HTML_Common
     /**
      * @return string
      */
-    public function getCleanValue()
+    public function getCleanValue(): string
     {
-        $value = $this->cleanValueFromParameter($this->getValue());
-
-        return $value;
+        return $this->cleanValueFromParameter($this->getValue());
     }
 
     /**
      * @param string $value
-     *
-     * @return string
      */
-    public function cleanValueFromParameter($value)
+    public function cleanValueFromParameter($value): string
     {
-        $value = @htmlspecialchars($value, ENT_COMPAT, HTML_Common::charset());
-
-        return $value;
+        return @htmlspecialchars($value, ENT_COMPAT, HTML_Common::charset());
     }
 
     /**
      * Freeze the element so that only its value is returned
-     *
-     * @access    public
-     * @return    void
      */
     public function freeze()
     {
@@ -291,8 +241,6 @@ class HTML_QuickForm_element extends HTML_Common
    /**
     * Unfreezes the element so that it becomes editable
     *
-    * @access public
-    * @return void
     * @since  3.2.4
     */
     public function unfreeze()
@@ -334,21 +282,21 @@ class HTML_QuickForm_element extends HTML_Common
     {
         if (!$this->_persistantFreeze) {
             return '';
-        } else {
-            $id = $this->getAttribute('id');
-            return '<input' . $this->_getAttrString(array(
-                       'type'  => 'hidden',
-                       'name'  => $this->getName(),
-                       'value' => $this->getValue()
-                   ) + (isset($id)? array('id' => $id): array())) . ' />';
         }
+
+        $id = $this->getAttribute('id');
+
+        return '<input' . $this->_getAttrString(array(
+                   'type'  => 'hidden',
+                   'name'  => $this->getName(),
+                   'value' => $this->getValue()
+               ) + (isset($id)? array('id' => $id): array())) . ' />';
     }
 
     /**
      * Returns whether or not the element is frozen
      *
      * @since     1.3
-     * @access    public
      * @return    bool
      */
     public function isFrozen()
@@ -362,10 +310,8 @@ class HTML_QuickForm_element extends HTML_Common
      *
      * @param     bool    $persistant   True if persistant value
      * @since     2.0
-     * @access    public
-     * @return    void
      */
-    function setPersistantFreeze($persistant=false)
+    public function setPersistantFreeze($persistant=false)
     {
         $this->_persistantFreeze = $persistant;
     }
@@ -376,8 +322,6 @@ class HTML_QuickForm_element extends HTML_Common
      * @param     string    $label  Display text for the element
      * @param     string    $label_for Optionally add a "for" attribute
      * @since     1.3
-     * @access    public
-     * @return    void
      */
     public function setLabel($label, $labelFor = null)
     {
@@ -391,7 +335,6 @@ class HTML_QuickForm_element extends HTML_Common
      * Returns display text for the element
      *
      * @since     1.3
-     * @access    public
      * @return    string
      */
     public function getLabel()
@@ -402,10 +345,9 @@ class HTML_QuickForm_element extends HTML_Common
     /**
      * Returns "for" attribute for the element
      *
-     * @access    public
      * @return    string
      */
-    function getLabelFor()
+    public function getLabelFor()
     {
         return $this->_label_for;
     }
@@ -414,10 +356,9 @@ class HTML_QuickForm_element extends HTML_Common
      * Tries to find the element value from the values array
      *
      * @since     2.7
-     * @access    private
      * @return    mixed
      */
-    function _findValue(&$values)
+    protected function _findValue(&$values)
     {
         if (empty($values)) {
             return null;
@@ -445,10 +386,11 @@ class HTML_QuickForm_element extends HTML_Common
                 $elementName
             );
             $myVar = "['$replacedName']";
-            return eval("return (isset(\$values$myVar)) ? \$values$myVar : null;");
-        } else {
-            return null;
+
+            return isset($values[$myVar]) ? $values[$myVar] : null;
         }
+
+        return null;
     }
 
     /**
@@ -458,8 +400,6 @@ class HTML_QuickForm_element extends HTML_Common
      * @param     mixed     $arg    event arguments
      * @param     object    &$caller calling object
      * @since     1.0
-     * @access    public
-     * @return    void
      */
     public function onQuickFormEvent($event, $arg, &$caller)
     {
@@ -474,8 +414,7 @@ class HTML_QuickForm_element extends HTML_Common
                 break;
             case 'updateValue':
                 // constant values override both default and submitted ones
-                // default values are overriden by submitted
-
+                // default values are overridden by submitted.
                 $value = $this->_findValue($caller->_constantValues);
 
                 if (null === $value) {
@@ -501,10 +440,9 @@ class HTML_QuickForm_element extends HTML_Common
     * @param HTML_QuickForm_Renderer    renderer object
     * @param bool                       Whether an element is required
     * @param string                     An error message associated with an element
-    * @access public
     * @return void
     */
-    public function accept(&$renderer, $required=false, $error=null)
+    public function accept(&$renderer, $required = false, $error = null)
     {
         $renderer->renderElement($this, $required, $error);
     }
@@ -523,7 +461,7 @@ class HTML_QuickForm_element extends HTML_Common
         static $idx = 1;
 
         if (!$this->getAttribute('id')) {
-            $this->updateAttributes(array('id' => 'qf_' . substr(md5(microtime() . $idx++), 0, 6)));
+            $this->updateAttributes(['id' => 'qf_'.substr(md5(microtime().$idx++), 0, 6)]);
         }
     }
 
@@ -541,6 +479,7 @@ class HTML_QuickForm_element extends HTML_Common
         if (null === $value) {
             $value = $this->getValue();
         }
+
         return $this->_prepareValue($value, $assoc);
     }
 
@@ -649,5 +588,91 @@ class HTML_QuickForm_element extends HTML_Common
         }
 
         return $size;
+    }
+
+    public function getTemplate(string $layout): string
+    {
+        $size = $this->calculateSize();
+        $attributes = $this->getAttributes();
+
+        $hasBottomLabel = is_array($this->getLabel());
+        $height = 'h-4';
+        if ($hasBottomLabel) {
+            $height = 'h-8';
+        }
+
+        $template = '<label {label-for}>{label}</label>
+                     <div class="input-group">
+                         {icon}
+                         {element}
+                     </div>';
+
+        switch ($layout) {
+            case FormValidator::LAYOUT_BOX_SEARCH:
+            case FormValidator::LAYOUT_INLINE:
+                // <label {label-for} >
+                //         <!-- BEGIN required --><span class="form_required">*</span><!-- END required -->
+                //           {label}
+                //         </label>
+                $template = '{element}';
+                break;
+            case FormValidator::LAYOUT_GRID:
+                $template = '
+                <div class="form-group {error_class}">
+                    <label {label-for} >
+                        <!-- BEGIN required --><span class="form_required">*</span><!-- END required -->
+                        {label}
+                    </label>
+                    {element}
+                </div>';
+                break;
+            case FormValidator::LAYOUT_HORIZONTAL:
+                $template = '
+                <div class="mb-6  '.$size[0].' {error_class}">
+                    <label {label-for} class="
+                        '.$height.'
+                        block
+                        text-sm
+                        font-medium
+                        text-gray-700
+                    " >
+                        <!-- BEGIN required --><span class="form_required">*</span><!-- END required -->
+                        {label}
+                    </label>
+                    <div class=" '.$size[1].'">
+                        {icon}
+                        {element}
+                        <!-- BEGIN label_2 -->
+                            <p class="help-block">{label_2}</p>
+                        <!-- END label_2 -->
+
+                         <!-- BEGIN label_3 -->
+                            <p class="help-block">{label_3}</p>
+                        <!-- END label_3 -->
+
+                        <!-- BEGIN error -->
+                            <span class="help-inline help-block">{error}</span>
+                        <!-- END error -->
+                    </div>
+                </div>';
+                break;
+            case FormValidator::LAYOUT_BOX_NO_LABEL:
+                if (isset($attributes['custom']) && $attributes['custom'] == true) {
+                    $template = '
+                        <div class="input-group">
+                            {icon}
+                            {element}
+                            <div class="input-group-btn">
+                                <button class="btn btn-default" type="submit">
+                                    <em class="fa fa-search"></em>
+                                </button>
+                            </div>
+                        </div>
+                    ';
+                }
+                break;
+        }
+
+        return $template;
     }
 }

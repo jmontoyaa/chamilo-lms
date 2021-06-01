@@ -3,8 +3,6 @@
  * Manage specific tools.
  *
  * @todo convert into a class
- *
- * @package chamilo.library
  */
 
 // Database table definitions
@@ -27,7 +25,7 @@ function add_specific_field($name)
     $_safe_name = Database::escape_string($name);
     $_safe_code = substr($_safe_name, 0, 1);
     $_safe_code = get_specific_field_code_from_name($_safe_code);
-    if ($_safe_code === false) {
+    if (false === $_safe_code) {
         return false;
     }
     $sql = sprintf($sql, $table_sf, $_safe_code, $_safe_name);
@@ -150,7 +148,7 @@ function get_specific_field_values_list(
 }
 
 /**
- * @param char   $prefix      xapian prefix
+ * @param string $prefix      xapian prefix
  * @param string $course_code
  * @param string $tool_id     Constant from mainapi.lib.php
  * @param int    $ref_id      representative id inside one tool item

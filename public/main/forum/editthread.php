@@ -1,12 +1,14 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CForum;
 
 /**
  * Edit a Forum Thread.
  *
  * @Author José Loguercio <jose.loguercio@beeznest.com>
- *
- * @package chamilo.forum
  */
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -19,15 +21,79 @@ $cidreq = api_get_cidreq();
 $nameTools = get_lang('Forums');
 $_user = api_get_user_info();
 
-require_once 'forumfunction.inc.php';
+$htmlHeadXtra[] = api_get_jquery_libraries_js(['jquery-ui', 'jquery-upload']);
+$htmlHeadXtra[] = '<script>
+
+function check_unzip() {
+    if (document.upload.unzip.checked){
+        document.upload.if_exists[0].disabled=true;
+        document.upload.if_exists[1].checked=true;
+        document.upload.if_exists[2].disabled=true;
+    } else {
+        document.upload.if_exists[0].checked=true;
+        document.upload.if_exists[0].disabled=false;
+        document.upload.if_exists[2].disabled=false;
+    }
+}
+function setFocus() {
+    $("#title_file").focus();
+}
+</script>';
+// The next javascript script is to manage ajax upload file
+$htmlHeadXtra[] = api_get_jquery_libraries_js(['jquery-ui', 'jquery-upload']);
+
+// Recover Thread ID, will be used to generate delete attachment URL to do ajax
+$threadId = isset($_REQUEST['thread']) ? (int) ($_REQUEST['thread']) : 0;
+$forumId = isset($_REQUEST['forum']) ? (int) ($_REQUEST['forum']) : 0;
+
+$ajaxUrl = api_get_path(WEB_AJAX_PATH).'forum.ajax.php?'.api_get_cidreq();
+// The next javascript script is to delete file by ajax
+$htmlHeadXtra[] = '<script>
+$(function () {
+    $(document).on("click", ".deleteLink", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var l = $(this);
+        var id = l.closest("tr").attr("id");
+        var filename = l.closest("tr").find(".attachFilename").html();
+        if (confirm("'.get_lang('Are you sure to delete').'", filename)) {
+            $.ajax({
+                type: "POST",
+                url: "'.$ajaxUrl.'&a=delete_file&attachId=" + id +"&thread='.$threadId.'&forum='.$forumId.'",
+                dataType: "json",
+                success: function(data) {
+                    if (data.error == false) {
+                        l.closest("tr").remove();
+                        if ($(".files td").length < 1) {
+                            $(".files").closest(".control-group").hide();
+                        }
+                    }
+                }
+            })
+        }
+    });
+});
+</script>';
 
 // Are we in a lp ?
 $origin = api_get_origin();
 
 /* MAIN DISPLAY SECTION */
-$forumId = (int) $_GET['forum'];
-$currentForum = get_forum_information($forumId);
-$currentForumCategory = get_forumcategory_information($currentForum['forum_category']);
+$forumId = isset($_GET['forum']) ? (int) $_GET['forum'] : 0;
+
+$repo = Container::getForumRepository();
+/** @var CForum $forum */
+$forum = $repo->find($forumId);
+if (empty($forum)) {
+    api_not_allowed();
+}
+
+$courseEntity = api_get_course_entity();
+$sessionEntity = api_get_session_entity();
+//$forumIsVisible = $forum->isVisible($courseEntity, $sessionEntity);
+
+$category = $forum->getForumCategory();
+$categoryIsVisible = $category->isVisible($courseEntity, $sessionEntity);
 
 if (api_is_in_gradebook()) {
     $interbreadcrumb[] = [
@@ -36,45 +102,44 @@ if (api_is_in_gradebook()) {
     ];
 }
 
-$threadId = isset($_GET['thread']) ? intval($_GET['thread']) : 0;
-$courseInfo = isset($_GET['cidReq']) ? api_get_course_info($_GET['cidReq']) : 0;
-$cId = isset($courseInfo['real_id']) ? intval($courseInfo['real_id']) : 0;
-$gradebookId = intval(api_is_in_gradebook());
+$threadId = isset($_GET['thread']) ? (int) ($_GET['thread']) : 0;
+$courseInfo = api_get_course_info();
+$courseId = $courseInfo['real_id'];
+
+$gradebookId = (int) (api_is_in_gradebook());
 
 /* Is the user allowed here? */
 
 // The user is not allowed here if:
 
 // 1. the forumcategory or forum is invisible (visibility==0) and the user is not a course manager
-if (!api_is_allowed_to_edit(false, true) &&
-    (($currentForumCategory['visibility'] && $currentForumCategory['visibility'] == 0) || $currentForum['visibility'] == 0)
-) {
+if (!api_is_allowed_to_edit(false, true) && false === $categoryIsVisible) {
     api_not_allowed();
 }
 
 // 2. the forumcategory or forum is locked (locked <>0) and the user is not a course manager
 if (!api_is_allowed_to_edit(false, true) &&
-    (($currentForumCategory['visibility'] && $currentForumCategory['locked'] != 0) || $currentForum['locked'] != 0)
+    (($categoryIsVisible && 0 != $category->getLocked()) || 0 != $forum->getLocked())
 ) {
     api_not_allowed();
 }
 
 // 3. new threads are not allowed and the user is not a course manager
 if (!api_is_allowed_to_edit(false, true) &&
-    $currentForum['allow_new_threads'] != 1
+    1 != $forum->getAllowNewThreads()
 ) {
     api_not_allowed();
 }
 // 4. anonymous posts are not allowed and the user is not logged in
-if (!$_user['user_id'] && $currentForum['allow_anonymous'] != 1) {
+if (!$_user['user_id'] && 1 != $forum->getAllowAnonymous()) {
     api_not_allowed();
 }
 
 // 5. Check user access
-if ($currentForum['forum_of_group'] != 0) {
-    $show_forum = GroupManager::user_has_access(
+if (0 != $forum->getForumOfGroup()) {
+    $show_forum = GroupManager::userHasAccess(
         api_get_user_id(),
-        $currentForum['forum_of_group'],
+        api_get_group_entity($forum->getForumOfGroup()),
         GroupManager::GROUP_TOOL_FORUM
     );
     if (!$show_forum) {
@@ -89,7 +154,7 @@ if (api_is_invitee()) {
 
 $groupId = api_get_group_id();
 if (!empty($groupId)) {
-    $groupProperties = GroupManager:: get_group_properties($groupId);
+    $groupProperties = GroupManager::get_group_properties($groupId);
     $interbreadcrumb[] = [
         'url' => api_get_path(WEB_CODE_PATH).'group/group.php?'.$cidreq,
         'name' => get_lang('Groups'),
@@ -100,7 +165,7 @@ if (!empty($groupId)) {
     ];
     $interbreadcrumb[] = [
         'url' => api_get_path(WEB_CODE_PATH).'forum/viewforum.php?'.$cidreq.'&forum='.$forumId,
-        'name' => $currentForum['forum_title'],
+        'name' => $forum->getForumTitle(),
     ];
     $interbreadcrumb[] = [
         'url' => api_get_path(WEB_CODE_PATH).'forum/newthread.php?'.$cidreq.'&forum='.$forumId,
@@ -109,12 +174,12 @@ if (!empty($groupId)) {
 } else {
     $interbreadcrumb[] = ['url' => api_get_path(WEB_CODE_PATH).'forum/index.php?'.$cidreq, 'name' => $nameTools];
     $interbreadcrumb[] = [
-        'url' => api_get_path(WEB_CODE_PATH).'forum/viewforumcategory.php?'.$cidreq.'&forumcategory='.$currentForumCategory['cat_id'],
-        'name' => $currentForumCategory['cat_title'],
+        'url' => api_get_path(WEB_CODE_PATH).'forum/index.php?'.$cidreq.'&forumcategory='.$category->getIid(),
+        'name' => $category->getCatTitle(),
     ];
     $interbreadcrumb[] = [
         'url' => api_get_path(WEB_CODE_PATH).'forum/viewforum.php?'.$cidreq.'&forum='.$forumId,
-        'name' => $currentForum['forum_title'],
+        'name' => $forum->getForumTitle(),
     ];
     $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Edit thread')];
 }
@@ -149,9 +214,8 @@ $actions = [
     search_link(),
 ];
 
-$threadData = getThreadInfo($threadId, $cId);
-
-$gradeThisThread = empty($_POST) && ($threadData['threadQualifyMax'] > 0 || $threadData['threadWeight'] > 0);
+$threadData = getThreadInfo($threadId, $courseId);
+$gradeThisThread = empty($_POST) && ($threadData && ($threadData['threadQualifyMax'] > 0 || $threadData['threadWeight'] > 0));
 
 $form = new FormValidator(
     'thread',
@@ -210,27 +274,33 @@ if ((api_is_course_admin() || api_is_session_general_coach() || api_is_course_tu
 }
 
 if (api_is_allowed_to_edit(null, true)) {
-    $form->addElement('checkbox', 'thread_sticky', '', get_lang('This is a sticky message (appears always on top and has a special sticky icon)'));
+    $form->addElement(
+        'checkbox',
+        'thread_sticky',
+        '',
+        get_lang('This is a sticky message (appears always on top and has a special sticky icon)')
+    );
 }
 
 $form->addElement('html', '</div>');
 
-$skillList = Skill::addSkillsToForm($form, ITEM_TYPE_FORUM_THREAD, $threadId);
+$skillList = SkillModel::addSkillsToForm($form, ITEM_TYPE_FORUM_THREAD, $threadId);
+
+$defaults = [];
+$defaults['thread_qualify_gradebook'] = 0;
+$defaults['numeric_calification'] = 0;
+$defaults['calification_notebook_title'] = '';
+$defaults['weight_calification'] = 0;
+$defaults['thread_peer_qualify'] = 0;
 
 if (!empty($threadData)) {
     $defaults['thread_qualify_gradebook'] = $gradeThisThread;
     $defaults['thread_title'] = prepare4display($threadData['threadTitle']);
-    $defaults['thread_sticky'] = strval(intval($threadData['threadSticky']));
-    $defaults['thread_peer_qualify'] = intval($threadData['threadPeerQualify']);
+    $defaults['thread_sticky'] = (string) ((int) ($threadData['threadSticky']));
+    $defaults['thread_peer_qualify'] = (int) ($threadData['threadPeerQualify']);
     $defaults['numeric_calification'] = $threadData['threadQualifyMax'];
     $defaults['calification_notebook_title'] = $threadData['threadTitleQualify'];
     $defaults['weight_calification'] = $threadData['threadWeight'];
-} else {
-    $defaults['thread_qualify_gradebook'] = 0;
-    $defaults['numeric_calification'] = 0;
-    $defaults['calification_notebook_title'] = '';
-    $defaults['weight_calification'] = 0;
-    $defaults['thread_peer_qualify'] = 0;
 }
 
 $defaults['skills'] = array_keys($skillList);
@@ -244,17 +314,17 @@ if ($form->validate()) {
         $values = $form->exportValues();
         Security::clear_token();
         updateThread($values);
-        Skill::saveSkills($form, ITEM_TYPE_FORUM_THREAD, $threadId);
+        SkillModel::saveSkills($form, ITEM_TYPE_FORUM_THREAD, $threadId);
         header('Location: '.$redirectUrl);
         exit;
     }
 }
 
-$form->setDefaults(isset($defaults) ? $defaults : null);
+$form->setDefaults($defaults);
 $token = Security::get_token();
 $form->addElement('hidden', 'sec_token');
 $form->setConstants(['sec_token' => $token]);
-$originIsLearnPath = $origin == 'learnpath';
+$originIsLearnPath = 'learnpath' === $origin;
 
 $view = new Template(
     '',

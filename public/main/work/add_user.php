@@ -1,10 +1,8 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 require_once __DIR__.'/../inc/global.inc.php';
-
-// Including necessary files
-require_once 'work.lib.php';
 
 $current_course_tool = TOOL_STUDENTPUBLICATION;
 
@@ -48,6 +46,7 @@ switch ($action) {
         Display::addFlash(Display::return_message(get_lang('Added')));
         header('Location: '.$url);
         exit;
+
         break;
     case 'delete':
         if (!empty($workId) && !empty($userId)) {
@@ -58,6 +57,7 @@ switch ($action) {
             header('Location: '.$url);
             exit;
         }
+
         break;
 }
 

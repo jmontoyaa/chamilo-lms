@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Controller;
@@ -16,17 +18,11 @@ use Chamilo\CoreBundle\Entity\Session;
  */
 interface CourseControllerInterface
 {
-    public function setCourse(Course $course);
+    public function setCourse(Course $course): void;
 
-    public function setSession(Session $session);
+    public function setSession(Session $session = null): void;
 
-    /**
-     * @return Course
-     */
-    public function getCourse();
+    public function getCourse(): ?Course;
 
-    /**
-     * @return Session
-     */
-    public function getSession();
+    public function getSession(): ?Session;
 }

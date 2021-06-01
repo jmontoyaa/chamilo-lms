@@ -1,14 +1,20 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Framework\Container;
+
 /**
  * Responses to AJAX calls.
  */
-require_once __DIR__.'/../global.inc.php';
-require_once api_get_path(SYS_CODE_PATH).'work/work.lib.php';
 
-$action = isset($_REQUEST['a']) ? $_REQUEST['a'] : null;
+require_once __DIR__.'/../global.inc.php';
+
+$action = $_REQUEST['a'] ?? null;
 $isAllowedToEdit = api_is_allowed_to_edit();
 $courseInfo = api_get_course_info();
+$courseEntity = api_get_course_entity();
+$repo = Container::getStudentPublicationRepository();
 
 switch ($action) {
     case 'show_student_work':
@@ -44,8 +50,13 @@ switch ($action) {
     case 'delete_student_work':
         api_protect_course_script(true);
         if ($isAllowedToEdit) {
-            $itemId = isset($_REQUEST['id']) ? $_REQUEST['id'] : 0;
-            deleteWorkItem($itemId, $courseInfo);
+            if (empty($_REQUEST['id'])) {
+                return false;
+            }
+            $itemList = explode(',', $_REQUEST['id']);
+            foreach ($itemList as $itemId) {
+                deleteWorkItem($itemId, $courseInfo);
+            }
             echo '1';
             exit;
         }
@@ -78,7 +89,7 @@ switch ($action) {
                     $counter++;
                 }
             }
-
+            $router = Container::getRouter();
             $resultList = [];
             foreach ($fileList as $file) {
                 $globalFile = [];
@@ -90,7 +101,7 @@ switch ($action) {
                     'description' => '',
                 ];
 
-                $result = processWorkForm(
+                $studentPublication = processWorkForm(
                     $workInfo,
                     $values,
                     $courseInfo,
@@ -103,24 +114,25 @@ switch ($action) {
                 );
 
                 $json = [];
-                if (!empty($result) && is_array($result) && empty($result['error'])) {
-                    $json['name'] = api_htmlentities($result['title']);
+                if (null !== $studentPublication) {
+                    $url = $repo->getResourceFileDownloadUrl($studentPublication).'?'.api_get_cidreq();
+                    $json['name'] = api_htmlentities($studentPublication->getTitle());
                     $json['link'] = Display::url(
-                        api_htmlentities($result['title']),
-                        api_htmlentities($result['view_url']),
+                        api_htmlentities($studentPublication->getTitle()),
+                        api_htmlentities($url),
                         ['target' => '_blank']
                     );
 
-                    $json['url'] = $result['view_url'];
+                    $json['url'] = $url;
                     $json['size'] = '';
-                    $json['type'] = api_htmlentities($result['filetype']);
+                    //$json['type'] = api_htmlentities($result['filetype']);
                     $json['result'] = Display::return_icon(
                         'accept.png',
                         get_lang('Uploaded..')
                     );
                 } else {
                     $json['url'] = '';
-                    $json['error'] = isset($result['error']) ? $result['error'] : get_lang('Error');
+                    $json['error'] = get_lang('Error');
                 }
                 $resultList[] = $json;
             }
@@ -154,7 +166,7 @@ switch ($action) {
             $courseInfo = api_get_course_info();
             $workInfo = get_work_data_by_id($itemId);
             $workInfoParent = get_work_data_by_id($workInfo['parent_id']);
-            $resultUpload = uploadWork($workInfoParent, $courseInfo, true, $workInfo);
+            $resultUpload = uploadWork($workInfoParent, $courseEntity, true, $workInfo);
             if (!$resultUpload) {
                 echo 'false';
                 break;

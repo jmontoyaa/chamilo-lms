@@ -1,7 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Entity\GradebookCategory;
+use Chamilo\CoreBundle\Framework\Container;
 use Doctrine\Common\Collections\Criteria;
 use Knp\Component\Pager\Paginator;
 
@@ -10,12 +12,12 @@ require_once __DIR__.'/../inc/global.inc.php';
 api_protect_admin_script();
 
 $allow = api_get_configuration_value('gradebook_dependency');
-if ($allow == false) {
+if (false == $allow) {
     api_not_allowed(true);
 }
 
 $em = Database::getManager();
-$repo = $em->getRepository('ChamiloCoreBundle:GradebookCategory');
+$repo = $em->getRepository(GradebookCategory::class);
 
 $maxItems = 20;
 
@@ -177,11 +179,11 @@ switch ($action) {
             );
             $form->addText('name', get_lang('Name'));
             $form->addText('weight', get_lang('Weight'));
-            $form->addLabel(get_lang('Course'), $category->getCourseCode());
+            $form->addLabel(get_lang('Course'), $category->getCourse()->getCode());
 
-            $sql = "SELECT 
-                        depends, 
-                        minimum_to_validate, 
+            $sql = "SELECT
+                        depends,
+                        minimum_to_validate,
                         gradebooks_to_validate_in_dependence
                     FROM $table WHERE id = ".$categoryId;
             $result = Database::query($sql);
@@ -231,7 +233,7 @@ switch ($action) {
                 $values = $form->getSubmitValues();
                 $category->setName($values['name']);
                 $category->setWeight($values['weight']);
-                $em->merge($category);
+                $em->persist($category);
                 $em->flush();
 
                 if (!empty($values['depends'])) {
@@ -265,7 +267,7 @@ switch ($action) {
         break;
     case 'list':
     default:
-        $paginator = new Paginator();
+        $paginator = new Paginator(Container::$container->get('event_dispatcher'));
         $pagination = $paginator->paginate(
             $gradeBookList,
             $page,

@@ -5,8 +5,6 @@
  * This is the text library for Chamilo.
  * It is loaded during the global initialization,
  * so the functions below are available everywhere.
- *
- * @package chamilo.library
  */
 define('EXERCISE_NUMBER_OF_DECIMALS', 2);
 
@@ -80,7 +78,7 @@ function api_set_encoding_html(&$string, $encoding)
         }
     } else {
         $count = 1;
-        if (strpos('</head>', strtolower($string)) !== false) {
+        if (false !== strpos('</head>', strtolower($string))) {
             $string = str_ireplace(
                 '</head>',
                 '<meta http-equiv="Content-Type" content="text/html; charset='.$encoding.'"/></head>',
@@ -233,7 +231,7 @@ function _api_convert_encoding_xml(&$string, $to_encoding, $from_encoding)
         );
     }
     if (!preg_match(_PCRE_XML_ENCODING, $string)) {
-        if (strpos($matches[0], 'standalone') !== false) {
+        if (false !== strpos($matches[0], 'standalone')) {
             // The encoding option should precede the standalone option,
             // othewise DOMDocument fails to load the document.
             $replace = str_replace('standalone', ' encoding="'.$to_encoding.'" standalone', $matches[0]);
@@ -419,16 +417,6 @@ function domesticate($input)
 }
 
 /**
- * function make_clickable($string).
- *
- * @desc   Completes url contained in the text with "<a href ...".
- *         However the function simply returns the submitted text without any
- *         transformation if it already contains some "<a href:" or "<img src=".
- *
- * @param string $text text to be converted
- *
- * @return text after conversion
- *
  * @author Rewritten by Nathan Codding - Feb 6, 2001.
  *         completed by Hugues Peeters - July 22, 2002
  *
@@ -518,7 +506,7 @@ function esc_url($url, $protocols = null, $_context = 'display')
      * presume it needs http:// appended (unless a relative
      * link starting with /, # or ? or a php file).
      */
-    if (strpos($url, ':') === false && !in_array($url[0], ['/', '#', '?']) &&
+    if (false === strpos($url, ':') && !in_array($url[0], ['/', '#', '?']) &&
         !preg_match('/^[a-z0-9-]+?\.php/i', $url)) {
         $url = 'http://'.$url;
     }
@@ -575,7 +563,7 @@ function _make_web_ftp_clickable_cb($matches)
     }
 
     // removed trailing [.,;:)] from URL
-    if (in_array(substr($dest, -1), ['.', ',', ';', ':', ')']) === true) {
+    if (true === in_array(substr($dest, -1), ['.', ',', ';', ':', ')'])) {
         $ret = substr($dest, -1);
         $dest = substr($dest, 0, strlen($dest) - 1);
     }
@@ -628,7 +616,7 @@ function make_clickable($text)
 
         if ($nested_code_pre ||
             empty($piece) ||
-            ($piece[0] === '<' && !preg_match('|^<\s*[\w]{1,20}+://|', $piece))
+            ('<' === $piece[0] && !preg_match('|^<\s*[\w]{1,20}+://|', $piece))
         ) {
             $r .= $piece;
             continue;
@@ -751,10 +739,8 @@ function _split_str_by_whitespace($string, $goal)
  * @param string    The text to "cut"
  * @param int       Count of chars
  * @param bool      Whether to embed in a <span title="...">...</span>
- *
- * @return string
  * */
-function cut($text, $maxchar, $embed = false)
+function cut($text, $maxchar, $embed = false): string
 {
     if (api_strlen($text) > $maxchar) {
         if ($embed) {
@@ -779,21 +765,23 @@ function cut($text, $maxchar, $embed = false)
  */
 function float_format($number, $flag = 1, $decimalPoint = '.', $thousandsSeparator = ',')
 {
+    $flag = (int) $flag;
+
     if (is_numeric($number)) {
         if (!$number) {
-            $result = ($flag == 2 ? '0.'.str_repeat('0', EXERCISE_NUMBER_OF_DECIMALS) : '0');
+            $result = (2 == $flag ? '0.'.str_repeat('0', EXERCISE_NUMBER_OF_DECIMALS) : '0');
         } else {
             if (floor($number) == $number) {
                 $result = number_format(
                     $number,
-                    ($flag == 2 ? EXERCISE_NUMBER_OF_DECIMALS : 0),
+                    (2 == $flag ? EXERCISE_NUMBER_OF_DECIMALS : 0),
                     $decimalPoint,
                     $thousandsSeparator
                 );
             } else {
                 $result = number_format(
                     round($number, 2),
-                    ($flag == 0 ? 0 : EXERCISE_NUMBER_OF_DECIMALS),
+                    (0 == $flag ? 0 : EXERCISE_NUMBER_OF_DECIMALS),
                     $decimalPoint,
                     $thousandsSeparator
                 );
@@ -816,7 +804,7 @@ function get_last_week()
     $year = date('Y');
 
     $lastweek = $week - 1;
-    if ($lastweek == 0) {
+    if (0 == $lastweek) {
         $week = 52;
         $year--;
     }

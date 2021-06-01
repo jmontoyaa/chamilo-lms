@@ -1,8 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
-/**
- * @package chamilo.webservices
- */
+
 require_once __DIR__.'/../inc/global.inc.php';
 require_once __DIR__.'/cm_webservice.php';
 

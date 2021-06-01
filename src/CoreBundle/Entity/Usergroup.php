@@ -1,121 +1,141 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
+use ApiPlatform\Core\Annotation\ApiResource;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Usergroup.
+ * Classes and social groups.
+ *
+ * @ApiResource(
+ *     attributes={"security"="is_granted('ROLE_ADMIN')"},
+ *     normalizationContext={"groups"={"usergroup:read"}}
+ * )
  *
  * @ORM\Table(name="usergroup")
  * @ORM\Entity
  */
-class Usergroup
+class Usergroup extends AbstractResource implements ResourceInterface, ResourceIllustrationInterface, ResourceToRootInterface
 {
     use TimestampableEntity;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer", nullable=false)
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var string
+     * @Assert\NotBlank()
      *
-     * @ORM\Column(name="name", type="string", length=255, nullable=false, unique=false)
+     * @ORM\Column(name="name", type="string", length=255)
      */
-    protected $name;
+    protected string $name;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="description", type="text", nullable=true)
      */
-    protected $description;
+    protected ?string $description = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="group_type", type="integer", nullable=false)
      */
-    protected $groupType;
+    protected int $groupType;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="picture", type="string", length=255, nullable=true)
      */
-    protected $picture;
+    protected ?string $picture = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="url", type="string", length=255, nullable=true)
      */
-    protected $url;
+    protected ?string $url = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="visibility", type="string", length=255, nullable=false)
      */
-    protected $visibility;
+    protected string $visibility;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="author_id", type="integer", nullable=true)
      */
-    protected $authorId;
+    protected ?string $authorId = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="allow_members_leave_group", type="integer")
      */
-    protected $allowMembersToLeaveGroup;
+    protected int $allowMembersToLeaveGroup;
 
     /**
-     * @ORM\OneToMany(targetEntity="UsergroupRelUser", mappedBy="usergroup", cascade={"persist"}, orphanRemoval=true)
+     * @var Collection|UsergroupRelUser[]
+     * @ORM\OneToMany(targetEntity="UsergroupRelUser", mappedBy="usergroup", cascade={"persist"})
      */
-    protected $users;
+    protected Collection $users;
 
     /**
-     * Usergroup constructor.
+     * @var Collection|UsergroupRelCourse[]
+     * @ORM\OneToMany(targetEntity="UsergroupRelCourse", mappedBy="usergroup", cascade={"persist"})
      */
+    protected Collection $courses;
+
+    /**
+     * @var Collection|UsergroupRelSession[]
+     * @ORM\OneToMany(targetEntity="UsergroupRelSession", mappedBy="usergroup", cascade={"persist"})
+     */
+    protected Collection $sessions;
+
+    /**
+     * @var Collection|UsergroupRelQuestion[]
+     * @ORM\OneToMany(targetEntity="UsergroupRelQuestion", mappedBy="usergroup", cascade={"persist"})
+     */
+    protected Collection $questions;
+
+    /**
+     * @var AccessUrlRelUserGroup[]|Collection
+     *
+     * @ORM\OneToMany(
+     *     targetEntity="Chamilo\CoreBundle\Entity\AccessUrlRelUserGroup",
+     *     mappedBy="userGroup", cascade={"persist", "remove"}, orphanRemoval=true
+     * )
+     */
+    protected Collection $urls;
+
     public function __construct()
     {
-        //$this->users = new ArrayCollection();
+        $this->users = new ArrayCollection();
+        $this->urls = new ArrayCollection();
+        $this->courses = new ArrayCollection();
+        $this->sessions = new ArrayCollection();
+        $this->questions = new ArrayCollection();
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return (string) $this->getName();
+        return $this->getName();
     }
 
-    /**
-     * @return ArrayCollection
-     */
     public function getUsers()
     {
         return $this->users;
     }
 
-    /**
-     * @param $users
-     */
-    public function setUsers($users)
+    public function getUrls()
+    {
+        return $this->urls;
+    }
+
+    public function setUsers($users): void
     {
         $this->users = new ArrayCollection();
 
@@ -124,7 +144,7 @@ class Usergroup
         }
     }
 
-    public function addUsers(UsergroupRelUser $user)
+    public function addUsers(UsergroupRelUser $user): void
     {
         $user->setUsergroup($this);
         $this->users[] = $user;
@@ -133,10 +153,10 @@ class Usergroup
     /**
      * Remove $user.
      */
-    public function removeUsers(UsergroupRelUser $user)
+    public function removeUsers(UsergroupRelUser $user): void
     {
         foreach ($this->users as $key => $value) {
-            if ($value->getId() == $user->getId()) {
+            if ($value->getId() === $user->getId()) {
                 unset($this->users[$key]);
             }
         }
@@ -152,14 +172,7 @@ class Usergroup
         return $this->id;
     }
 
-    /**
-     * Set name.
-     *
-     * @param string $name
-     *
-     * @return Usergroup
-     */
-    public function setName($name)
+    public function setName(string $name): self
     {
         $this->name = $name;
 
@@ -176,14 +189,7 @@ class Usergroup
         return $this->name;
     }
 
-    /**
-     * Set description.
-     *
-     * @param string $description
-     *
-     * @return Usergroup
-     */
-    public function setDescription($description)
+    public function setDescription(string $description): self
     {
         $this->description = $description;
 
@@ -208,15 +214,130 @@ class Usergroup
         return $this->groupType;
     }
 
-    /**
-     * @param int $groupType
-     *
-     * @return Usergroup
-     */
-    public function setGroupType($groupType)
+    public function setGroupType(int $groupType): self
     {
         $this->groupType = $groupType;
 
         return $this;
+    }
+
+    public function getVisibility(): string
+    {
+        return $this->visibility;
+    }
+
+    public function setVisibility(string $visibility): self
+    {
+        $this->visibility = $visibility;
+
+        return $this;
+    }
+
+    public function getUrl(): ?string
+    {
+        return $this->url;
+    }
+
+    public function setUrl(?string $url): self
+    {
+        $this->url = $url;
+
+        return $this;
+    }
+
+    public function getAuthorId(): string
+    {
+        return $this->authorId;
+    }
+
+    public function setAuthorId(string $authorId): self
+    {
+        $this->authorId = $authorId;
+
+        return $this;
+    }
+
+    public function getAllowMembersToLeaveGroup(): int
+    {
+        return $this->allowMembersToLeaveGroup;
+    }
+
+    public function setAllowMembersToLeaveGroup(int $allowMembersToLeaveGroup): self
+    {
+        $this->allowMembersToLeaveGroup = $allowMembersToLeaveGroup;
+
+        return $this;
+    }
+
+    /**
+     * @return UsergroupRelCourse[]|Collection
+     */
+    public function getCourses()
+    {
+        return $this->courses;
+    }
+
+    public function setCourses(Collection $courses)
+    {
+        $this->courses = $courses;
+
+        return $this;
+    }
+
+    /**
+     * @return UsergroupRelSession[]|Collection
+     */
+    public function getSessions()
+    {
+        return $this->sessions;
+    }
+
+    public function setSessions(Collection $sessions)
+    {
+        $this->sessions = $sessions;
+
+        return $this;
+    }
+
+    /**
+     * @return UsergroupRelQuestion[]|Collection
+     */
+    public function getQuestions()
+    {
+        return $this->questions;
+    }
+
+    public function setQuestions(Collection $questions)
+    {
+        $this->questions = $questions;
+
+        return $this;
+    }
+
+    public function getPicture(): ?string
+    {
+        return $this->picture;
+    }
+
+    public function getDefaultIllustration(int $size): string
+    {
+        $size = empty($size) ? 32 : $size;
+
+        return sprintf('/img/icons/%s/group_na.png', $size);
+    }
+
+    public function getResourceIdentifier(): int
+    {
+        return $this->getId();
+    }
+
+    public function getResourceName(): string
+    {
+        return $this->getName();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setName($name);
     }
 }

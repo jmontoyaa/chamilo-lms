@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use ChamiloSession as Session;
@@ -10,8 +11,6 @@ use ChamiloSession as Session;
  * @author Denes Nagy
  * @author Roan Embrechts, refactoring and code cleaning
  * @author Yannick Warnier <ywarnier@beeznest.org> - cleaning and update for new SCORM tool
- *
- * @package chamilo.learnpath
  */
 
 // Prevents FF 3.6 + Adobe Reader 9 bug see BT#794 when calling a pdf file in a LP
@@ -49,7 +48,7 @@ if (empty($lp)) {
 
 $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : 'fullpage';
 if (isset($_SESSION['oLP']) && isset($_GET['id'])) {
-    $_SESSION['oLP']->current = intval($_GET['id']);
+    $_SESSION['oLP']->current = (int) $_GET['id'];
 }
 $this_section = SECTION_COURSES;
 /* Header and action code */
@@ -77,7 +76,7 @@ $interbreadcrumb[] = [
     'name' => get_lang('Learning paths'),
 ];
 $interbreadcrumb[] = [
-    'url' => api_get_self()."?action=build&lp_id=$learnpath_id&".api_get_cidreq(),
+    'url' => api_get_self()."?action=add_item&lp_id=$learnpath_id&".api_get_cidreq(),
     'name' => $lp->getNameNoTags(),
 ];
 $interbreadcrumb[] = [
@@ -89,7 +88,7 @@ $interbreadcrumb[] = [
 $show_learn_path = true;
 $lp_theme_css = $lp->get_theme();
 
-if ($mode == 'fullpage') {
+if ('fullpage' === $mode) {
     Display::display_header(get_lang('Item'), 'Path');
 }
 
@@ -121,16 +120,16 @@ if (is_object($lp)) {
             echo $lp->build_action_menu();
             echo '<div class="row">';
             echo '<div class="col-md-3">';
-            echo $lp->return_new_tree();
+            echo $lp->return_new_tree();exit;
             echo '</div>';
             echo '<div class="col-md-9">';
-            echo $lp->display_item($id);
+            echo $lp->display_item($lpItem);
             echo '</div>';
             echo '</div>';
             Display::display_footer();
             break;
         case 'preview_document':
-            echo $lp->display_item($id, null, false);
+            echo $lp->display_item($lpItem, null, false);
             break;
     }
 }

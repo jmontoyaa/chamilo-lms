@@ -1,5 +1,8 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Entity\SysAnnouncement;
 
 /**
  * Class SystemAnnouncementManager.
@@ -91,8 +94,6 @@ class SystemAnnouncementManager
 
         $announcements = Database::query($sql);
         if (Database::num_rows($announcements) > 0) {
-            $query_string = ereg_replace('announcement=[1-9]+', '', $_SERVER['QUERY_STRING']);
-            $query_string = ereg_replace('&$', '', $query_string);
             $url = api_get_self();
             echo '<div class="system_announcements">';
             echo '<h3>'.get_lang('Portal news').'</h3>';
@@ -100,26 +101,22 @@ class SystemAnnouncementManager
 
             while ($announcement = Database::fetch_object($announcements)) {
                 if ($id != $announcement->id) {
-                    if (strlen($query_string) > 0) {
-                        $show_url = 'news_list.php#'.$announcement->id;
-                    } else {
-                        $show_url = 'news_list.php#'.$announcement->id;
-                    }
+                    $show_url = 'news_list.php#'.$announcement->id;
                     $display_date = api_convert_and_format_date($announcement->display_date, DATE_FORMAT_LONG);
                     echo '<a name="'.$announcement->id.'"></a>
                         <div class="system_announcement">
                             <div class="system_announcement_title">
                                 <a name="ann'.$announcement->id.'" href="'.$show_url.'">'.
-                                $announcement->title.'</a>
+                        $announcement->title.'</a>
                             </div>
                             <div class="system_announcement_date">'.$display_date.'</div>
                         </div>';
                 } else {
                     echo '<div class="system_announcement">
                             <div class="system_announcement_title">'
-                                .$announcement->display_date.'
-                                <a name="ann'.$announcement->id.'" href="'.$url.'?'.$query_string.'#ann'.$announcement->id.'">'.
-                                    $announcement->title.'
+                        .$announcement->display_date.'
+                                <a name="ann'.$announcement->id.'" href="'.$url.'?#ann'.$announcement->id.'">'.
+                        $announcement->title.'
                                 </a>
                             </div>';
                 }
@@ -144,7 +141,7 @@ class SystemAnnouncementManager
         $user_id = ''
     ) {
         $user_selected_language = api_get_interface_language();
-        $start = intval($start);
+        $start = (int) $start;
         $userGroup = new UserGroup();
         $tbl_announcement_group = Database::get_main_table(TABLE_MAIN_SYSTEM_ANNOUNCEMENTS_GROUPS);
         $temp_user_groups = $userGroup->get_groups_by_user(api_get_user_id(), 0);
@@ -179,7 +176,7 @@ class SystemAnnouncementManager
             $sql .= " AND access_url_id IN ('1', '$current_access_url_id')";
         }
 
-        if (!isset($_GET['start']) || $_GET['start'] == 0) {
+        if (!isset($_GET['start']) || 0 == $_GET['start']) {
             $sql .= " ORDER BY date_start DESC LIMIT ".$start.",20";
         } else {
             $sql .= " ORDER BY date_start DESC LIMIT ".($start + 1).",20";
@@ -206,7 +203,7 @@ class SystemAnnouncementManager
                         <div class="system_announcement_date">'.$display_date.'</div>
                         <br />
                         <div class="system_announcement_content">'
-                            .$announcement->content.'
+                    .$announcement->content.'
                         </div>
                       </div><br />';
                 $content .= '</tr></td>';
@@ -238,7 +235,7 @@ class SystemAnnouncementManager
         $next = ((int) $_GET['start'] + 19);
         $prev = ((int) $_GET['start'] - 19);
         $content = '';
-        if (!isset($_GET['start']) || $_GET['start'] == 0) {
+        if (!isset($_GET['start']) || 0 == $_GET['start']) {
             if ($nb_announcement > 20) {
                 $content .= '<a href="news_list.php?start='.$next.'">'.get_lang('Next').' >> </a>';
             }
@@ -272,7 +269,7 @@ class SystemAnnouncementManager
         }
 
         // course path
-        $store_path = api_get_path(SYS_UPLOAD_PATH).'announcements';
+        /*$store_path = api_get_path(SYS_UPLOAD_PATH).'announcements';
 
         if (!file_exists($store_path)) {
             mkdir($store_path);
@@ -301,7 +298,7 @@ class SystemAnnouncementManager
 
         $result = $normal;
 
-        return $result ? $result : false;
+        return $result ? $result : false;*/
     }
 
     /**
@@ -377,6 +374,8 @@ class SystemAnnouncementManager
      * @param int    $send_mail       Whether to send an e-mail to all users (1) or not (0)
      * @param bool   $add_to_calendar
      * @param bool   $sendEmailTest
+     * @param int    $careerId
+     * @param int    $promotionId
      *
      * @return mixed insert_id on success, false on failure
      */
@@ -389,7 +388,9 @@ class SystemAnnouncementManager
         $lang = '',
         $send_mail = 0,
         $add_to_calendar = false,
-        $sendEmailTest = false
+        $sendEmailTest = false,
+        $careerId = 0,
+        $promotionId = 0
     ) {
         $original_content = $content;
         $a_dateS = explode(' ', $date_start);
@@ -413,8 +414,8 @@ class SystemAnnouncementManager
         }
 
         if (($date_end_to_compare[1] ||
-            $date_end_to_compare[2] ||
-            $date_end_to_compare[0]) &&
+                $date_end_to_compare[2] ||
+                $date_end_to_compare[0]) &&
             !checkdate($date_end_to_compare[1], $date_end_to_compare[2], $date_end_to_compare[0])
         ) {
             Display::addFlash(
@@ -424,7 +425,7 @@ class SystemAnnouncementManager
             return false;
         }
 
-        if (strlen(trim($title)) == 0) {
+        if (0 == strlen(trim($title))) {
             Display::addFlash(
                 Display::return_message(get_lang('Please enter a title'), 'warning')
             );
@@ -464,6 +465,11 @@ class SystemAnnouncementManager
             'access_url_id' => $current_access_url_id,
         ];
 
+        if (api_get_configuration_value('allow_careers_in_global_announcements') && !empty($careerId)) {
+            $params['career_id'] = (int) $careerId;
+            $params['promotion_id'] = (int) $promotionId;
+        }
+
         foreach ($visibility as $key => $value) {
             $params[$key] = $value;
         }
@@ -473,19 +479,15 @@ class SystemAnnouncementManager
         if ($resultId) {
             if ($sendEmailTest) {
                 self::send_system_announcement_by_email(
-                    $title,
-                    $content,
+                    $resultId,
                     $visibility,
-                    $lang,
                     true
                 );
             } else {
-                if ($send_mail == 1) {
+                if (1 == $send_mail) {
                     self::send_system_announcement_by_email(
-                        $title,
-                        $content,
-                        $visibility,
-                        $lang
+                        $resultId,
+                        $visibility
                     );
                 }
             }
@@ -526,17 +528,17 @@ class SystemAnnouncementManager
              WHERE announcement_id=".intval($announcement_id)
         );
 
-        if ($res === false) {
+        if (false === $res) {
             return false;
         }
 
         foreach ($group_array as $group_id) {
-            if (intval($group_id) != 0) {
+            if (0 != intval($group_id)) {
                 $sql = "INSERT INTO $tbl_announcement_group SET
                         announcement_id=".intval($announcement_id).",
                         group_id=".intval($group_id);
                 $res = Database::query($sql);
-                if ($res === false) {
+                if (false === $res) {
                     return false;
                 }
             }
@@ -582,6 +584,8 @@ class SystemAnnouncementManager
      * @param array  $lang
      * @param int    $send_mail
      * @param bool   $sendEmailTest
+     * @param int    $careerId
+     * @param int    $promotionId
      *
      * @return bool True on success, false on failure
      */
@@ -594,10 +598,12 @@ class SystemAnnouncementManager
         $visibility,
         $lang = null,
         $send_mail = 0,
-        $sendEmailTest = false
+        $sendEmailTest = false,
+        $careerId = 0,
+        $promotionId = 0
     ) {
         $em = Database::getManager();
-        $announcement = $em->find('ChamiloCoreBundle:SysAnnouncement', $id);
+        $announcement = $em->find(SysAnnouncement::class, $id);
         if (!$announcement) {
             return false;
         }
@@ -621,8 +627,8 @@ class SystemAnnouncementManager
         }
 
         if (($date_end_to_compare[1] ||
-            $date_end_to_compare[2] ||
-            $date_end_to_compare[0]) &&
+                $date_end_to_compare[2] ||
+                $date_end_to_compare[0]) &&
             !checkdate($date_end_to_compare[1], $date_end_to_compare[2], $date_end_to_compare[0])
         ) {
             echo Display::return_message(get_lang('Invalid end date was given.'));
@@ -630,7 +636,7 @@ class SystemAnnouncementManager
             return false;
         }
 
-        if (strlen(trim($title)) == 0) {
+        if (0 == strlen(trim($title))) {
             echo Display::return_message(get_lang('Please enter a title'));
 
             return false;
@@ -653,26 +659,6 @@ class SystemAnnouncementManager
             $content
         );
 
-        if ($sendEmailTest) {
-            self::send_system_announcement_by_email(
-                $title,
-                $content,
-                null,
-                null,
-                $lang,
-                $sendEmailTest
-            );
-        } else {
-            if ($send_mail == 1) {
-                self::send_system_announcement_by_email(
-                    $title,
-                    $content,
-                    $visibility,
-                    $lang
-                );
-            }
-        }
-
         $dateStart = new DateTime($start, new DateTimeZone('UTC'));
         $dateEnd = new DateTime($end, new DateTimeZone('UTC'));
 
@@ -682,18 +668,45 @@ class SystemAnnouncementManager
             ->setContent($content)
             ->setDateStart($dateStart)
             ->setDateEnd($dateEnd)
-            ->setAccessUrlId(api_get_current_access_url_id());
+            ->setUrl(api_get_url_entity());
 
-        $em->merge($announcement);
+        $em->persist($announcement);
         $em->flush();
 
         // Update visibility
         $list = self::getVisibilityList();
         $table = Database::get_main_table(TABLE_MAIN_SYSTEM_ANNOUNCEMENTS);
+
+        if (api_get_configuration_value('allow_careers_in_global_announcements') && !empty($careerId)) {
+            $params = [];
+            $params['career_id'] = (int) $careerId;
+            $params['promotion_id'] = (int) $promotionId;
+            Database::update(
+                $table,
+                $params,
+                ['id = ? ' => $id]
+            );
+        }
+
         foreach ($list as $key => $title) {
             $value = isset($visibility[$key]) && $visibility[$key] ? 1 : 0;
             $sql = "UPDATE $table SET $key = '$value' WHERE id = $id";
             Database::query($sql);
+        }
+
+        if ($sendEmailTest) {
+            self::send_system_announcement_by_email(
+                $id,
+                $visibility,
+                true
+            );
+        } else {
+            if (1 == $send_mail) {
+                self::send_system_announcement_by_email(
+                    $id,
+                    $visibility
+                );
+            }
         }
 
         return true;
@@ -709,10 +722,10 @@ class SystemAnnouncementManager
     public static function delete_announcement($id)
     {
         $table = Database::get_main_table(TABLE_MAIN_SYSTEM_ANNOUNCEMENTS);
-        $id = intval($id);
+        $id = (int) $id;
         $sql = "DELETE FROM $table WHERE id =".$id;
         $res = Database::query($sql);
-        if ($res === false) {
+        if (false === $res) {
             return false;
         }
         self::deleteAnnouncementPicture($id);
@@ -730,7 +743,7 @@ class SystemAnnouncementManager
     public static function get_announcement($id)
     {
         $table = Database::get_main_table(TABLE_MAIN_SYSTEM_ANNOUNCEMENTS);
-        $id = intval($id);
+        $id = (int) $id;
         $sql = "SELECT * FROM ".$table." WHERE id = ".$id;
         $announcement = Database::fetch_object(Database::query($sql));
 
@@ -762,7 +775,7 @@ class SystemAnnouncementManager
                 WHERE id='".$id."'";
         $res = Database::query($sql);
 
-        if ($res === false) {
+        if (false === $res) {
             return false;
         }
 
@@ -772,22 +785,28 @@ class SystemAnnouncementManager
     /**
      * Send a system announcement by e-mail to all teachers/students depending on parameters.
      *
-     * @param string $title
-     * @param string $content
-     * @param array  $visibility
-     * @param string $language      Language (optional, considered for all languages if left empty)
-     * @param bool   $sendEmailTest
+     * @param int   $id
+     * @param array $visibility
+     * @param bool  $sendEmailTest
      *
      * @return bool True if the message was sent or there was no destination matching.
      *              False on database or e-mail sending error.
      */
     public static function send_system_announcement_by_email(
-        $title,
-        $content,
+        $id,
         $visibility,
-        $language = null,
         $sendEmailTest = false
     ) {
+        $announcement = self::get_announcement($id);
+
+        if (empty($announcement)) {
+            return false;
+        }
+
+        $title = $announcement->title;
+        $content = $announcement->content;
+        $language = $announcement->lang;
+
         $content = str_replace(['\r\n', '\n', '\r'], '', $content);
         $now = api_get_utc_datetime();
         $teacher = $visibility['visible_teacher'];
@@ -804,22 +823,22 @@ class SystemAnnouncementManager
         if (api_is_multiple_url_enabled()) {
             $current_access_url_id = api_get_current_access_url_id();
             $url_rel_user = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
-            $urlJoin = " INNER JOIN $url_rel_user uu ON uu.user_id = u.user_id ";
+            $urlJoin = " INNER JOIN $url_rel_user uu ON uu.user_id = u.id ";
             $urlCondition = " AND access_url_id = '".$current_access_url_id."' ";
         }
 
-        if ($teacher != 0 && $student == 0) {
-            $sql = "SELECT DISTINCT u.user_id FROM $user_table u $urlJoin
+        if (0 != $teacher && 0 == $student) {
+            $sql = "SELECT DISTINCT u.id as user_id FROM $user_table u $urlJoin
                     WHERE status = '1' $urlCondition";
         }
 
-        if ($teacher == 0 && $student != 0) {
-            $sql = "SELECT DISTINCT u.user_id FROM $user_table u $urlJoin
+        if (0 == $teacher && 0 != $student) {
+            $sql = "SELECT DISTINCT u.id as user_id FROM $user_table u $urlJoin
                     WHERE status = '5' $urlCondition";
         }
 
-        if ($teacher != 0 && $student != 0) {
-            $sql = "SELECT DISTINCT u.user_id FROM $user_table u $urlJoin
+        if (0 != $teacher && 0 != $student) {
+            $sql = "SELECT DISTINCT u.id as user_id FROM $user_table u $urlJoin
                     WHERE 1 = 1 $urlCondition";
         }
 
@@ -838,12 +857,50 @@ class SystemAnnouncementManager
         // Expiration date
         $sql .= " AND (expiration_date = '' OR expiration_date IS NULL OR expiration_date > '$now') ";
 
-        if ((empty($teacher) || $teacher == '0') && (empty($student) || $student == '0')) {
+        if ((empty($teacher) || '0' == $teacher) && (empty($student) || '0' == $student)) {
             return true;
         }
 
+        $userListToFilter = [];
+        // @todo check if other filters will apply for the career/promotion option.
+        if (isset($announcement->career_id) && !empty($announcement->career_id)) {
+            $promotion = new Promotion();
+            $promotionList = $promotion->get_all_promotions_by_career_id($announcement->career_id);
+            if (isset($announcement->promotion_id) && !empty($announcement->promotion_id)) {
+                $promotionList = [];
+                $promotionList[] = $promotion->get($announcement->promotion_id);
+            }
+
+            if (!empty($promotionList)) {
+                foreach ($promotionList as $promotion) {
+                    $sessionList = SessionManager::get_all_sessions_by_promotion($promotion['id']);
+                    foreach ($sessionList as $session) {
+                        if ($teacher) {
+                            $users = SessionManager::get_users_by_session($session['id'], 2);
+                            if (!empty($users)) {
+                                $userListToFilter = array_merge($users, $userListToFilter);
+                            }
+                        }
+
+                        if ($student) {
+                            $users = SessionManager::get_users_by_session($session['id'], 0);
+                            if (!empty($users)) {
+                                $userListToFilter = array_merge($users, $userListToFilter);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!empty($userListToFilter)) {
+            $userListToFilter = array_column($userListToFilter, 'user_id');
+            $userListToFilterToString = implode("', '", $userListToFilter);
+            $sql .= " AND (u.user_id IN ('$userListToFilterToString') ) ";
+        }
+
         $result = Database::query($sql);
-        if ($result === false) {
+        if (false === $result) {
             return false;
         }
 
@@ -894,17 +951,66 @@ class SystemAnnouncementManager
             $sql .= " AND access_url_id IN ('1', '$current_url_id') ";
         }
 
+        $checkCareers = true === api_get_configuration_value('allow_careers_in_global_announcements');
+
+        $userId = api_get_user_id();
+
+        $promotion = new Promotion();
         $sql .= ' ORDER BY date_start DESC';
         $result = Database::query($sql);
         $announcements = [];
-
         if (Database::num_rows($result) > 0) {
             while ($announcement = Database::fetch_object($result)) {
+                if ($checkCareers && !empty($announcement->career_id)) {
+                    $promotionList = [];
+                    if (!empty($announcement->promotion_id)) {
+                        $promotionList[] = $announcement->promotion_id;
+                    } else {
+                        $promotionList = $promotion->get_all_promotions_by_career_id($announcement->career_id);
+                        if (!empty($promotionList)) {
+                            $promotionList = array_column($promotionList, 'id');
+                        }
+                    }
+
+                    $show = false;
+                    foreach ($promotionList as $promotionId) {
+                        $sessionList = SessionManager::get_all_sessions_by_promotion($promotionId);
+                        foreach ($sessionList as $session) {
+                            $sessionId = $session['id'];
+                            // Check student
+                            if (self::VISIBLE_STUDENT === $visible &&
+                                SessionManager::isUserSubscribedAsStudent($sessionId, $userId)
+                            ) {
+                                $show = true;
+                                break 2;
+                            }
+
+                            if (self::VISIBLE_TEACHER === $visible &&
+                                SessionManager::user_is_general_coach($userId, $sessionId)
+                            ) {
+                                $show = true;
+                                break 2;
+                            }
+
+                            // Check course coach
+                            $coaches = SessionManager::getCoachesBySession($sessionId);
+
+                            if (self::VISIBLE_TEACHER === $visible && in_array($userId, $coaches)) {
+                                $show = true;
+                                break 2;
+                            }
+                        }
+                    }
+
+                    if (false === $show) {
+                        continue;
+                    }
+                }
+
                 $announcementData = [
                     'id' => $announcement->id,
                     'title' => $announcement->title,
                     'content' => $announcement->content,
-                    'picture' => self::getPictureAnnouncement($announcement->id),
                     'readMore' => null,
                 ];
 
@@ -919,7 +1025,7 @@ class SystemAnnouncementManager
             }
         }
 
-        if (count($announcements) === 0) {
+        if (0 === count($announcements)) {
             return [];
         }
 
@@ -929,8 +1035,8 @@ class SystemAnnouncementManager
     /**
      * Get the HTML code for an announcement.
      *
-     * @param int $announcementId The announcement ID
-     * @param int $visibility     The announcement visibility
+     * @param int    $announcementId The announcement ID
+     * @param string $visibility     The announcement visibility
      */
     public static function getAnnouncement($announcementId, $visibility): array
     {
@@ -1000,7 +1106,7 @@ class SystemAnnouncementManager
      */
     public static function deleteAnnouncementPicture($announcementId)
     {
-        $store_path = api_get_path(SYS_UPLOAD_PATH).'announcements';
+        /*$store_path = api_get_path(SYS_UPLOAD_PATH).'announcements';
 
         // image name
         $announcementPicture = $store_path.'/announcement_'.$announcementId.'.png';
@@ -1011,7 +1117,7 @@ class SystemAnnouncementManager
         }
         if (file_exists($announcementPictureSmall)) {
             unlink($announcementPictureSmall);
-        }
+        }*/
     }
 
     /**
@@ -1023,7 +1129,7 @@ class SystemAnnouncementManager
      */
     private static function getPictureAnnouncement($announcementId)
     {
-        $store_path = api_get_path(SYS_UPLOAD_PATH).'announcements';
+        /*$store_path = api_get_path(SYS_UPLOAD_PATH).'announcements';
         $announcementPicture = $store_path.'/announcement_'.$announcementId.'.png';
         if (file_exists($announcementPicture)) {
             $web_path = api_get_path(WEB_UPLOAD_PATH).'announcements';
@@ -1032,6 +1138,6 @@ class SystemAnnouncementManager
             return $urlPicture;
         }
 
-        return null;
+        return null;*/
     }
 }

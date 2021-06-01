@@ -5,8 +5,6 @@
  * Show the achieved badges by an user.
  *
  * @author Angel Fernando Quiroz Campos <angel.quiroz@beeznest.com>
- *
- * @package chamilo.badge
  */
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -16,12 +14,12 @@ if (empty($userId)) {
     api_not_allowed(true);
 }
 
-Skill::isAllowed($userId);
+SkillModel::isAllowed($userId);
 
 $courseId = api_get_course_int_id();
 $sessionId = api_get_session_id();
 
-$objSkillRelUser = new SkillRelUser();
+$objSkillRelUser = new SkillRelUserModel();
 $userSkills = $objSkillRelUser->getUserSkills($userId, $courseId, $sessionId);
 
 if (empty($userSkills)) {
@@ -45,8 +43,11 @@ foreach ($userSkills as $skill) {
 $backpack = 'https://backpack.openbadges.org/';
 
 $configBackpack = api_get_setting('openbadges_backpack');
-if (strcmp($backpack, $configBackpack) !== 0) {
+if (0 !== strcmp($backpack, $configBackpack)) {
     $backpack = $configBackpack;
+    if ('/' !== substr($backpack, -1)) {
+        $backpack .= '/';
+    }
 }
 
 $htmlHeadXtra[] = '<script src="'.$backpack.'issuer.js"></script>';
@@ -57,7 +58,7 @@ $tpl->assign(
     'content',
     "<script>
     $(function() {
-        OpenBadges.issue_no_modal(".json_encode($assertions)."); 
+        OpenBadges.issue_no_modal(".json_encode($assertions).");
     });
     </script>"
 );

@@ -6,8 +6,6 @@
  * Extends formvalidator with import and export forms.
  *
  * @author Stijn Konings
- *
- * @package chamilo.gradebook
  */
 class UserForm extends FormValidator
 {
@@ -17,9 +15,9 @@ class UserForm extends FormValidator
     /**
      * Builds a form containing form items based on a given parameter.
      *
-     * @param int form_type 1 = user_info
-     * @param user array
-     * @param string form name
+     * @param int    $form_type 1 = user_info
+     * @param array  $user
+     * @param string $form_name
      * @param string $method
      * @param string $action
      */
@@ -30,12 +28,12 @@ class UserForm extends FormValidator
         if (isset($user)) {
             $this->user_info = $user;
         }
-        if (isset($result_object)) {
+        /*if (isset($result_object)) {
             $this->result_object = $result_object;
-        }
-        if ($this->form_type == self::TYPE_USER_INFO) {
+        }*/
+        if (self::TYPE_USER_INFO == $this->form_type) {
             $this->build_user_info_form();
-        } elseif ($this->form_type == self::TYPE_SIMPLE_SEARCH) {
+        } elseif (self::TYPE_SIMPLE_SEARCH == $this->form_type) {
             $this->build_simple_search();
         }
         $this->setDefaults();
@@ -46,9 +44,9 @@ class UserForm extends FormValidator
         parent::display();
     }
 
-    public function setDefaults($defaults = [], $filter = null)
+    public function setDefaults($defaultValues = [], $filter = null)
     {
-        parent::setDefaults($defaults, $filter);
+        parent::setDefaults($defaultValues, $filter);
     }
 
     protected function build_simple_search()

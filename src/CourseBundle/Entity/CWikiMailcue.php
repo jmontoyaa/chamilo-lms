@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
@@ -7,79 +9,56 @@ namespace Chamilo\CourseBundle\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * CWikiMailcue.
- *
  * @ORM\Table(
- *  name="c_wiki_mailcue",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="user", columns={"user_id"}),
- *      @ORM\Index(name="c_id", columns={"c_id", "id"})
- *  }
+ *     name="c_wiki_mailcue",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"}),
+ *         @ORM\Index(name="user", columns={"user_id"}),
+ *         @ORM\Index(name="c_id", columns={"c_id", "iid"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CWikiMailcue
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var string
-     *
      * @ORM\Column(name="type", type="text", nullable=false)
      */
-    protected $type;
+    protected string $type;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="group_id", type="integer", nullable=true)
      */
-    protected $groupId;
+    protected ?int $groupId = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="session_id", type="integer", nullable=true)
      */
-    protected $sessionId;
+    protected ?int $sessionId = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="user_id", type="integer")
      */
-    protected $userId;
+    protected int $userId;
 
     /**
      * Set type.
      *
-     * @param string $type
-     *
      * @return CWikiMailcue
      */
-    public function setType($type)
+    public function setType(string $type)
     {
         $this->type = $type;
 
@@ -99,11 +78,9 @@ class CWikiMailcue
     /**
      * Set groupId.
      *
-     * @param int $groupId
-     *
      * @return CWikiMailcue
      */
-    public function setGroupId($groupId)
+    public function setGroupId(int $groupId)
     {
         $this->groupId = $groupId;
 
@@ -123,11 +100,9 @@ class CWikiMailcue
     /**
      * Set sessionId.
      *
-     * @param int $sessionId
-     *
      * @return CWikiMailcue
      */
-    public function setSessionId($sessionId)
+    public function setSessionId(int $sessionId)
     {
         $this->sessionId = $sessionId;
 
@@ -147,11 +122,9 @@ class CWikiMailcue
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CWikiMailcue
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
@@ -169,37 +142,11 @@ class CWikiMailcue
     }
 
     /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CWikiMailcue
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
      * Set userId.
      *
-     * @param int $userId
-     *
      * @return CWikiMailcue
      */
-    public function setUserId($userId)
+    public function setUserId(int $userId)
     {
         $this->userId = $userId;
 
@@ -222,17 +169,5 @@ class CWikiMailcue
     public function getIid()
     {
         return $this->iid;
-    }
-
-    /**
-     * @param int $iid
-     *
-     * @return CWikiMailcue
-     */
-    public function setIid($iid)
-    {
-        $this->iid = $iid;
-
-        return $this;
     }
 }

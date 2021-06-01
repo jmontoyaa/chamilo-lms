@@ -1,11 +1,13 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Entity\Course;
 use Chamilo\CoreBundle\Entity\CourseRelUser;
 use Chamilo\CoreBundle\Entity\Session;
 use Chamilo\CoreBundle\Entity\SessionRelUser;
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Framework\Container;
 use Doctrine\Common\Collections\Criteria;
 
 require_once '../../main/inc/global.inc.php';
@@ -19,7 +21,7 @@ try {
         throw new Exception(get_lang('You are not allowed to see this page. Either your connection has expired or you are trying to access a page for which you do not have the sufficient privileges.'));
     }
 
-    $toolIsEnabled = $gradingElectronic->get('tool_enable') === 'true';
+    $toolIsEnabled = 'true' === $gradingElectronic->get('tool_enable');
 
     if (!$toolIsEnabled) {
         throw new Exception($gradingElectronic->get_lang('PluginDisabled'));
@@ -98,9 +100,7 @@ try {
     /** @var \Category $gradebook */
     $gradebook = $cats[0];
     /** @var \ExerciseLink $exerciseLink */
-    /** commented until we get clear understanding of how to use the dates refs BT#12404
-        $exerciseLink = $gradebook->get_links()[0];
-        $exerciseId = $exerciseLink->get_ref_id();
+    /** commented until we get clear understanding of how to use the dates refs BT#12404.
         $exerciseInfo = ExerciseLib::get_exercise_by_id($exerciseId, $course->getId());
      */
     $dateStart = new DateTime($values['range_start'].' 00:00:00', new DateTimeZone('UTC'));
@@ -124,26 +124,7 @@ try {
         if (!$userFinishedCourse) {
             continue;
         }
-        /** commented until we get clear understanding of how to use the dates refs BT#12404
-                $exerciseResult = Event::get_best_exercise_results_by_user(
-                    $exerciseId,
-                    $course->getId(),
-                    $session ? $session->getId() : 0,
-                    $student->getId()
-                );
-                $exerciseResult = current($exerciseResult);
-
-                if (!$exerciseResult) {
-                    continue;
-                }
-
-                $attemptDate = new DateTime($exerciseResult['exe_date'], new DateTimeZone('UTC'));
-                $dateIsRange = $attemptDate >= $dateStart && $attemptDate <= $dateEnd;
-
-                if (!$dateEnd) {
-                    continue;
-                }
-         */
+        /** commented until we get clear understanding of how to use the dates refs BT#12404. */
         $fieldStudent = $uFieldValue->get_values_by_handler_and_field_variable(
             $student->getId(),
             GradingElectronicPlugin::EXTRAFIELD_STUDENT_ID
@@ -155,7 +136,7 @@ try {
             SCORE_SIMPLE
         );
 
-        /** old method to get the score
+        /* old method to get the score
 
                 $score = Category::getCurrentScore(
                     $student->getId(),
@@ -164,7 +145,7 @@ try {
                 );
          */
         $fileData[] = sprintf(
-            "2 %sPASS%s %s %s",
+            '2 %sPASS%s %s %s',
             $fieldStudent ? $fieldStudent['value'] : null,
             $fieldHours ? $fieldHours['value'] : null,
             $score,
@@ -175,11 +156,9 @@ try {
             continue;
         }
 
-        Category::generateUserCertificate(
-            $gradebook->get_id(),
-            $student->getId(),
-            true
-        );
+        $repo = Container::getGradeBookCategoryRepository();
+        $category = $repo->find($gradebook->get_id());
+        Category::generateUserCertificate($category, $student->getId(), true);
     }
 
     $fileName = implode('_', [

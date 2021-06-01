@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Webit\Util\EvalMath\EvalMath;
@@ -12,7 +13,7 @@ use Webit\Util\EvalMath\EvalMath;
 class CalculatedAnswer extends Question
 {
     public $typePicture = 'calculated_answer.png';
-    public $explanationLangVar = 'CalculatedAnswer';
+    public $explanationLangVar = 'Calculated question';
 
     /**
      * Constructor.
@@ -24,13 +25,9 @@ class CalculatedAnswer extends Question
         $this->isContent = $this->getIsContent();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function createAnswersForm($form)
     {
         $defaults = [];
-        //$defaults['answer'] = get_lang('<table cellspacing="0" cellpadding="10" border="1" width="720" style="" height:="">    <tbody>        <tr>            <td colspan="2">            <h3>Example fill the form activity : calculate the Body Mass Index</h3>            </td>        </tr>        <tr>            <td style="text-align: right;"><strong>Age</strong></td>            <td width="75%" style="">[25] years old</td>        </tr>        <tr>            <td style="text-align: right;"><strong>Sex</strong></td>            <td style="" text-align:="">[M] (M or F)</td>        </tr>        <tr>            <td style="text-align: right;"><strong>Weight</strong></td>            <td style="" text-align:="">95 Kg</td>        </tr>        <tr>            <td style="vertical-align: top; text-align: right;"><strong>Height</strong></td>            <td style="vertical-align: top;">1.81 m</td>        </tr>        <tr>            <td style="vertical-align: top; text-align: right;"><strong>Body Mass Index</strong></td>            <td style="vertical-align: top;">[29] BMI =Weight/Size<sup>2</sup> (Cf.<a href="http://en.wikipedia.org/wiki/Body_mass_index" onclick="window.open(this.href,'','resizable=yes,location=yes,menubar=no,scrollbars=yes,status=yes,toolbar=no,fullscreen=no,dependent=no,width=800,height=600,left=40,top=40,status'); return false"> Wikipedia article</a>)</td>        </tr>    </tbody></table>');
         $defaults['answer'] = get_lang('DefaultTextInBlanks');
         if (!empty($this->id)) {
             $objAnswer = new Answer($this->id);
@@ -67,7 +64,7 @@ class CalculatedAnswer extends Question
                 } else {
                     result = parseInt(result);
                 }
-                document.getElementById("randomValue"+index).innerHTML = "'.get_lang("Range value").': " + result;
+                document.getElementById("randomValue"+index).innerHTML = "'.get_lang('Range value').': " + result;
            }
 
             CKEDITOR.on("instanceCreated", function(e) {
@@ -111,15 +108,15 @@ class CalculatedAnswer extends Question
             }
 
             window.onload = updateBlanks;
-
         </script>';
 
         // answer
         $form->addElement('label', null, '<br /><br />'.get_lang('Please type your text below').', '.get_lang('and').' '.get_lang('use square brackets [...] to define one or more blanks'));
-        $form->addElement(
-            'html_editor',
+        $form->addHtmlEditor(
             'answer',
             Display::return_icon('fill_field.png'),
+            true,
+            false,
             [
                 'id' => 'answer',
                 'onkeyup' => 'javascript: updateBlanks(this);',
@@ -132,10 +129,19 @@ class CalculatedAnswer extends Question
         );
 
         $form->addRule('answer', get_lang('Please type the text'), 'required');
-        $form->addRule('answer', get_lang('Please define at least one blank with square brackets [...]'), 'regex', '/\[.*\]/');
+        $form->addRule(
+            'answer',
+            get_lang('Please define at least one blank with square brackets [...]'),
+            'regex',
+            '/\[.*\]/'
+        );
 
-        $form->addElement('label', null, get_lang('If you want only integer values write both limits without decimals'));
-        $form->addElement('html', '<div id="blanks_weighting"></div>');
+        $form->addElement(
+            'label',
+            null,
+            get_lang('If you want only integer values write both limits without decimals')
+        );
+        $form->addHtml('<div id="blanks_weighting"></div>');
 
         $notationListButton = Display::url(
             get_lang('Formula notation'),
@@ -152,7 +158,12 @@ class CalculatedAnswer extends Question
             $notationListButton
         );
 
-        $form->addElement('text', 'formula', [get_lang('Formula'), get_lang('Formula sample: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )')], ['id' => 'formula']);
+        $form->addText(
+            'formula',
+            [get_lang('Formula'), get_lang('Formula sample: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )')],
+            true,
+            ['id' => 'formula']
+        );
         $form->addRule('formula', get_lang('Please, write the formula'), 'required');
 
         $form->addElement('text', 'weighting', get_lang('Score'), ['id' => 'weighting']);
@@ -173,15 +184,12 @@ class CalculatedAnswer extends Question
         if (!empty($this->id)) {
             $form->setDefaults($defaults);
         } else {
-            if ($this->isContent == 1) {
+            if (1 == $this->isContent) {
                 $form->setDefaults($defaults);
             }
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function processAnswersCreation($form, $exercise)
     {
         if (!self::isAnswered()) {
@@ -213,8 +221,8 @@ class CalculatedAnswer extends Question
 
                         // take random float values when one or both edge values have a decimal point
                         $randomValue =
-                            (strpos($lowestValues[$i], '.') !== false ||
-                            strpos($highestValues[$i], '.') !== false) ?
+                            false !== strpos($lowestValues[$i], '.') ||
+                            false !== strpos($highestValues[$i], '.') ?
                             mt_rand($lowestValues[$i] * 100, $highestValues[$i] * 100) / 100 : mt_rand($lowestValues[$i], $highestValues[$i]);
 
                         $auxAnswer = str_replace($blankItem, $randomValue, $auxAnswer);
@@ -226,11 +234,11 @@ class CalculatedAnswer extends Question
                     // Remove decimal trailing zeros
                     $result = rtrim($result, '0');
                     // If it is an integer (ends in .00) remove the decimal point
-                    if (mb_substr($result, -1) === '.') {
+                    if ('.' === mb_substr($result, -1)) {
                         $result = str_replace('.', '', $result);
                     }
                     // Attach formula
-                    $auxAnswer .= " [".$result."]@@".$formula;
+                    $auxAnswer .= ' ['.$result.']@@'.$formula;
                 }
                 $this->save($exercise);
                 $objAnswer = new Answer($this->id);
@@ -241,9 +249,6 @@ class CalculatedAnswer extends Question
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function return_header(Exercise $exercise, $counter = null, $score = [])
     {
         $header = parent::return_header($exercise, $counter, $score);

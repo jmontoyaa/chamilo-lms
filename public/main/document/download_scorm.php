@@ -1,12 +1,13 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+// @deprecated
+exit;
+
 use ChamiloSession as Session;
 
 /**
  * This file is responsible for passing requested documents to the browser.
- *
- * @package chamilo.document
  */
 session_cache_limiter('none');
 
@@ -29,7 +30,7 @@ if (empty($obj)) {
 }
 
 // If is visible for the current user
-if (!learnpath::is_lp_visible_for_student($obj->get_id(), api_get_user_id(), $_course)) {
+if (!learnpath::is_lp_visible_for_student($obj->getEntity(), api_get_user_id(), $_course)) {
     api_not_allowed();
 }
 
@@ -57,7 +58,7 @@ if (Security::check_abs_path($sys_course_path.$doc_url, $sys_course_path.'/')) {
 
     $fixLinks = api_get_configuration_value('lp_replace_http_to_https');
     $result = DocumentManager::file_send_for_download($full_file_name, false, '', $fixLinks);
-    if ($result === false) {
+    if (false === $result) {
         api_not_allowed(true, get_lang('The file was not found'), 404);
     }
 } else {

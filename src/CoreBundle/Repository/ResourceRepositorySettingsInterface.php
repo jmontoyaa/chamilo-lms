@@ -1,15 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Repository;
 
-use Chamilo\CoreBundle\Component\Utils\ResourceSettings;
+use Chamilo\CoreBundle\Component\Resource\Settings;
 
-/**
- * Class ResourceRepositoryInterface.
- */
 interface ResourceRepositorySettingsInterface
 {
-    public function getResourceSettings(): ResourceSettings;
+    public function getResourceSettings(): Settings;
 }

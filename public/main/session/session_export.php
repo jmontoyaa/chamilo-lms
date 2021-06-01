@@ -1,9 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.admin
- */
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -55,7 +53,7 @@ if (isset($_POST['formSent'])) {
         if (api_is_multiple_url_enabled()) {
             $tbl_session_rel_access_url = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_SESSION);
             $access_url_id = api_get_current_access_url_id();
-            if ($access_url_id != -1) {
+            if (-1 != $access_url_id) {
                 $sql = "SELECT s.id, name,id_coach,username,access_start_date,access_end_date,visibility,session_category_id
                     FROM $tbl_session s
                     INNER JOIN $tbl_session_rel_access_url as session_rel_url
@@ -156,7 +154,7 @@ if (isset($_POST['formSent'])) {
                 $sql = "SELECT u.username
                         FROM $tbl_session_course_user scu
                         INNER JOIN $tbl_user u
-                        ON u.user_id = scu.user_id
+                        ON u.id = scu.user_id
                         WHERE
                             scu.c_id = '{$rowCourses['c_id']}' AND
                             scu.session_id = '".$row['id']."' AND
@@ -189,7 +187,7 @@ if (isset($_POST['formSent'])) {
                             su.relation_type<>".SESSION_RELATION_TYPE_RRHH."
                         INNER JOIN $tbl_user u
                         ON
-                            scu.user_id = u.user_id AND
+                            scu.user_id = u.id AND
                             scu.c_id='".$rowCourses['c_id']."' AND
                             scu.session_id='".$row['id']."'";
 
@@ -277,7 +275,7 @@ $sql = "SELECT id, name FROM $tbl_session ORDER BY name";
 if (api_is_multiple_url_enabled()) {
     $tbl_session_rel_access_url = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_SESSION);
     $access_url_id = api_get_current_access_url_id();
-    if ($access_url_id != -1) {
+    if (-1 != $access_url_id) {
         $sql = "SELECT s.id, name FROM $tbl_session s
                 INNER JOIN $tbl_session_rel_access_url as session_rel_url
                 ON (s.id = session_rel_url.session_id)
@@ -288,10 +286,9 @@ if (api_is_multiple_url_enabled()) {
 $result = Database::query($sql);
 $Sessions = Database::store_result($result);
 
-echo '<div class="actions">';
-echo '<a href="../session/session_list.php">'.
+$actions = '<a href="../session/session_list.php">'.
         Display::return_icon('back.png', get_lang('Back to').' '.get_lang('Session list'), '', ICON_SIZE_MEDIUM).'</a>';
-echo '</div>';
+echo Display::toolbarAction('toolbar', [$actions]);
 
 if (!empty($errorMsg)) {
     echo Display::return_message($errorMsg, 'normal', false); //main API

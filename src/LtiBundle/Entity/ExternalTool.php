@@ -1,16 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\LtiBundle\Entity;
 
 use Chamilo\CoreBundle\Entity\Course;
+use Chamilo\CoreBundle\Entity\GradebookEvaluation;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Class ExternalTool.
- *
  *
  * @ORM\Table(name="lti_external_tool")
  * @ORM\Entity()
@@ -18,92 +21,75 @@ use Doctrine\ORM\Mapping as ORM;
 class ExternalTool
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
+
     /**
-     * @var string
-     *
      * @ORM\Column(name="name", type="string")
      */
-    private $name = '';
+    protected string $name;
+
     /**
-     * @var string|null
-     *
      * @ORM\Column(name="description", type="text", nullable=true)
      */
-    private $description = null;
+    protected ?string $description = null;
+
     /**
-     * @var string
-     *
      * @ORM\Column(name="launch_url", type="string")
      */
-    private $launchUrl = '';
+    protected string $launchUrl;
+
     /**
-     * @var string
-     *
      * @ORM\Column(name="consumer_key", type="string", nullable=true)
      */
-    private $consumerKey = '';
+    protected ?string $consumerKey;
+
     /**
-     * @var string
-     *
      * @ORM\Column(name="shared_secret", type="string", nullable=true)
      */
-    private $sharedSecret = '';
+    protected ?string $sharedSecret;
+
     /**
-     * @var string|null
-     *
      * @ORM\Column(name="custom_params", type="text", nullable=true)
      */
-    private $customParams = null;
+    protected ?string $customParams = null;
+
     /**
-     * @var bool
-     *
      * @ORM\Column(name="active_deep_linking", type="boolean", nullable=false, options={"default": false})
      */
-    private $activeDeepLinking = false;
+    protected bool $activeDeepLinking;
+
     /**
-     * @var string|null
-     *
      * @ORM\Column(name="privacy", type="text", nullable=true, options={"default": null})
      */
-    private $privacy = null;
+    protected ?string $privacy = null;
+
     /**
-     * @var Course|null
-     *
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course")
      * @ORM\JoinColumn(name="c_id", referencedColumnName="id")
      */
-    private $course = null;
+    protected ?Course $course = null;
+
     /**
-     * @var GradebookEvaluation|null
-     *
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\GradebookEvaluation")
      * @ORM\JoinColumn(name="gradebook_eval_id", referencedColumnName="id", onDelete="SET NULL")
      */
-    private $gradebookEval = null;
+    protected ?GradebookEvaluation $gradebookEval = null;
+
     /**
-     * @var ExternalTool|null
-     *
      * @ORM\ManyToOne(targetEntity="Chamilo\LtiBundle\Entity\ExternalTool", inversedBy="children")
      * @ORM\JoinColumn(name="parent_id", referencedColumnName="id")
      */
-    private $parent;
-    /**
-     * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="Chamilo\LtiBundle\Entity\ExternalTool", mappedBy="parent")
-     */
-    private $children;
+    protected ?ExternalTool $parent = null;
 
     /**
-     * ExternalTool constructor.
+     * @ORM\OneToMany(targetEntity="Chamilo\LtiBundle\Entity\ExternalTool", mappedBy="parent")
      */
+    protected Collection $children;
+
     public function __construct()
     {
         $this->description = null;
@@ -123,24 +109,9 @@ class ExternalTool
         $this->id = 0;
     }
 
-    /**
-     * @return int
-     */
-    public function getId()
+    public function getId(): int
     {
         return $this->id;
-    }
-
-    /**
-     * @param int $id
-     *
-     * @return $this
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
     }
 
     /**
@@ -164,7 +135,7 @@ class ExternalTool
     }
 
     /**
-     * @return string|null
+     * @return null|string
      */
     public function getDescription()
     {
@@ -172,7 +143,7 @@ class ExternalTool
     }
 
     /**
-     * @param string|null $description
+     * @param null|string $description
      *
      * @return ExternalTool
      */
@@ -244,7 +215,7 @@ class ExternalTool
     }
 
     /**
-     * @return string|null
+     * @return null|string
      */
     public function getCustomParams()
     {
@@ -252,7 +223,7 @@ class ExternalTool
     }
 
     /**
-     * @param string|null $customParams
+     * @param null|string $customParams
      *
      * @return ExternalTool
      */
@@ -263,16 +234,13 @@ class ExternalTool
         return $this;
     }
 
-    /**
-     * @return bool
-     */
-    public function isGlobal()
+    public function isGlobal(): bool
     {
         return null === $this->course;
     }
 
     /**
-     * @return string|null
+     * @return null|string
      */
     public function encodeCustomParams(array $params)
     {
@@ -281,7 +249,7 @@ class ExternalTool
         }
         $pairs = [];
         foreach ($params as $key => $value) {
-            $pairs[] = "$key=$value";
+            $pairs[] = "{$key}={$value}";
         }
 
         return implode("\n", $pairs);
@@ -310,12 +278,7 @@ class ExternalTool
         return $params;
     }
 
-    /**
-     * Get activeDeepLinking.
-     *
-     * @return bool
-     */
-    public function isActiveDeepLinking()
+    public function isActiveDeepLinking(): bool
     {
         return $this->activeDeepLinking;
     }
@@ -337,7 +300,7 @@ class ExternalTool
     /**
      * Get course.
      *
-     * @return Course|null
+     * @return null|Course
      */
     public function getCourse()
     {
@@ -359,7 +322,7 @@ class ExternalTool
     /**
      * Get gradebookEval.
      *
-     * @return GradebookEvaluation|null
+     * @return null|GradebookEvaluation
      */
     public function getGradebookEval()
     {
@@ -369,7 +332,7 @@ class ExternalTool
     /**
      * Set gradebookEval.
      *
-     * @param GradebookEvaluation|null $gradebookEval
+     * @param null|GradebookEvaluation $gradebookEval
      *
      * @return ExternalTool
      */
@@ -383,7 +346,7 @@ class ExternalTool
     /**
      * Get privacy.
      *
-     * @return string|null
+     * @return null|string
      */
     public function getPrivacy()
     {
@@ -412,43 +375,46 @@ class ExternalTool
         return $this;
     }
 
-    /**
-     * @return bool
-     */
-    public function isSharingName()
+    public function isSharingName(): bool
     {
         $unserialize = $this->unserializePrivacy();
+
+        if (!$unserialize) {
+            return false;
+        }
 
         return (bool) $unserialize['share_name'];
     }
 
     public function unserializePrivacy()
     {
-        return unserialize($this->privacy);
+        return unserialize((string) $this->privacy);
     }
 
-    /**
-     * @return bool
-     */
-    public function isSharingEmail()
+    public function isSharingEmail(): bool
     {
         $unserialize = $this->unserializePrivacy();
+
+        if (!$unserialize) {
+            return false;
+        }
 
         return (bool) $unserialize['share_email'];
     }
 
-    /**
-     * @return bool
-     */
-    public function isSharingPicture()
+    public function isSharingPicture(): bool
     {
         $unserialize = $this->unserializePrivacy();
+
+        if (!$unserialize) {
+            return false;
+        }
 
         return (bool) $unserialize['share_picture'];
     }
 
     /**
-     * @return ExternalTool|null
+     * @return null|ExternalTool
      */
     public function getParent()
     {
@@ -464,6 +430,21 @@ class ExternalTool
         $this->sharedSecret = $parent->getSharedSecret();
         $this->consumerKey = $parent->getConsumerKey();
         $this->privacy = $parent->getPrivacy();
+
+        return $this;
+    }
+
+    public function getChildren(): Collection
+    {
+        return $this->children;
+    }
+
+    /**
+     * @return ExternalTool
+     */
+    public function setChildren(Collection $children): self
+    {
+        $this->children = $children;
 
         return $this;
     }
@@ -492,20 +473,5 @@ class ExternalTool
         }
 
         return $newKey;
-    }
-
-    public function getChildren(): ArrayCollection
-    {
-        return $this->children;
-    }
-
-    /**
-     * @return ExternalTool
-     */
-    public function setChildren(ArrayCollection $children): self
-    {
-        $this->children = $children;
-
-        return $this;
     }
 }

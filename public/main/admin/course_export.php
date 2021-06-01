@@ -1,10 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
  * This tool allows platform admins to export courses to CSV file.
- *
- * @package chamilo.admin
  */
 $cidReset = true;
 
@@ -18,16 +17,24 @@ $interbreadcrumb[] = ['url' => 'index.php', 'name' => get_lang('Administration')
 
 set_time_limit(0);
 
-$course_list = CourseManager::get_courses_list();
+$course_list = CourseManager::get_courses_list(
+    0,
+    0,
+    1,
+    'ASC',
+    -1,
+    '',
+    api_get_current_access_url_id()
+);
 $formSent = null;
 $courses = $selected_courses = [];
 
 if (isset($_POST['formSent']) && $_POST['formSent']) {
     $formSent = $_POST['formSent'];
-    $select_type = intval($_POST['select_type']);
+    $select_type = (int) ($_POST['select_type']);
     $file_type = $_POST['file_type'];
 
-    if ($select_type == 2) {
+    if (2 == $select_type) {
         // Get selected courses from courses list in form sent
         $selected_courses = $_POST['course_code'];
         if (is_array($selected_courses)) {
@@ -60,13 +67,13 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
         foreach ($courses as $course) {
             $dataToExport['code'] = str_replace(';', ',', $course['code']);
             $dataToExport['title'] = str_replace(';', ',', $course['title']);
-            $dataToExport['category_code'] = str_replace(';', ',', $course['category_code']);
-            $categoryInfo = CourseCategory::getCategory($course['category_code']);
+            //$dataToExport['category_code'] = str_replace(';', ',', $course['category_code']);
+            /*$categoryInfo = CourseCategory::getCategory($course['category_code']);
             if ($categoryInfo) {
                 $dataToExport['category_name'] = str_replace(';', ',', $categoryInfo['name']);
             } else {
                 $dataToExport['category_name'] = '';
-            }
+            }*/
             $dataToExport['tutor_name'] = str_replace(';', ',', $course['tutor_name']);
             $dataToExport['course_language'] = str_replace(';', ',', $course['course_language']);
             $dataToExport['students'] = '';
@@ -75,7 +82,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
 
             if (is_array($usersInCourse) && !empty($usersInCourse)) {
                 foreach ($usersInCourse as $user) {
-                    if ($user['status_rel'] == COURSEMANAGER) {
+                    if (COURSEMANAGER == $user['status_rel']) {
                         $dataToExport['teachers'] .= $user['username'].'|';
                     } else {
                         $dataToExport['students'] .= $user['username'].'|';
@@ -93,12 +100,15 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
                 // Remove header
                 unset($listToExport[0]);
                 Export::arrayToXml($listToExport, $archiveFile);
+
                 break;
             case 'csv':
                 Export::arrayToCsv($listToExport, $archiveFile);
+
                 break;
             case 'xls':
                 Export::arrayToXls($listToExport, $archiveFile);
+
                 break;
         }
     } else {

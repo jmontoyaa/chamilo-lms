@@ -1,117 +1,90 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
+use Chamilo\CoreBundle\Traits\UserTrait;
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * PersonalAgenda.
  *
- * @ORM\Table(name="personal_agenda", indexes={@ORM\Index(name="idx_personal_agenda_user", columns={"user"}),
- * @ORM\Index(name="idx_personal_agenda_parent", columns={"parent_event_id"})})
+ * @ORM\Table(name="personal_agenda", indexes={
+ *     @ORM\Index(name="idx_personal_agenda_user", columns={"user"}),
+ *     @ORM\Index(name="idx_personal_agenda_parent", columns={"parent_event_id"})
+ * })
  * @ORM\Entity
  */
 class PersonalAgenda
 {
+    use UserTrait;
+
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="user", type="integer", nullable=true)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="personalAgendas")
+     * @ORM\JoinColumn(name="user", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $user;
+    protected User $user;
 
     /**
-     * @var string
+     * @Assert\NotBlank()
      *
      * @ORM\Column(name="title", type="text", nullable=true)
      */
-    protected $title;
+    protected ?string $title = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="text", type="text", nullable=true)
      */
-    protected $text;
+    protected ?string $text = null;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="date", type="datetime", nullable=true)
      */
-    protected $date;
+    protected ?DateTime $date = null;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="enddate", type="datetime", nullable=true)
      */
-    protected $enddate;
+    protected ?DateTime $endDate = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="parent_event_id", type="integer", nullable=true)
      */
-    protected $parentEventId;
+    protected ?int $parentEventId = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="all_day", type="integer", nullable=false)
      */
-    protected $allDay;
+    protected int $allDay;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="color", type="string", length=255, nullable=true)
      */
-    protected $color;
+    protected ?string $color = null;
 
     /**
-     * Set user.
-     *
-     * @param int $user
-     *
-     * @return PersonalAgenda
-     */
-    public function setUser($user)
-    {
-        $this->user = $user;
-
-        return $this;
-    }
-
-    /**
-     * Get user.
+     * Get id.
      *
      * @return int
      */
-    public function getUser()
+    public function getId()
     {
-        return $this->user;
+        return $this->id;
     }
 
-    /**
-     * Set title.
-     *
-     * @param string $title
-     *
-     * @return PersonalAgenda
-     */
-    public function setTitle($title)
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
@@ -128,38 +101,19 @@ class PersonalAgenda
         return $this->title;
     }
 
-    /**
-     * Set text.
-     *
-     * @param string $text
-     *
-     * @return PersonalAgenda
-     */
-    public function setText($text)
+    public function setText(string $text): self
     {
         $this->text = $text;
 
         return $this;
     }
 
-    /**
-     * Get text.
-     *
-     * @return string
-     */
-    public function getText()
+    public function getText(): string
     {
         return $this->text;
     }
 
-    /**
-     * Set date.
-     *
-     * @param \DateTime $date
-     *
-     * @return PersonalAgenda
-     */
-    public function setDate($date)
+    public function setDate(DateTime $date): self
     {
         $this->date = $date;
 
@@ -169,45 +123,29 @@ class PersonalAgenda
     /**
      * Get date.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getDate()
     {
         return $this->date;
     }
 
-    /**
-     * Set enddate.
-     *
-     * @param \DateTime $enddate
-     *
-     * @return PersonalAgenda
-     */
-    public function setEnddate($enddate)
+    public function setEndDate(DateTime $value): self
     {
-        $this->enddate = $enddate;
+        $this->endDate = $value;
 
         return $this;
     }
 
     /**
-     * Get enddate.
-     *
-     * @return \DateTime
+     * @return DateTime
      */
-    public function getEnddate()
+    public function getEndDate()
     {
-        return $this->enddate;
+        return $this->endDate;
     }
 
-    /**
-     * Set parentEventId.
-     *
-     * @param int $parentEventId
-     *
-     * @return PersonalAgenda
-     */
-    public function setParentEventId($parentEventId)
+    public function setParentEventId(int $parentEventId): self
     {
         $this->parentEventId = $parentEventId;
 
@@ -224,14 +162,7 @@ class PersonalAgenda
         return $this->parentEventId;
     }
 
-    /**
-     * Set allDay.
-     *
-     * @param int $allDay
-     *
-     * @return PersonalAgenda
-     */
-    public function setAllDay($allDay)
+    public function setAllDay(int $allDay): self
     {
         $this->allDay = $allDay;
 
@@ -249,16 +180,6 @@ class PersonalAgenda
     }
 
     /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
      * @return string
      */
     public function getColor()
@@ -266,12 +187,7 @@ class PersonalAgenda
         return $this->color;
     }
 
-    /**
-     * @param string $color
-     *
-     * @return PersonalAgenda
-     */
-    public function setColor($color)
+    public function setColor(string $color): self
     {
         $this->color = $color;
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
@@ -15,32 +17,28 @@ use Doctrine\ORM\Mapping as ORM;
 class SequenceRuleMethod
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue()
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="method_order", type="integer")
      */
-    protected $methodOrder;
+    protected string $methodOrder;
 
     /**
      * @ORM\ManyToOne(targetEntity="SequenceRule")
      * @ORM\JoinColumn(name="sequence_rule_id", referencedColumnName="id")
      */
-    protected $rule;
+    protected ?SequenceRule $rule = null;
 
     /**
      * @ORM\ManyToOne(targetEntity="SequenceMethod")
      * @ORM\JoinColumn(name="sequence_method_id", referencedColumnName="id")
      */
-    protected $method;
+    protected ?SequenceMethod $method = null;
 
     /**
      * Get id.
@@ -60,10 +58,7 @@ class SequenceRuleMethod
         return $this->methodOrder;
     }
 
-    /**
-     * @param string $methodOrder
-     */
-    public function setMethodOrder($methodOrder)
+    public function setMethodOrder(string $methodOrder): void
     {
         $this->methodOrder = $methodOrder;
     }
@@ -73,7 +68,7 @@ class SequenceRuleMethod
         return $this->rule;
     }
 
-    public function setRule($rule)
+    public function setRule(SequenceRule $rule): void
     {
         $this->rule = $rule;
     }
@@ -83,7 +78,7 @@ class SequenceRuleMethod
         return $this->method;
     }
 
-    public function setMethod($method)
+    public function setMethod(SequenceMethod $method): void
     {
         $this->method = $method;
     }

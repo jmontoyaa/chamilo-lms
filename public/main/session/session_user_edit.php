@@ -9,8 +9,8 @@ require_once __DIR__.'/../inc/global.inc.php';
 $sessionId = isset($_GET['session_id']) ? $_GET['session_id'] : null;
 $userId = isset($_GET['user_id']) ? $_GET['user_id'] : null;
 
-SessionManager::protectSession($sessionId);
-
+$session = api_get_session_entity($sessionId);
+SessionManager::protectSession($session);
 $sessionInfo = api_get_session_info($sessionId);
 
 if (empty($sessionInfo)) {
@@ -43,7 +43,7 @@ $userAccess = CourseManager::getFirstCourseAccessPerSessionAndUser(
     $userId
 );
 
-if (count($userAccess) == 0) {
+if (0 == count($userAccess)) {
     // User never accessed the session. End date is still open
     $msg = sprintf(get_lang('This user never accessed this session before. The duration is currently set to %s days (from the first access date)'), $sessionInfo['duration']);
 } else {
@@ -51,6 +51,7 @@ if (count($userAccess) == 0) {
     $days = SessionManager::getDayLeftInSession($sessionInfo, $userId);
     $firstAccess = api_strtotime($userAccess['login_course_date'], 'UTC');
     $firstAccessString = api_convert_and_format_date($userAccess['login_course_date'], DATE_FORMAT_SHORT, 'UTC');
+    $duration = 0;
     if ($days > 0) {
         $userSubscription = SessionManager::getUserSession($userId, $sessionId);
         $duration = $sessionInfo['duration'];
@@ -78,7 +79,7 @@ $message = null;
 if ($form->validate()) {
     $duration = $form->getSubmitValue('duration');
     // Only update if the duration is different from the default duration
-    if ($duration != 0) {
+    if (0 != $duration) {
         SessionManager::editUserSessionDuration($duration, $userId, $sessionId);
         $message = Display::return_message(get_lang('Item updated'), 'confirmation');
     } else {

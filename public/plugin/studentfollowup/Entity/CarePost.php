@@ -1,8 +1,10 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\PluginBundle\Entity\StudentFollowUp;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 
@@ -84,13 +86,13 @@ class CarePost
     protected $attachment;
 
     /**
-     * @ORM\ManyToOne(targetEntity="Chamilo\UserBundle\Entity\User", cascade={"persist"})
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", cascade={"persist"})
      * @ORM\JoinColumn(name="insert_user_id", referencedColumnName="id", nullable=false)
      */
     private $insertUser;
 
     /**
-     * @ORM\ManyToOne(targetEntity="Chamilo\UserBundle\Entity\User", cascade={"persist"})
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", cascade={"persist"})
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
      */
     private $user;
@@ -141,7 +143,7 @@ class CarePost
      */
     public function __construct()
     {
-        $this->createdAt = new \DateTime();
+        $this->createdAt = new DateTime();
         $this->attachment = '';
     }
 
@@ -225,17 +227,12 @@ class CarePost
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
     public function getUser()
     {
         return $this->user;
     }
 
     /**
-     * @param mixed $user
-     *
      * @return CarePost
      */
     public function setUser($user)
@@ -305,17 +302,12 @@ class CarePost
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
     public function getParent()
     {
         return $this->parent;
     }
 
     /**
-     * @param mixed $parent
-     *
      * @return CarePost
      */
     public function setParent($parent)
@@ -333,17 +325,12 @@ class CarePost
         return !empty($this->parent) ? 1 : 0;
     }
 
-    /**
-     * @return mixed
-     */
     public function getChildren()
     {
         return $this->children;
     }
 
     /**
-     * @param mixed $children
-     *
      * @return CarePost
      */
     public function setChildren($children)
@@ -353,17 +340,12 @@ class CarePost
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
     public function getCreatedAt()
     {
         return $this->createdAt;
     }
 
     /**
-     * @param mixed $createdAt
-     *
      * @return CarePost
      */
     public function setCreatedAt($createdAt)
@@ -373,17 +355,12 @@ class CarePost
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
     public function getUpdatedAt()
     {
         return $this->updatedAt;
     }
 
     /**
-     * @param mixed $updatedAt
-     *
      * @return CarePost
      */
     public function setUpdatedAt($updatedAt)
@@ -413,17 +390,12 @@ class CarePost
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
     public function getInsertUser()
     {
         return $this->insertUser;
     }
 
     /**
-     * @param mixed $insertUser
-     *
      * @return CarePost
      */
     public function setInsertUser($insertUser)

@@ -1,17 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity\Listener;
 
 use Chamilo\CoreBundle\Entity\AccessUrl;
-use Chamilo\CoreBundle\Entity\AccessUrlRelCourse;
 use Chamilo\CoreBundle\Entity\Course;
-use Chamilo\CoreBundle\Repository\CourseRepository;
+use Chamilo\CoreBundle\Repository\Node\CourseRepository;
+use Chamilo\CoreBundle\Settings\SettingsManager;
 use Chamilo\CoreBundle\ToolChain;
-use Chamilo\CourseBundle\Repository\CToolRepository;
-use Chamilo\SettingsBundle\Manager\SettingsManager;
 use Doctrine\ORM\Event\LifecycleEventArgs;
+use Exception;
 
 /**
  * Class CourseListener.
@@ -21,24 +22,14 @@ use Doctrine\ORM\Event\LifecycleEventArgs;
  */
 class CourseListener
 {
-    /**
-     * @var ToolChain
-     */
-    protected $toolChain;
+    protected ToolChain $toolChain;
 
-    /**
-     * @var SettingsManager
-     */
-    protected $settingsManager;
+    protected SettingsManager $settingsManager;
 
-    /**
-     * CourseListener constructor.
-     */
-    public function __construct(CToolRepository $toolRepository, ToolChain $toolChain, SettingsManager $settingsManager)
+    public function __construct(ToolChain $toolChain, SettingsManager $settingsManager)
     {
         $this->toolChain = $toolChain;
         $this->settingsManager = $settingsManager;
-        $this->toolRepository = $toolRepository;
     }
 
     /**
@@ -50,41 +41,41 @@ class CourseListener
      * This function add the course tools to the current course entity
      * thanks to the tool chain see src/Chamilo/CourseBundle/ToolChain.php
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    public function prePersist(Course $course, LifecycleEventArgs $args)
+    public function prePersist(Course $course, LifecycleEventArgs $args): void
     {
-        /** @var AccessUrlRelCourse $urlRelCourse */
+        error_log('Course listener prePersist');
         if ($course) {
-            /*$urlRelCourse = $course->getUrls()->first();
-            $url = $urlRelCourse->getUrl();*/
-            //$url = $course->getCurrentUrl();
-            //$repo = $args->getEntityManager()->getRepository('ChamiloCoreBundle:Course');
-            ///$this->checkLimit($repo, $course, $url);
-            $this->toolChain->addToolsInCourse($this->toolRepository, $course);
+            // $this->checkLimit($repo, $course, $url);
+            //$this->toolChain->addToolsInCourse($this->toolRepository, $course);
         }
     }
 
-    public function postPersist(Course $course, LifecycleEventArgs $args)
+    public function postPersist(Course $course, LifecycleEventArgs $args): void
     {
-        /** @var AccessUrlRelCourse $urlRelCourse */
+        error_log('Course listener postPersist');
         if ($course) {
+            error_log('add tools');
+            //$this->toolChain->addToolsInCourse($this->toolRepository, $course);
             /*$urlRelCourse = $course->getUrls()->first();
             $url = $urlRelCourse->getUrl();*/
             //$url = $course->getCurrentUrl();
             //$repo = $args->getEntityManager()->getRepository('ChamiloCoreBundle:Course');
             ///$this->checkLimit($repo, $course, $url);
             //$this->toolChain->addToolsInCourse($course);
+            $this->toolChain->addToolsInCourse($course);
         }
     }
 
     /**
      * This code is executed when a course is updated.
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    public function preUpdate(Course $course, LifecycleEventArgs $args)
+    public function preUpdate(Course $course, LifecycleEventArgs $args): void
     {
+        error_log('preUpdate');
         if ($course) {
             /*$url = $course->getCurrentUrl();
             $repo = $args->getEntityManager()->getRepository('ChamiloCoreBundle:Course');
@@ -93,15 +84,13 @@ class CourseListener
     }
 
     /**
-     * @param CourseRepository $repo
-     *
-     * @throws \Exception
+     * @throws Exception
      */
-    protected function checkLimit($repo, Course $course, AccessUrl $url)
+    protected function checkLimit(CourseRepository $repo, Course $course, AccessUrl $url): void
     {
         $limit = $url->getLimitCourses();
 
-        if (!empty($limit)) {
+        /*if (!empty($limit)) {
             $count = $repo->getCountCoursesByUrl($url);
             if ($count >= $limit) {
                 api_warn_hosting_contact('hosting_limit_courses', $limit);
@@ -121,6 +110,6 @@ class CourseListener
                     throw new \Exception('PortalActiveCoursesLimitReached');
                 }
             }
-        }
+        }*/
     }
 }

@@ -1,19 +1,18 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Framework\Container;
 
 /**
  * Show the skills report.
  *
  * @author Angel Fernando Quiroz Campos <angel.quiroz@beeznest.com>
- *
- * @package chamilo.social.skill
  */
-use Chamilo\CoreBundle\Framework\Container;
-
 require_once __DIR__.'/../inc/global.inc.php';
 
 $userId = api_get_user_id();
-Skill::isAllowed($userId);
+SkillModel::isAllowed($userId);
 
 $isStudent = api_is_student();
 $isStudentBoss = api_is_student_boss();
@@ -42,12 +41,12 @@ $skillTable = Database::get_main_table(TABLE_MAIN_SKILL);
 $skillRelUserTable = Database::get_main_table(TABLE_MAIN_SKILL_REL_USER);
 $courseTable = Database::get_main_table(TABLE_MAIN_COURSE);
 $tableRows = [];
-$objSkill = new Skill();
+$objSkill = new SkillModel();
 $tpl = new Template(get_lang('Skills'));
 $tplPath = null;
 
-$tpl->assign('allow_skill_tool', api_get_setting('allow_skills_tool') === 'true');
-$tpl->assign('allow_drh_skills_management', api_get_setting('allow_hr_skills_management') === 'true');
+$tpl->assign('allow_skill_tool', 'true' === api_get_setting('allow_skills_tool'));
+$tpl->assign('allow_drh_skills_management', 'true' === api_get_setting('allow_hr_skills_management'));
 
 if ($isStudent) {
     $result = $objSkill->getUserSkillsTable($userId);
@@ -89,7 +88,7 @@ if ($isStudent) {
         while ($resultData = Database::fetch_assoc($result)) {
             $tableRow = [
                 'complete_name' => $followedStudents[$selectedStudent]['completeName'],
-                'skill_name' => Skill::translateName($resultData['name']),
+                'skill_name' => SkillModel::translateName($resultData['name']),
                 'achieved_at' => api_format_date($resultData['acquired_skill_at'], DATE_FORMAT_NUMBER),
                 'course_image' => Display::return_icon(
                     'course.png',
@@ -127,7 +126,7 @@ if ($isStudent) {
 
     $tableRows = [];
     $reportTitle = null;
-    $skills = $objSkill->get_all();
+    $skills = $objSkill->getAllSkills();
 
     switch ($action) {
         case 'filterByCourse':

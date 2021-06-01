@@ -1,108 +1,65 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * CThematicPlan.
  *
  * @ORM\Table(
- *  name="c_thematic_plan",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="thematic_id", columns={"thematic_id", "description_type"})
- *  }
+ *     name="c_thematic_plan",
+ *     indexes={
+ *         @ORM\Index(name="thematic_id", columns={"thematic_id", "description_type"})
+ *     }
  * )
  * @ORM\Entity
  */
-class CThematicPlan
+class CThematicPlan //extends AbstractResource implements ResourceInterface
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
-     */
-    protected $cId;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="thematic_id", type="integer", nullable=false)
-     */
-    protected $thematicId;
-
-    /**
-     * @var string
+     * @Assert\NotBlank()
      *
      * @ORM\Column(name="title", type="string", length=255, nullable=false)
      */
-    protected $title;
+    protected string $title;
 
     /**
-     * @var string
-     *
+     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CThematic", inversedBy="plans")
+     * @ORM\JoinColumn(name="thematic_id", referencedColumnName="iid")
+     */
+    protected CThematic $thematic;
+
+    /**
      * @ORM\Column(name="description", type="text", nullable=true)
      */
-    protected $description;
+    protected ?string $description = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="description_type", type="integer", nullable=false)
      */
-    protected $descriptionType;
+    protected int $descriptionType;
 
-    /**
-     * Set thematicId.
-     *
-     * @param int $thematicId
-     *
-     * @return CThematicPlan
-     */
-    public function setThematicId($thematicId)
+    public function __toString(): string
     {
-        $this->thematicId = $thematicId;
-
-        return $this;
+        return (string) $this->getIid();
     }
 
-    /**
-     * Get thematicId.
-     *
-     * @return int
-     */
-    public function getThematicId()
-    {
-        return $this->thematicId;
-    }
-
-    /**
-     * Set title.
-     *
-     * @param string $title
-     *
-     * @return CThematicPlan
-     */
-    public function setTitle($title)
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
@@ -119,99 +76,60 @@ class CThematicPlan
         return $this->title;
     }
 
-    /**
-     * Set description.
-     *
-     * @param string $description
-     *
-     * @return CThematicPlan
-     */
-    public function setDescription($description)
+    public function setDescription(?string $description): self
     {
         $this->description = $description;
 
         return $this;
     }
 
-    /**
-     * Get description.
-     *
-     * @return string
-     */
-    public function getDescription()
+    public function getDescription(): ?string
     {
         return $this->description;
     }
 
-    /**
-     * Set descriptionType.
-     *
-     * @param int $descriptionType
-     *
-     * @return CThematicPlan
-     */
-    public function setDescriptionType($descriptionType)
+    public function setDescriptionType(int $descriptionType): self
     {
         $this->descriptionType = $descriptionType;
 
         return $this;
     }
 
-    /**
-     * Get descriptionType.
-     *
-     * @return int
-     */
-    public function getDescriptionType()
+    public function getDescriptionType(): int
     {
         return $this->descriptionType;
     }
 
-    /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CThematicPlan
-     */
-    public function setId($id)
+    public function getIid(): int
     {
-        $this->id = $id;
+        return $this->iid;
+    }
+
+    public function getThematic(): CThematic
+    {
+        return $this->thematic;
+    }
+
+    public function setThematic(CThematic $thematic): self
+    {
+        $this->thematic = $thematic;
 
         return $this;
     }
 
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
+    /*
+    public function getResourceIdentifier(): int
     {
-        return $this->id;
+        return $this->getIid();
     }
 
-    /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CThematicPlan
-     */
-    public function setCId($cId)
+    public function getResourceName(): string
     {
-        $this->cId = $cId;
-
-        return $this;
+        return $this->getTitle();
     }
 
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
+    public function setResourceName(string $name): self
     {
-        return $this->cId;
-    }
+        return $this->setTitle($name);
+    }*/
 }

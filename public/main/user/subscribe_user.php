@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt*/
 
 use Chamilo\CoreBundle\Entity\ExtraField;
@@ -7,8 +8,6 @@ use ExtraField as ExtraFieldModel;
 /**
  * This script allows teachers to subscribe existing users
  * to their course.
- *
- * @package chamilo.user
  */
 require_once __DIR__.'/../inc/global.inc.php';
 $current_course_tool = TOOL_USER;
@@ -19,7 +18,7 @@ $this_section = SECTION_COURSES;
 // notice for unauthorized people.
 api_protect_course_script(true);
 
-if (api_get_setting('allow_user_course_subscription_by_course_admin') === 'false') {
+if ('false' === api_get_setting('allow_user_course_subscription_by_course_admin')) {
     if (!api_is_platform_admin()) {
         api_not_allowed(true);
     }
@@ -36,8 +35,8 @@ $keyword = isset($_REQUEST['keyword']) ? Security::remove_XSS($_REQUEST['keyword
 
 $courseInfo = api_get_course_info();
 
-if ($type == COURSEMANAGER) {
-    $tool_name = get_lang('Enroll users to courseAsTeacher');
+if (COURSEMANAGER == $type) {
+    $tool_name = get_lang('Enroll teachers');
 }
 
 //extra entries in breadcrumb
@@ -60,9 +59,9 @@ $list_not_Registerister_user = '';
 if (isset($_REQUEST['Registerister'])) {
     $userInfo = api_get_user_info($_REQUEST['user_id']);
     if ($userInfo) {
-        if ($type === COURSEMANAGER) {
+        if (COURSEMANAGER === $type) {
             if (!empty($sessionId)) {
-                $message = $userInfo['complete_name_with_username'].' '.get_lang('has been Registeristered to your course');
+                $message = $userInfo['complete_name_with_username'].' '.get_lang('has been registered to your course');
                 SessionManager::set_coach_to_course_session(
                     $_REQUEST['user_id'],
                     $sessionId,
@@ -72,14 +71,14 @@ if (isset($_REQUEST['Registerister'])) {
             } else {
                 CourseManager::subscribeUser(
                     $_REQUEST['user_id'],
-                    $courseInfo['code'],
+                    $courseInfo['real_id'],
                     COURSEMANAGER
                 );
             }
         } else {
             CourseManager::subscribeUser(
                 $_REQUEST['user_id'],
-                $courseInfo['code']
+                $courseInfo['real_id']
             );
         }
     }
@@ -95,9 +94,9 @@ if (isset($_POST['action'])) {
                 foreach ($_POST['user'] as $index => $user_id) {
                     $userInfo = api_get_user_info($user_id);
                     if ($userInfo) {
-                        if ($type === COURSEMANAGER) {
+                        if (COURSEMANAGER === $type) {
                             if (!empty($sessionId)) {
-                                $message = $userInfo['complete_name_with_username'].' '.get_lang('has been Registeristered to your course');
+                                $message = $userInfo['complete_name_with_username'].' '.get_lang('has been registered to your course');
                                 $result = SessionManager::set_coach_to_course_session(
                                     $user_id,
                                     $sessionId,
@@ -107,10 +106,10 @@ if (isset($_POST['action'])) {
                                     $isSuscribe[] = $message;
                                 }
                             } else {
-                                CourseManager::subscribeUser($user_id, $courseInfo['code'], COURSEMANAGER);
+                                CourseManager::subscribeUser($user_id, $courseInfo['real_id'], COURSEMANAGER);
                             }
                         } else {
-                            CourseManager::subscribeUser($user_id, $courseInfo['code']);
+                            CourseManager::subscribeUser($user_id, $courseInfo['real_id']);
                         }
                     }
                 }
@@ -152,7 +151,7 @@ if (api_is_western_name_order()) {
     $table->set_header($col++, get_lang('First name'));
 }
 
-if (api_get_setting('show_email_addresses') == 'true') {
+if ('true' == api_get_setting('show_email_addresses')) {
     $table->set_header($col++, get_lang('e-mail'));
     $table->set_column_filter($col - 1, 'email_filter');
 }
@@ -189,7 +188,7 @@ if (isset($_GET['subscribe_user_filter_value']) && !empty($_GET['subscribe_user_
         Display::return_icon('clean_group.gif').' '.get_lang('Clear filter results').'</a>';
 }
 $extraForm = '';
-if (api_get_setting('ProfilingFilterAddingUsers') === 'true') {
+if ('true' === api_get_setting('ProfilingFilterAddingUsers')) {
     $extraForm = display_extra_profile_fields_filter();
 }
 
@@ -206,9 +205,9 @@ $form->addText('keyword', '', false);
 $form->addElement('hidden', 'type', $type);
 $form->addElement('hidden', 'cidReq', api_get_course_id());
 $form->addButtonSearch(get_lang('Search'));
-echo Display::toolbarAction('toolbar-subscriber', [$actionsLeft, $extraForm, $form->returnForm()], [4, 4, 4]);
+echo Display::toolbarAction('toolbar-subscriber', [$actionsLeft, $extraForm, $form->returnForm()]);
 
-$option = $type == COURSEMANAGER ? 2 : 1;
+$option = COURSEMANAGER == $type ? 2 : 1;
 echo UserManager::getUserSubscriptionTab($option);
 
 // Display table
@@ -231,13 +230,13 @@ function get_number_of_users()
     $courseCode = api_get_course_id();
     $sessionId = api_get_session_id();
 
-    if (isset($_REQUEST['type']) && $_REQUEST['type'] === 'teacher') {
-        if (api_get_session_id() != 0) {
+    if (isset($_REQUEST['type']) && 'teacher' === $_REQUEST['type']) {
+        if (0 != api_get_session_id()) {
             $sql = "SELECT COUNT(u.id)
                     FROM $user_table u
                     LEFT JOIN $tbl_session_rel_course_user cu
                     ON
-                        u.user_id = cu.user_id AND
+                        u.id = cu.user_id AND
                         c_id = '".api_get_course_int_id()."' AND
                         session_id ='".$sessionId."'
                     WHERE
@@ -247,16 +246,16 @@ function get_number_of_users()
 
             if (api_is_multiple_url_enabled()) {
                 $url_access_id = api_get_current_access_url_id();
-                if ($url_access_id != -1) {
+                if (-1 != $url_access_id) {
                     $tbl_url_rel_user = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
                     $sql = "SELECT COUNT(u.id)
                             FROM $user_table u
                             LEFT JOIN $tbl_session_rel_course_user cu
                             ON
-                                u.user_id = cu.user_id AND cu.c_id = '".api_get_course_int_id()."' AND
+                                u.id = cu.user_id AND cu.c_id = '".api_get_course_int_id()."' AND
                                 session_id ='".$sessionId."'
                             INNER JOIN  $tbl_url_rel_user as url_rel_user
-                            ON (url_rel_user.user_id = u.user_id)
+                            ON (url_rel_user.user_id = u.id)
                             WHERE
                                 cu.user_id IS NULL AND
                                 access_url_id= $url_access_id AND
@@ -269,32 +268,32 @@ function get_number_of_users()
             $sql = "SELECT COUNT(u.id)
                     FROM $user_table u
                     LEFT JOIN $course_user_table cu
-                    ON u.user_id = cu.user_id and c_id='".api_get_course_int_id()."'
+                    ON u.id = cu.user_id and c_id='".api_get_course_int_id()."'
                     WHERE cu.user_id IS NULL AND u.status<>".DRH." ";
 
             if (api_is_multiple_url_enabled()) {
                 $url_access_id = api_get_current_access_url_id();
-                if ($url_access_id != -1) {
+                if (-1 != $url_access_id) {
                     $tbl_url_rel_user = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
 
                     $sql = "SELECT COUNT(u.id)
                         FROM $user_table u
                         LEFT JOIN $course_user_table cu
-                        ON u.user_id = cu.user_id AND c_id='".api_get_course_int_id()."'
+                        ON u.id = cu.user_id AND c_id='".api_get_course_int_id()."'
                         INNER JOIN  $tbl_url_rel_user as url_rel_user
-                        ON (url_rel_user.user_id = u.user_id)
+                        ON (url_rel_user.user_id = u.id)
                         WHERE cu.user_id IS NULL AND u.status<>".DRH." AND access_url_id= $url_access_id ";
                 }
             }
         }
     } else {
         // students
-        if ($sessionId != 0) {
+        if (0 != $sessionId) {
             $sql = "SELECT COUNT(u.id)
                     FROM $user_table u
                     LEFT JOIN $tbl_session_rel_course_user cu
                     ON
-                        u.user_id = cu.user_id AND
+                        u.id = cu.user_id AND
                         c_id='".api_get_course_int_id()."' AND
                         session_id ='".$sessionId."'
                     WHERE
@@ -304,13 +303,13 @@ function get_number_of_users()
 
             if (api_is_multiple_url_enabled()) {
                 $url_access_id = api_get_current_access_url_id();
-                if ($url_access_id != -1) {
+                if (-1 != $url_access_id) {
                     $tbl_url_rel_user = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
                     $sql = "SELECT COUNT(u.id)
                             FROM $user_table u
                             LEFT JOIN $tbl_session_rel_course_user cu
                             ON
-                                u.user_id = cu.user_id AND
+                                u.id = cu.user_id AND
                                 c_id='".api_get_course_int_id()."' AND
                                 session_id ='".$sessionId."'
                             INNER JOIN $tbl_url_rel_user as url_rel_user
@@ -326,17 +325,17 @@ function get_number_of_users()
             $sql = "SELECT COUNT(u.id)
                     FROM $user_table u
                     LEFT JOIN $course_user_table cu
-                    ON u.user_id = cu.user_id AND c_id='".api_get_course_int_id()."'";
+                    ON u.id = cu.user_id AND c_id='".api_get_course_int_id()."'";
 
             // we change the SQL when we have a filter
             if (isset($_GET['subscribe_user_filter_value']) &&
                 !empty($_GET['subscribe_user_filter_value']) &&
-                api_get_setting('ProfilingFilterAddingUsers') === 'true'
+                'true' === api_get_setting('ProfilingFilterAddingUsers')
             ) {
                 $field_identification = explode('*', $_GET['subscribe_user_filter_value']);
                 $sql .= "
                     LEFT JOIN $table_user_field_values field_values
-                    ON field_values.item_id = u.user_id
+                    ON field_values.item_id = u.id
                     WHERE
                         cu.user_id IS NULL AND
                         u.status <> ".DRH." AND
@@ -350,12 +349,12 @@ function get_number_of_users()
             if (api_is_multiple_url_enabled()) {
                 $url_access_id = api_get_current_access_url_id();
 
-                if ($url_access_id != -1) {
+                if (-1 != $url_access_id) {
                     $tbl_url_rel_user = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
                     $sql = "SELECT COUNT(u.id)
                             FROM $user_table u
-                            LEFT JOIN $course_user_table cu 
-                            ON u.user_id = cu.user_id AND c_id='".api_get_course_int_id()."'
+                            LEFT JOIN $course_user_table cu
+                            ON u.id = cu.user_id AND c_id='".api_get_course_int_id()."'
                             INNER JOIN $tbl_url_rel_user as url_rel_user
                             ON (url_rel_user.user_id = u.id)
                             WHERE cu.user_id IS NULL AND access_url_id= $url_access_id AND u.status <> ".DRH." ";
@@ -376,7 +375,7 @@ function get_number_of_users()
         )";
 
         // we also want to search for users who have something in their profile fields that matches the keyword
-        if (api_get_setting('ProfilingFilterAddingUsers') === 'true') {
+        if ('true' === api_get_setting('ProfilingFilterAddingUsers')) {
             $additional_users = search_additional_profile_fields($keyword);
         }
 
@@ -427,7 +426,7 @@ function get_user_data($from, $number_of_items, $column, $direction)
     // adding teachers
     $is_western_name_order = api_is_western_name_order();
 
-    if (api_get_setting('show_email_addresses') === 'true') {
+    if ('true' === api_get_setting('show_email_addresses')) {
         $select_fields = "u.id              AS col0,
                 u.official_code        AS col1,
                 ".($is_western_name_order
@@ -437,9 +436,9 @@ function get_user_data($from, $number_of_items, $column, $direction)
                 u.firstname            AS col3,")."
                 u.email 	           AS col4,
                 u.active               AS col5,
-                u.user_id              AS col6";
+                u.id              AS col6";
     } else {
-        $select_fields = "u.user_id    AS col0,
+        $select_fields = "u.id    AS col0,
                 u.official_code        AS col1,
                 ".($is_western_name_order
                 ? "u.firstname         AS col2,
@@ -447,30 +446,30 @@ function get_user_data($from, $number_of_items, $column, $direction)
                 : "u.lastname          AS col2,
                 u.firstname            AS col3,")."
                 u.active               AS col4,
-                u.user_id              AS col5";
+                u.id              AS col5";
     }
-    if (isset($_REQUEST['type']) && $_REQUEST['type'] == COURSEMANAGER) {
+    if (isset($_REQUEST['type']) && COURSEMANAGER == $_REQUEST['type']) {
         // adding a teacher through a session
         if (!empty($sessionId)) {
             $sql = "SELECT $select_fields
                     FROM $user_table u
                     LEFT JOIN $tbl_session_rel_course_user cu
                     ON
-                        u.user_id = cu.user_id AND
+                        u.id = cu.user_id AND
                         c_id ='".$courseId."' AND
                         session_id ='".$sessionId."'
                     INNER JOIN  $tbl_url_rel_user as url_rel_user
-                    ON (url_rel_user.user_id = u.user_id) ";
+                    ON (url_rel_user.user_id = u.id) ";
 
             // applying the filter of the additional user profile fields
             if (isset($_GET['subscribe_user_filter_value']) &&
                 !empty($_GET['subscribe_user_filter_value']) &&
-                api_get_setting('ProfilingFilterAddingUsers') == 'true'
+                'true' == api_get_setting('ProfilingFilterAddingUsers')
             ) {
                 $field_identification = explode('*', $_GET['subscribe_user_filter_value']);
                 $sql .= "
                     LEFT JOIN $table_user_field_values field_values
-                        ON field_values.item_id = u.user_id
+                        ON field_values.item_id = u.id
                     WHERE
                         cu.user_id IS NULL AND
                         u.status = 1 AND
@@ -486,16 +485,16 @@ function get_user_data($from, $number_of_items, $column, $direction)
             $sql = "SELECT $select_fields
                     FROM $user_table u
                     LEFT JOIN $course_user_table cu
-                    ON u.user_id = cu.user_id AND c_id = '".$courseId."'";
+                    ON u.id = cu.user_id AND c_id = '".$courseId."'";
             // applying the filter of the additional user profile fields
             if (isset($_GET['subscribe_user_filter_value']) &&
                 !empty($_GET['subscribe_user_filter_value']) &&
-                api_get_setting('ProfilingFilterAddingUsers') == 'true'
+                'true' == api_get_setting('ProfilingFilterAddingUsers')
             ) {
                 $field_identification = explode('*', $_GET['subscribe_user_filter_value']);
                 $sql .= "
                     LEFT JOIN $table_user_field_values field_values
-                        ON field_values.item_id = u.user_id
+                        ON field_values.item_id = u.id
                     WHERE
                         cu.user_id IS NULL AND u.status<>".DRH." AND
                         field_values.field_id = '".intval($field_identification[0])."' AND
@@ -506,23 +505,23 @@ function get_user_data($from, $number_of_items, $column, $direction)
 
             // adding a teacher NOT trough a session on a portal with multiple URLs
             if (api_is_multiple_url_enabled()) {
-                if ($url_access_id != -1) {
+                if (-1 != $url_access_id) {
                     $sql = "SELECT $select_fields
                             FROM $user_table u
                             LEFT JOIN $course_user_table cu
-                            ON u.user_id = cu.user_id and c_id='".$courseId."'
+                            ON u.id = cu.user_id and c_id='".$courseId."'
                             INNER JOIN  $tbl_url_rel_user as url_rel_user
-                            ON (url_rel_user.user_id = u.user_id) ";
+                            ON (url_rel_user.user_id = u.id) ";
 
                     // applying the filter of the additional user profile fields
                     if (isset($_GET['subscribe_user_filter_value']) &&
                         !empty($_GET['subscribe_user_filter_value']) &&
-                        api_get_setting('ProfilingFilterAddingUsers') == 'true'
+                        'true' == api_get_setting('ProfilingFilterAddingUsers')
                     ) {
                         $field_identification = explode('*', $_GET['subscribe_user_filter_value']);
                         $sql .= "
                             LEFT JOIN $table_user_field_values field_values
-                                ON field_values.item_id = u.user_id
+                                ON field_values.item_id = u.id
                             WHERE
                                 cu.user_id IS NULL AND
                                 u.status<>".DRH." AND
@@ -541,12 +540,12 @@ function get_user_data($from, $number_of_items, $column, $direction)
                     FROM $user_table u
                     LEFT JOIN $tbl_session_rel_course_user cu
                     ON
-                        u.user_id = cu.user_id AND
+                        u.id = cu.user_id AND
                         c_id = $courseId AND
                         session_id = $sessionId ";
 
             if (api_is_multiple_url_enabled()) {
-                $sql .= " INNER JOIN $tbl_url_rel_user as url_rel_user ON (url_rel_user.user_id = u.user_id) ";
+                $sql .= " INNER JOIN $tbl_url_rel_user as url_rel_user ON (url_rel_user.user_id = u.id) ";
             }
 
             // applying the filter of the additional user profile fields
@@ -556,7 +555,7 @@ function get_user_data($from, $number_of_items, $column, $direction)
                 $field_identification = explode('*', $_GET['subscribe_user_filter_value']);
                 $sql .= "
                     LEFT JOIN $table_user_field_values field_values
-                        ON field_values.item_id = u.user_id
+                        ON field_values.item_id = u.id
                     WHERE
                         cu.user_id IS NULL AND
                         u.status<>".DRH." AND
@@ -577,7 +576,7 @@ function get_user_data($from, $number_of_items, $column, $direction)
                     FROM $user_table u
                     LEFT JOIN $course_user_table cu
                     ON
-                        u.user_id = cu.user_id AND
+                        u.id = cu.user_id AND
                         c_id = $courseId ";
 
             // applying the filter of the additional user profile fields
@@ -585,7 +584,7 @@ function get_user_data($from, $number_of_items, $column, $direction)
                 $field_identification = explode('*', $_GET['subscribe_user_filter_value']);
                 $sql .= "
                     LEFT JOIN $table_user_field_values field_values
-                        ON field_values.item_id = u.user_id
+                        ON field_values.item_id = u.id
                     WHERE
                         cu.user_id IS NULL AND
                         u.status <> ".DRH." AND
@@ -597,23 +596,23 @@ function get_user_data($from, $number_of_items, $column, $direction)
 
             //showing only the courses of the current Chamilo access_url_id
             if (api_is_multiple_url_enabled()) {
-                if ($url_access_id != -1) {
+                if (-1 != $url_access_id) {
                     $sql = "SELECT $select_fields
                         FROM $user_table u
                         LEFT JOIN $course_user_table cu
-                        ON u.user_id = cu.user_id AND c_id='".$courseId."'
+                        ON u.id = cu.user_id AND c_id='".$courseId."'
                         INNER JOIN  $tbl_url_rel_user as url_rel_user
-                        ON (url_rel_user.user_id = u.user_id) ";
+                        ON (url_rel_user.user_id = u.id) ";
 
                     // applying the filter of the additional user profile fields
                     if (isset($_GET['subscribe_user_filter_value']) &&
                         !empty($_GET['subscribe_user_filter_value']) &&
-                        api_get_setting('ProfilingFilterAddingUsers') == 'true'
+                        'true' == api_get_setting('ProfilingFilterAddingUsers')
                     ) {
                         $field_identification = explode('*', $_GET['subscribe_user_filter_value']);
                         $sql .= "
                             LEFT JOIN $table_user_field_values field_values
-                                ON field_values.item_id = u.user_id
+                                ON field_values.item_id = u.id
                             WHERE
                                 cu.user_id IS NULL AND
                                 u.status<>".DRH." AND
@@ -641,7 +640,7 @@ function get_user_data($from, $number_of_items, $column, $direction)
                     )
                 ";
 
-        if (api_get_setting('ProfilingFilterAddingUsers') === 'true') {
+        if ('true' === api_get_setting('ProfilingFilterAddingUsers')) {
             // we also want to search for users who have something in
             // their profile fields that matches the keyword
             $additional_users = search_additional_profile_fields($keyword);
@@ -660,6 +659,8 @@ function get_user_data($from, $number_of_items, $column, $direction)
     }
 
     $sql .= " AND u.status != ".ANONYMOUS." ";
+    $column = (int) $column;
+    $direction = !in_array(strtolower(trim($direction)), ['asc', 'desc']) ? 'asc' : $direction;
     // Sorting and pagination (used by the sortable table)
     $sql .= " ORDER BY col$column $direction ";
     $from = (int) $from;
@@ -694,7 +695,7 @@ function email_filter($email)
  */
 function Register_filter($user_id)
 {
-    if (isset($_REQUEST['type']) && $_REQUEST['type'] == COURSEMANAGER) {
+    if (isset($_REQUEST['type']) && COURSEMANAGER == $_REQUEST['type']) {
         $type = COURSEMANAGER;
     } else {
         $type = STUDENT;
@@ -721,12 +722,12 @@ function Register_filter($user_id)
 function active_filter($active, $url_params, $row)
 {
     $_user = api_get_user_info();
-    if ($active == '1') {
+    if ('1' == $active) {
         $action = 'Accountactive';
         $image = 'accept';
     }
 
-    if ($active == '0') {
+    if ('0' == $active) {
         $action = 'AccountInactive';
         $image = 'error';
     }
@@ -785,16 +786,16 @@ function search_additional_profile_fields($keyword)
     // getting all the user ids of the users who have chosen on of the predefined fields that contain the keyword
     // or all the users who have entered the keyword in a free-form field
     $sql = "SELECT
-                user.user_id as col0,
+                user.id as col0,
                 user.official_code as col1,
                 user.lastname as col2,
                 user.firstname as col3,
                 user.email as col4,
                 user.active as col5,
-                user.user_id as col6
+                user.id as col6
             FROM $table_user user, $table_user_field_values user_values, $tableExtraField e
             WHERE
-                user.user_id = user_values.item_id AND
+                user.id = user_values.item_id AND
                 user_values.field_id = e.id AND
                 e.extra_field_type = $extraFieldType AND
                 (value LIKE '%".$keyword."%'".$profiling_field_options_exact_values_sql.")";
@@ -835,7 +836,7 @@ function display_extra_profile_fields_filter()
                 $return .= '<optgroup label="'.$field_details[3].'">';
                 foreach ($field_details[9] as $option_id => $option_details) {
                     if (isset($_GET['subscribe_user_filter_value']) &&
-                        $_GET['subscribe_user_filter_value'] == $field_details[0].'*'.$option_details[1]
+                        $field_details[0].'*'.$option_details[1] == $_GET['subscribe_user_filter_value']
                     ) {
                         $selected = 'selected="selected"';
                     } else {

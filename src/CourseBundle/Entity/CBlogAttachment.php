@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
@@ -10,95 +12,68 @@ use Doctrine\ORM\Mapping as ORM;
  * CBlogAttachment.
  *
  * @ORM\Table(
- *  name="c_blog_attachment",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_blog_attachment",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CBlogAttachment
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="path", type="string", length=255, nullable=false)
      */
-    protected $path;
+    protected string $path;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="comment", type="text", nullable=true)
      */
-    protected $comment;
+    protected ?string $comment = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="size", type="integer", nullable=false)
      */
-    protected $size;
+    protected int $size;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="post_id", type="integer", nullable=false)
      */
-    protected $postId;
+    protected int $postId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="filename", type="string", length=255, nullable=false)
      */
-    protected $filename;
+    protected string $filename;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="blog_id", type="integer", nullable=false)
      */
-    protected $blogId;
+    protected int $blogId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="comment_id", type="integer", nullable=false)
      */
-    protected $commentId;
+    protected int $commentId;
 
     /**
      * Set path.
      *
-     * @param string $path
-     *
      * @return CBlogAttachment
      */
-    public function setPath($path)
+    public function setPath(string $path)
     {
         $this->path = $path;
 
@@ -118,11 +93,9 @@ class CBlogAttachment
     /**
      * Set comment.
      *
-     * @param string $comment
-     *
      * @return CBlogAttachment
      */
-    public function setComment($comment)
+    public function setComment(string $comment)
     {
         $this->comment = $comment;
 
@@ -142,11 +115,9 @@ class CBlogAttachment
     /**
      * Set size.
      *
-     * @param int $size
-     *
      * @return CBlogAttachment
      */
-    public function setSize($size)
+    public function setSize(int $size)
     {
         $this->size = $size;
 
@@ -166,11 +137,9 @@ class CBlogAttachment
     /**
      * Set postId.
      *
-     * @param int $postId
-     *
      * @return CBlogAttachment
      */
-    public function setPostId($postId)
+    public function setPostId(int $postId)
     {
         $this->postId = $postId;
 
@@ -190,11 +159,9 @@ class CBlogAttachment
     /**
      * Set filename.
      *
-     * @param string $filename
-     *
      * @return CBlogAttachment
      */
-    public function setFilename($filename)
+    public function setFilename(string $filename)
     {
         $this->filename = $filename;
 
@@ -214,11 +181,9 @@ class CBlogAttachment
     /**
      * Set blogId.
      *
-     * @param int $blogId
-     *
      * @return CBlogAttachment
      */
-    public function setBlogId($blogId)
+    public function setBlogId(int $blogId)
     {
         $this->blogId = $blogId;
 
@@ -238,11 +203,9 @@ class CBlogAttachment
     /**
      * Set commentId.
      *
-     * @param int $commentId
-     *
      * @return CBlogAttachment
      */
-    public function setCommentId($commentId)
+    public function setCommentId(int $commentId)
     {
         $this->commentId = $commentId;
 
@@ -260,37 +223,11 @@ class CBlogAttachment
     }
 
     /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CBlogAttachment
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CBlogAttachment
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 

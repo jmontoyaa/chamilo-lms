@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
@@ -15,60 +17,38 @@ use Doctrine\ORM\Mapping as ORM;
 class SkillRelSkill
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="skill_id", type="integer", nullable=false)
      */
-    protected $skillId;
+    protected int $skillId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="parent_id", type="integer", nullable=false)
      */
-    protected $parentId;
+    protected int $parentId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="relation_type", type="integer", nullable=false)
      */
-    protected $relationType;
+    protected int $relationType;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="level", type="integer", nullable=false)
      */
-    protected $level;
-
-    /**
-     * Set id.
-     *
-     * @return int
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-    }
+    protected int $level;
 
     /**
      * Set skillId.
      *
-     * @param int $skillId
-     *
      * @return SkillRelSkill
      */
-    public function setSkillId($skillId)
+    public function setSkillId(int $skillId)
     {
         $this->skillId = $skillId;
 
@@ -88,11 +68,9 @@ class SkillRelSkill
     /**
      * Set parentId.
      *
-     * @param int $parentId
-     *
      * @return SkillRelSkill
      */
-    public function setParentId($parentId)
+    public function setParentId(int $parentId)
     {
         $this->parentId = $parentId;
 
@@ -112,11 +90,9 @@ class SkillRelSkill
     /**
      * Set relationType.
      *
-     * @param int $relationType
-     *
      * @return SkillRelSkill
      */
-    public function setRelationType($relationType)
+    public function setRelationType(int $relationType)
     {
         $this->relationType = $relationType;
 
@@ -136,11 +112,9 @@ class SkillRelSkill
     /**
      * Set level.
      *
-     * @param int $level
-     *
      * @return SkillRelSkill
      */
-    public function setLevel($level)
+    public function setLevel(int $level)
     {
         $this->level = $level;
 

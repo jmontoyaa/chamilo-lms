@@ -2,6 +2,7 @@
 /* For licensing terms, see /license.txt */
 
 /**
+ * @deprecated use entities
  * Class lp_item
  *  made to manipulate data of lp_item table.
  *
@@ -45,14 +46,13 @@ class LpItem
             $item_view_table = Database::get_course_table(TABLE_LP_ITEM);
             $sql = "SELECT * FROM $item_view_table
                     WHERE
-                        c_id=".intval($in_c_id)." AND
                         iid=".intval($in_id);
 
             $res = Database::query($sql);
             $data = Database::fetch_array($res);
             if (Database::num_rows($res) > 0) {
-                $this->c_id = $data['c_id'];
-                $this->id = $data['id'];
+                //$this->c_id = $data['c_id'];
+                $this->id = $data['iid'];
                 $this->lp_id = $data['lp_id'];
                 $this->item_type = $data['item_type'];
                 $this->ref = $data['ref'];
@@ -108,5 +108,41 @@ class LpItem
                     WHERE c_id=".$this->c_id." AND id=".$this->id;
             Database::query($sql);
         }
+    }
+
+    /**
+     * Create extra field for learning path item.
+     *
+     * @param string      $variable
+     * @param int         $fieldType
+     * @param string      $displayText
+     * @param string|null $default         Optional.
+     * @param bool        $changeable      Optional.
+     * @param bool        $visibleToSelf   Optional.
+     * @param bool        $visibleToOthers Optional.
+     *
+     * @return bool|int
+     */
+    public static function createExtraField(
+        $variable,
+        $fieldType,
+        $displayText,
+        $default = null,
+        $changeable = false,
+        $visibleToSelf = false,
+        $visibleToOthers = false
+    ) {
+        $extraField = new ExtraField('lp_item');
+        $params = [
+            'variable' => $variable,
+            'field_type' => $fieldType,
+            'display_text' => $displayText,
+            'default_value' => $default,
+            'changeable' => $changeable,
+            'visible_to_self' => $visibleToSelf,
+            'visible_to_others' => $visibleToOthers,
+        ];
+
+        return $extraField->save($params);
     }
 }

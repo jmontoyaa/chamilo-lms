@@ -1,13 +1,11 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
  * Class to be used as basis for links referring to Evaluation objects.
  *
  * @author Bert Steppé
- *
- * @package chamilo.gradebook
- * @package chamilo.gradebook
  */
 abstract class EvalLink extends AbstractLink
 {
@@ -29,11 +27,11 @@ abstract class EvalLink extends AbstractLink
      *
      * @return array
      */
-    public function calc_score($userId = null, $type = null)
+    public function calc_score($studentId = null, $type = null)
     {
         $eval = $this->get_evaluation();
 
-        return $eval->calc_score($userId, $type);
+        return $eval->calc_score($studentId, $type);
     }
 
     public function get_link()

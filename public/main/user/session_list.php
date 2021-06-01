@@ -1,10 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
  * List sessions in an efficient and usable way.
- *
- * @package chamilo.admin
  */
 $cidReset = true;
 
@@ -18,7 +17,7 @@ $htmlHeadXtra[] = api_get_jqgrid_js();
 $tool_name = get_lang('Session list');
 $allowTutors = api_get_setting('allow_tutors_to_assign_students_to_session');
 
-if ($allowTutors !== 'true') {
+if ('true' !== $allowTutors) {
     api_not_allowed(true);
 }
 

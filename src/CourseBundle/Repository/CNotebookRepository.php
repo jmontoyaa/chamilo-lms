@@ -1,24 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Repository;
 
 use Chamilo\CoreBundle\Entity\Course;
 use Chamilo\CoreBundle\Entity\Session;
+use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Repository\ResourceRepository;
 use Chamilo\CourseBundle\Entity\CNotebook;
-use Chamilo\UserBundle\Entity\User;
-use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * Class CNotebookRepository.
- */
-class CNotebookRepository extends ServiceEntityRepository
+class CNotebookRepository extends ResourceRepository
 {
-    /**
-     * CNotebookRepository constructor.
-     */
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, CNotebook::class);
@@ -27,17 +23,14 @@ class CNotebookRepository extends ServiceEntityRepository
     /**
      * Get the user notebooks in a course.
      *
-     * @param string $orderField
-     * @param string $orderDirection
-     *
      * @return array
      */
     public function findByUser(
         User $user,
         Course $course,
         Session $session = null,
-        $orderField = 'creation_date',
-        $orderDirection = 'DESC'
+        string $orderField = 'creation_date',
+        string $orderDirection = 'DESC'
     ) {
         switch ($orderField) {
             case 'creation_date':
@@ -61,9 +54,10 @@ class CNotebookRepository extends ServiceEntityRepository
                     $qb->expr()->eq('N.userId', $user->getId()),
                     $qb->expr()->eq('N.cId', $course->getId())
                 )
-            );
+            )
+        ;
 
-        if ($session) {
+        if (null !== $session) {
             $qb->andWhere(
                 $qb->expr()->eq('N.sessionId', $session->getId())
             );

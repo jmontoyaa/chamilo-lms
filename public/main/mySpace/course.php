@@ -1,10 +1,8 @@
 <?php
 /* For licensing terms, see /license.txt */
-/**
- * Courses reporting.
- *
- * @package chamilo.reporting
- */
+
+use Chamilo\CoreBundle\Framework\Container;
+
 ob_start();
 $cidReset = true;
 
@@ -24,19 +22,19 @@ if (!$allowToTrack) {
 
 $interbreadcrumb[] = ["url" => "index.php", "name" => get_lang('Reporting')];
 
-if (isset($_GET["id_session"]) && $_GET["id_session"] != "") {
+if (isset($_GET["id_session"]) && "" != $_GET["id_session"]) {
     $interbreadcrumb[] = ["url" => "session.php", "name" => get_lang('Course sessions')];
 }
 
-if (isset($_GET["user_id"]) && $_GET["user_id"] != "" && isset($_GET["type"]) && $_GET["type"] == "coach") {
+if (isset($_GET["user_id"]) && "" != $_GET["user_id"] && isset($_GET["type"]) && "coach" == $_GET["type"]) {
     $interbreadcrumb[] = ["url" => "coaches.php", "name" => get_lang('Coaches')];
 }
 
-if (isset($_GET["user_id"]) && $_GET["user_id"] != "" && isset($_GET["type"]) && $_GET["type"] == "student") {
+if (isset($_GET["user_id"]) && "" != $_GET["user_id"] && isset($_GET["type"]) && "student" == $_GET["type"]) {
     $interbreadcrumb[] = ["url" => "student.php", "name" => get_lang('Learners')];
 }
 
-if (isset($_GET["user_id"]) && $_GET["user_id"] != "" && !isset($_GET["type"])) {
+if (isset($_GET["user_id"]) && "" != $_GET["user_id"] && !isset($_GET["type"])) {
     $interbreadcrumb[] = ["url" => "teachers.php", "name" => get_lang('Teachers')];
 }
 
@@ -49,7 +47,7 @@ function count_courses()
 
 // Checking if the current coach is the admin coach
 $showImportIcon = false;
-if (api_get_setting('add_users_by_coach') == 'true') {
+if ('true' == api_get_setting('add_users_by_coach')) {
     if (!api_is_platform_admin()) {
         $isGeneralCoach = SessionManager::user_is_general_coach(
             api_get_user_id(),
@@ -88,11 +86,11 @@ if (api_is_platform_admin(true, true)) {
     if (!api_is_session_admin()) {
         $menu_items[] = Display::url(
             Display::return_icon('statistics.png', get_lang('View my progress'), '', ICON_SIZE_MEDIUM),
-            api_get_path(WEB_CODE_PATH)."auth/my_progress.php"
+            api_get_path(WEB_CODE_PATH).'auth/my_progress.php'
         );
         $menu_items[] = Display::url(
             Display::return_icon('user.png', get_lang('Learners'), [], ICON_SIZE_MEDIUM),
-            "index.php?view=drh_students&amp;display=yourstudents"
+            'index.php?view=drh_students&display=yourstudents'
         );
         $menu_items[] = Display::url(
             Display::return_icon('teacher.png', get_lang('Teachers'), [], ICON_SIZE_MEDIUM),
@@ -103,11 +101,21 @@ if (api_is_platform_admin(true, true)) {
             '#'
         );
         $menu_items[] = Display::url(
-            Display::return_icon('session.png', get_lang('Course sessions'), [], ICON_SIZE_MEDIUM),
-            'session.php'
+            Display::return_icon('session.png', get_lang('Sessions'), [], ICON_SIZE_MEDIUM),
+            api_get_path(WEB_CODE_PATH).'mySpace/session.php'
+        );
+        $menu_items[] = Display::url(
+            get_lang('QuestionStats'),
+            api_get_path(WEB_CODE_PATH).'mySpace/question_stats_global.php'
+        );
+
+        $menu_items[] = Display::url(
+            get_lang('QuestionStatsDetailedReport'),
+            api_get_path(WEB_CODE_PATH).'mySpace/question_stats_global_detail.php'
         );
         if (api_can_login_as($user_id)) {
-            $link = '<a href="'.api_get_path(WEB_CODE_PATH).'admin/user_list.php?action=login_as&amp;user_id='.$user_id.'&amp;sec_token='.Security::get_existing_token().'">'.
+            $link = '<a
+                href="'.api_get_path(WEB_CODE_PATH).'admin/user_list.php?action=login_as&user_id='.$user_id.'&sec_token='.Security::get_existing_token().'">'.
                     Display::return_icon('login_as.png', get_lang('Login as'), null, ICON_SIZE_MEDIUM).'</a>&nbsp;&nbsp;';
             $menu_items[] = $link;
         }
@@ -136,7 +144,7 @@ if (api_is_platform_admin(true, true)) {
 
 if ($showImportIcon) {
     echo "<div align=\"right\">";
-    echo '<a href="user_import.php?id_session='.$sessionId.'&action=export&amp;type=xml">'.
+    echo '<a href="user_import.php?id_session='.$sessionId.'&action=export&type=xml">'.
             Display::return_icon('excel.gif', get_lang('Import users list')).'&nbsp;'.get_lang('Import users list').'</a>';
     echo "</div><br />";
 }
@@ -174,7 +182,7 @@ function get_count_courses()
         }
     }
 
-    if ($drhLoaded == false) {
+    if (false == $drhLoaded) {
         $isGeneralCoach = SessionManager::user_is_general_coach(
             api_get_user_id(),
             $sessionId
@@ -232,7 +240,7 @@ function get_courses($from, $limit, $column, $direction)
         }
     }
 
-    if ($drhLoaded == false) {
+    if (false == $drhLoaded) {
         $isGeneralCoach = SessionManager::user_is_general_coach(
             api_get_user_id(),
             $sessionId
@@ -265,9 +273,13 @@ function get_courses($from, $limit, $column, $direction)
 
     $courseList = [];
     if (!empty($courses)) {
+        $session = api_get_session_entity($sessionId);
         foreach ($courses as $data) {
             $courseCode = $data['code'];
+            $courseId = $data['real_id'];
             $courseInfo = api_get_course_info($courseCode);
+            $course = api_get_course_entity($courseId);
+
             if (empty($sessionId)) {
                 $userList = CourseManager::get_user_list_from_course_code($data['code']);
             } else {
@@ -297,11 +309,18 @@ function get_courses($from, $limit, $column, $direction)
             if (count($userIdList) > 0) {
                 $countStudents = count($userIdList);
                 // tracking data
-                $avgProgressInCourse = Tracking :: get_avg_student_progress($userIdList, $courseCode, [], $sessionId);
-                $avgScoreInCourse = Tracking :: get_avg_student_score($userIdList, $courseCode, [], $sessionId);
-                $avgTimeSpentInCourse = Tracking :: get_time_spent_on_the_course($userIdList, $courseInfo['real_id'], $sessionId);
-                $messagesInCourse = Tracking :: count_student_messages($userIdList, $courseCode, $sessionId);
-                $assignmentsInCourse = Tracking :: count_student_assignments($userIdList, $courseCode, $sessionId);
+                $avgProgressInCourse = Tracking::get_avg_student_progress($userIdList, $course, [], $session);
+                $avgScoreInCourse = Tracking::get_avg_student_score($userIdList, $course, [], $session);
+                $avgTimeSpentInCourse = Tracking::get_time_spent_on_the_course(
+                    $userIdList,
+                    $courseInfo['real_id'],
+                    $sessionId
+                );
+                $messagesInCourse = Container::getForumPostRepository()->countCourseForumPosts($course, $session);
+                $assignmentsInCourse = Container::getStudentPublicationRepository()->countCoursePublications(
+                    $course,
+                    $session
+                );
                 $avgTimeSpentInCourse = api_time_to_hms($avgTimeSpentInCourse / $countStudents);
                 $avgProgressInCourse = round($avgProgressInCourse / $countStudents, 2);
 
@@ -311,16 +330,19 @@ function get_courses($from, $limit, $column, $direction)
             }
 
             $thematic = new Thematic();
-            $tematic_advance = $thematic->get_total_average_of_thematic_advances($courseCode, $sessionId);
+            $tematic_advance = $thematic->get_total_average_of_thematic_advances($course, $session);
             $tematicAdvanceProgress = '-';
             if (!empty($tematic_advance)) {
-                $tematicAdvanceProgress = '<a title="'.get_lang('Go to thematic advance').'" href="'.api_get_path(WEB_CODE_PATH).'course_progress/index.php?cidReq='.$courseCode.'&id_session='.$sessionId.'">'.
+                $tematicAdvanceProgress = '<a
+                    title="'.get_lang('Go to thematic advance').'"
+                    href="'.api_get_path(WEB_CODE_PATH).'course_progress/index.php?cid='.$courseId.'&sid='.$sessionId.'">'.
                     $tematic_advance.'%</a>';
             }
 
-            $courseIcon = '<a href="'.api_get_path(WEB_CODE_PATH).'tracking/courseLog.php?cidReq='.$courseCode.'&id_session='.$sessionId.'">
-                        '.Display::return_icon('2rightarrow.png', get_lang('Details')).'
-                      </a>';
+            $courseIcon = '<a
+                href="'.api_get_path(WEB_CODE_PATH).'tracking/courseLog.php?cid='.$courseId.'&sid='.$sessionId.'">
+                '.Display::return_icon('2rightarrow.png', get_lang('Details')).'
+              </a>';
             $title = Display::url(
                 $data['title'],
                 $courseInfo['course_public_url'].'?id_session='.$sessionId
@@ -328,7 +350,7 @@ function get_courses($from, $limit, $column, $direction)
 
             $attendanceLink = Display::url(
                 Display::return_icon('attendance_list.png', get_lang('Attendance'), [], ICON_SIZE_MEDIUM),
-                api_get_path(WEB_CODE_PATH).'attendance/index.php?cidReq='.$courseCode.'&id_session='.$sessionId.'&action=calendar_logins'
+                api_get_path(WEB_CODE_PATH).'attendance/index.php?cid='.$courseId.'&sid='.$sessionId.'&action=calendar_logins'
             );
 
             $courseList[] = [

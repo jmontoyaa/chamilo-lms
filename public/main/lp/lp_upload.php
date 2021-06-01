@@ -1,20 +1,18 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CourseBundle\Component\CourseCopy\CourseArchiver;
 use Chamilo\CourseBundle\Component\CourseCopy\CourseRestorer;
+use Chamilo\CourseBundle\Entity\CLp;
 
 /**
  * Script managing the learnpath upload. To best treat the uploaded file, make sure we can identify it.
- *
- * @package chamilo.learnpath
  *
  * @author Yannick Warnier <ywarnier@beeznest.org>
  */
 require_once __DIR__.'/../inc/global.inc.php';
 api_protect_course_script();
-$course_dir = api_get_course_path().'/scorm';
-$course_sys_dir = api_get_path(SYS_COURSE_PATH).$course_dir;
 if (empty($_POST['current_dir'])) {
     $current_dir = '';
 } else {
@@ -32,9 +30,11 @@ if (api_get_configuration_value('allow_htaccess_import_from_scorm') && isset($_P
  * because if the file size exceed the maximum file upload
  * size set in php.ini, all variables from POST are cleared !
  */
-$user_file = isset($_GET['user_file']) ? $_GET['user_file'] : [];
+$user_file = $_GET['user_file'] ?? [];
 $user_file = $user_file ? $user_file : [];
-$is_error = isset($user_file['error']) ? $user_file['error'] : false;
+$is_error = $user_file['error'] ?? false;
+$em = Database::getManager();
+
 if (isset($_POST) && $is_error) {
     Display::addFlash(
         Display::return_message(get_lang('The file is too big to upload.'))
@@ -42,7 +42,7 @@ if (isset($_POST) && $is_error) {
 
     return false;
     unset($_FILES['user_file']);
-} elseif ($_SERVER['REQUEST_METHOD'] == 'POST' && count($_FILES) > 0 && !empty($_FILES['user_file']['name'])) {
+} elseif ('POST' === $_SERVER['REQUEST_METHOD'] && count($_FILES) > 0 && !empty($_FILES['user_file']['name'])) {
     // A file upload has been detected, now deal with the file...
     // Directory creation.
     $stopping_error = false;
@@ -55,38 +55,33 @@ if (isset($_POST) && $is_error) {
     $file_base_name = str_replace('.'.$extension, '', $filename);
 
     $new_dir = api_replace_dangerous_char(trim($file_base_name));
-    $type = learnpath::get_package_type(
-        $_FILES['user_file']['tmp_name'],
-        $_FILES['user_file']['name']
-    );
+    $type = learnpath::getPackageType($_FILES['user_file']['tmp_name'], $_FILES['user_file']['name']);
 
     $proximity = 'local';
     if (!empty($_REQUEST['content_proximity'])) {
-        $proximity = Database::escape_string($_REQUEST['content_proximity']);
+        $proximity = $_REQUEST['content_proximity'];
     }
 
     $maker = 'Scorm';
     if (!empty($_REQUEST['content_maker'])) {
-        $maker = Database::escape_string($_REQUEST['content_maker']);
+        $maker = $_REQUEST['content_maker'];
     }
 
     switch ($type) {
         case 'chamilo':
-            $filename = CourseArchiver::importUploadedFile(
-                $_FILES['user_file']['tmp_name']
-            );
+            $filename = CourseArchiver::importUploadedFile($_FILES['user_file']['tmp_name']);
             if ($filename) {
                 $course = CourseArchiver::readCourse($filename, false);
                 $courseRestorer = new CourseRestorer($course);
                 // FILE_SKIP, FILE_RENAME or FILE_OVERWRITE
                 $courseRestorer->set_file_option(FILE_OVERWRITE);
-                $courseRestorer->restore();
+                $courseRestorer->restore('', api_get_session_id());
                 Display::addFlash(Display::return_message(get_lang('File upload succeeded!')));
             }
             break;
         case 'scorm':
-            $oScorm = new scorm();
-            $manifest = $oScorm->import_package(
+            $scorm = new scorm();
+            $scorm->import_package(
                 $_FILES['user_file'],
                 $current_dir,
                 [],
@@ -94,37 +89,45 @@ if (isset($_POST) && $is_error) {
                 null,
                 $allowHtaccess
             );
-            if (!empty($manifest)) {
-                $oScorm->parse_manifest($manifest);
-                $oScorm->import_manifest(api_get_course_id(), $_REQUEST['use_max_score']);
-                Display::addFlash(Display::return_message(get_lang('File upload succeeded!')));
+            if (!empty($scorm->manifestToString)) {
+                $scorm->parse_manifest();
+                $lp = $scorm->import_manifest(api_get_course_id(), $_REQUEST['use_max_score']);
+                if ($lp) {
+                    $lp
+                        ->setContentLocal($proximity)
+                        ->setContentMaker($maker)
+                    ;
+                    $em->persist($lp);
+                    $em->flush();
+                    Display::addFlash(Display::return_message(get_lang('File upload succeeded!')));
+                }
             }
-            $oScorm->set_proximity($proximity);
-            $oScorm->set_maker($maker);
-            $oScorm->set_jslib('scorm_api.php');
             break;
         case 'aicc':
             $oAICC = new aicc();
+            //$entity = $oAICC->getEntity();
             $config_dir = $oAICC->import_package($_FILES['user_file']);
             if (!empty($config_dir)) {
                 $oAICC->parse_config_files($config_dir);
                 $oAICC->import_aicc(api_get_course_id());
                 Display::addFlash(Display::return_message(get_lang('File upload succeeded!')));
             }
-            $oAICC->set_proximity($proximity);
-            $oAICC->set_maker($maker);
-            $oAICC->set_jslib('aicc_api.php');
+            /*$entity
+                ->setContentLocal($proximity)
+                ->setContentMaker($maker)
+                ->setJsLib('aicc_api.php')
+            ;
+            $em->persist($entity);
+            $em->flush();*/
             break;
         case 'oogie':
-            require_once 'openoffice_presentation.class.php';
             $take_slide_name = empty($_POST['take_slide_name']) ? false : true;
             $o_ppt = new OpenofficePresentation($take_slide_name);
             $first_item_id = $o_ppt->convert_document($_FILES['user_file'], 'make_lp', $_POST['slide_size']);
             Display::addFlash(Display::return_message(get_lang('File upload succeeded!')));
             break;
         case 'woogie':
-            require_once 'openoffice_text.class.php';
-            $split_steps = (empty($_POST['split_steps']) || $_POST['split_steps'] == 'per_page') ? 'per_page' : 'per_chapter';
+            $split_steps = empty($_POST['split_steps']) || 'per_page' === $_POST['split_steps'] ? 'per_page' : 'per_chapter';
             $o_doc = new OpenofficeText($split_steps);
             $first_item_id = $o_doc->convert_document($_FILES['user_file']);
             Display::addFlash(Display::return_message(get_lang('File upload succeeded!')));
@@ -136,7 +139,7 @@ if (isset($_POST) && $is_error) {
             return false;
             break;
     }
-} elseif ($_SERVER['REQUEST_METHOD'] == 'POST') {
+} elseif ('POST' === $_SERVER['REQUEST_METHOD']) {
     // end if is_uploaded_file
     // If file name given to get in /upload/, try importing this way.
     // A file upload has been detected, now deal with the file...
@@ -162,11 +165,12 @@ if (isset($_POST) && $is_error) {
             Display::return_message(get_lang('The file is too big to upload.'))
         );
     }
-    $type = learnpath::get_package_type($s, basename($s));
+    $type = learnpath::getPackageType($s, basename($s));
 
     switch ($type) {
         case 'scorm':
             $oScorm = new scorm();
+            $entity = $oScorm->getEntity();
             $manifest = $oScorm->import_local_package($s, $current_dir);
             if (!empty($manifest)) {
                 $oScorm->parse_manifest($manifest);
@@ -182,12 +186,18 @@ if (isset($_POST) && $is_error) {
             if (!empty($_REQUEST['content_maker'])) {
                 $maker = Database::escape_string($_REQUEST['content_maker']);
             }
-            $oScorm->set_proximity($proximity);
-            $oScorm->set_maker($maker);
-            $oScorm->set_jslib('scorm_api.php');
+
+            $entity
+                ->setContentLocal($proximity)
+                ->setContentMaker($maker)
+                ->setJsLib('scorm_api.php')
+            ;
+            $em->persist($entity);
+            $em->flush();
             break;
         case 'aicc':
             $oAICC = new aicc();
+            $entity = $oAICC->getEntity();
             $config_dir = $oAICC->import_local_package($s, $current_dir);
             if (!empty($config_dir)) {
                 $oAICC->parse_config_files($config_dir);
@@ -196,15 +206,20 @@ if (isset($_POST) && $is_error) {
             }
             $proximity = '';
             if (!empty($_REQUEST['content_proximity'])) {
-                $proximity = Database::escape_string($_REQUEST['content_proximity']);
+                $proximity = $_REQUEST['content_proximity'];
             }
             $maker = '';
             if (!empty($_REQUEST['content_maker'])) {
-                $maker = Database::escape_string($_REQUEST['content_maker']);
+                $maker = $_REQUEST['content_maker'];
             }
-            $oAICC->set_proximity($proximity);
-            $oAICC->set_maker($maker);
-            $oAICC->set_jslib('aicc_api.php');
+
+            $entity
+                ->setContentLocal($proximity)
+                ->setContentMaker($maker)
+                ->setJsLib('aicc_api.php')
+            ;
+            $em->persist($entity);
+            $em->flush();
             break;
         case '':
         default:

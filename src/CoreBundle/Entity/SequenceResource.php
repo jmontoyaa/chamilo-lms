@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
@@ -9,7 +11,7 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * Class SequenceResource.
  *
- * @ORM\Entity(repositoryClass="Chamilo\CoreBundle\Repository\SequenceRepository")
+ * @ORM\Entity(repositoryClass="Chamilo\CoreBundle\Repository\SequenceResourceRepository")
  * @ORM\Table(name="sequence_resource")
  */
 class SequenceResource
@@ -18,35 +20,27 @@ class SequenceResource
     public const SESSION_TYPE = 2;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue()
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var Sequence
-     *
      * @ORM\ManyToOne(targetEntity="Sequence")
-     * @ORM\JoinColumn(name="sequence_id", referencedColumnName="id")
+     * @ORM\JoinColumn(name="sequence_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $sequence;
+    protected Sequence $sequence;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="type", type="integer")
      */
-    protected $type;
+    protected int $type;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="resource_id", type="integer")
      */
-    protected $resourceId;
+    protected int $resourceId;
 
     /**
      * Get id.
@@ -69,11 +63,9 @@ class SequenceResource
     /**
      * Set the integer type.
      *
-     * @param int $type
-     *
      * @return SequenceResource
      */
-    public function setType($type)
+    public function setType(int $type)
     {
         $this->type = $type;
 
@@ -95,7 +87,7 @@ class SequenceResource
     {
         $graph = $this->getSequence()->getGraph();
 
-        return !empty($graph) ? true : false;
+        return !empty($graph);
     }
 
     /**
@@ -107,11 +99,9 @@ class SequenceResource
     }
 
     /**
-     * @param int $resourceId
-     *
      * @return $this
      */
-    public function setResourceId($resourceId)
+    public function setResourceId(int $resourceId)
     {
         $this->resourceId = $resourceId;
 

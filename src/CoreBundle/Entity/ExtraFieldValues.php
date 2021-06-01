@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
-use Sylius\Component\Attribute\Model\AttributeValue as BaseAttributeValue;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Class ExtraFieldValues.
@@ -21,109 +23,76 @@ use Sylius\Component\Attribute\Model\AttributeValue as BaseAttributeValue;
  * @ORM\Entity(repositoryClass="Chamilo\CoreBundle\Repository\ExtraFieldValuesRepository")
  * @ORM\MappedSuperclass
  */
-class ExtraFieldValues // extends BaseAttributeValue
+class ExtraFieldValues
 {
     use TimestampableEntity;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=false, unique=false)
+     * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue()
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var string
      * @ORM\Column(name="value", type="text", nullable=true, unique=false)
      */
-    protected $value;
+    protected ?string $value = null;
 
     /**
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\ExtraField")
      * @ORM\JoinColumn(name="field_id", referencedColumnName="id")
      */
-    protected $field;
+    protected ExtraField $field;
 
     /**
-     * @var string
-     * @ORM\Column(name="item_id", type="integer", nullable=false, unique=false)
+     * @Assert\NotBlank()
+     * @ORM\Column(name="item_id", type="integer")
      */
-    protected $itemId;
+    protected int $itemId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="comment", type="text", nullable=true, unique=false)
      */
-    protected $comment;
+    protected ?string $comment;
 
-    /**
-     * Constructor.
-     */
     public function __construct()
     {
+        $this->comment = '';
     }
 
-    /**
-     * @return ExtraField
-     */
-    public function getField()
+    public function getField(): ExtraField
     {
         return $this->field;
     }
 
-    /**
-     * @return ExtraFieldValues
-     */
-    public function setField($field)
+    public function setField(ExtraField $field): self
     {
         $this->field = $field;
 
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getItemId()
+    public function getItemId(): int
     {
         return $this->itemId;
     }
 
-    /**
-     * @param string $itemId
-     *
-     * @return ExtraFieldValues
-     */
-    public function setItemId($itemId)
+    public function setItemId(int $itemId): self
     {
         $this->itemId = $itemId;
 
         return $this;
     }
 
-    /**
-     * Set comment.
-     *
-     * @param string $comment
-     *
-     * @return ExtraFieldValues
-     */
-    public function setComment($comment)
+    public function setComment(string $comment): self
     {
         $this->comment = $comment;
 
         return $this;
     }
 
-    /**
-     * Get comment.
-     *
-     * @return string
-     */
-    public function getComment()
+    public function getComment(): ?string
     {
         return $this->comment;
     }

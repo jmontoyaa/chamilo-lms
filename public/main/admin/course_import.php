@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -11,7 +12,7 @@
  *
  * @param array $courses
  *
- * @return array $errors
+ * @return array
  */
 function validate_courses_data($courses)
 {
@@ -62,11 +63,10 @@ function validate_courses_data($courses)
         if (!empty($course['CourseCategory'])) {
             $categoryInfo = CourseCategory::getCategory($course['CourseCategory']);
             if (empty($categoryInfo)) {
-                CourseCategory::addNode(
+                CourseCategory::add(
                     $course['CourseCategory'],
-                    $course['CourseCategoryName'] ? $course['CourseCategoryName'] : $course['CourseCategory'],
-                    'TRUE',
-                    null
+                    $course['CourseCategoryName'] ?: $course['CourseCategory'],
+                    'TRUE'
                 );
             }
         } else {
@@ -124,7 +124,7 @@ function save_courses_data($courses)
         $params['course_category'] = $course['CourseCategory'];
         $params['course_language'] = $course_language;
         $params['user_id'] = $creatorId;
-        $addMeAsTeacher = isset($_POST['add_me_as_teacher']) ? $_POST['add_me_as_teacher'] : false;
+        $addMeAsTeacher = $_POST['add_me_as_teacher'] ?? false;
         $params['add_user_as_teacher'] = $addMeAsTeacher;
         $courseInfo = CourseManager::create_course($params);
 
@@ -133,7 +133,7 @@ function save_courses_data($courses)
                 foreach ($teacherList as $teacher) {
                     CourseManager::subscribeUser(
                         $teacher['user_id'],
-                        $courseInfo['code'],
+                        $courseInfo['real_id'],
                         COURSEMANAGER
                     );
                 }
@@ -157,9 +157,7 @@ function save_courses_data($courses)
  */
 function parse_csv_courses_data($file)
 {
-    $courses = Import::csv_reader($file);
-
-    return $courses;
+    return Import::csv_reader($file);
 }
 
 $cidReset = true;
@@ -189,7 +187,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
     } else {
         $allowed_file_mimetype = ['csv'];
 
-        $ext_import_file = substr($_FILES['import_file']['name'], (strrpos($_FILES['import_file']['name'], '.') + 1));
+        $ext_import_file = substr($_FILES['import_file']['name'], strrpos($_FILES['import_file']['name'], '.') + 1);
 
         if (!in_array($ext_import_file, $allowed_file_mimetype)) {
             echo Display::return_message(get_lang('You must import a file corresponding to the selected format'), 'error');
@@ -197,14 +195,14 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
             $courses = parse_csv_courses_data($_FILES['import_file']['tmp_name']);
 
             $errors = validate_courses_data($courses);
-            if (count($errors) == 0) {
+            if (0 == count($errors)) {
                 save_courses_data($courses);
             }
         }
     }
 }
 
-if (isset($errors) && count($errors) != 0) {
+if (isset($errors) && 0 != count($errors)) {
     $error_message = '<ul>';
     foreach ($errors as $index => $error_course) {
         $error_message .= '<li>'.get_lang('Line').' '.$error_course['line'].': <strong>'.$error_course['error'].'</strong>: ';
@@ -229,18 +227,17 @@ $form->addButtonImport(get_lang('Import'), 'save');
 $form->addElement('hidden', 'formSent', 1);
 $form->display();
 
-?>
+$content = '
 <div style="clear: both;"></div>
-<p><?php echo get_lang('The CSV file must look like this').' ('.get_lang('Fields in <strong>bold</strong> are mandatory.').')'; ?> :</p>
-
+<p>'.get_lang('The CSV file must look like this').' ('.get_lang('Fields in <b>bold</b> are mandatory.').') :</p>
 <blockquote>
 <pre>
-<strong>Code</strong>;<strong>Title</strong>;<strong>CourseCategory</strong>;<strong>CourseCategoryName</strong>;Teacher;Language
+<b>Code</b>;<b>Title</b>;<b>CourseCategory</b>;<b>CourseCategoryName</b>;Teacher;Language
 BIO0015;Biology;BIO;Science;teacher1;english
 BIO0016;Maths;MATH;Engineerng;teacher2|teacher3;english
 BIO0017;Language;LANG;;;english
 </pre>
-</blockquote>
+</blockquote>';
+echo Display::prose($content);
 
-<?php
 Display::display_footer();

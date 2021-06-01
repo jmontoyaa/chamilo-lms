@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
@@ -10,81 +12,63 @@ use Doctrine\ORM\Mapping as ORM;
  * CBlogTask.
  *
  * @ORM\Table(
- *  name="c_blog_task",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_blog_task",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CBlogTask
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="task_id", type="integer")
      */
-    protected $taskId;
+    protected int $taskId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="blog_id", type="integer", nullable=false)
      */
-    protected $blogId;
+    protected int $blogId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="title", type="string", length=250, nullable=false)
      */
-    protected $title;
+    protected string $title;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="description", type="text", nullable=false)
      */
-    protected $description;
+    protected string $description;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="color", type="string", length=10, nullable=false)
      */
-    protected $color;
+    protected string $color;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="system_task", type="boolean", nullable=false)
      */
-    protected $systemTask;
+    protected bool $systemTask;
 
     /**
      * Set blogId.
      *
-     * @param int $blogId
-     *
      * @return CBlogTask
      */
-    public function setBlogId($blogId)
+    public function setBlogId(int $blogId)
     {
         $this->blogId = $blogId;
 
@@ -104,11 +88,9 @@ class CBlogTask
     /**
      * Set title.
      *
-     * @param string $title
-     *
      * @return CBlogTask
      */
-    public function setTitle($title)
+    public function setTitle(string $title)
     {
         $this->title = $title;
 
@@ -128,11 +110,9 @@ class CBlogTask
     /**
      * Set description.
      *
-     * @param string $description
-     *
      * @return CBlogTask
      */
-    public function setDescription($description)
+    public function setDescription(string $description)
     {
         $this->description = $description;
 
@@ -152,11 +132,9 @@ class CBlogTask
     /**
      * Set color.
      *
-     * @param string $color
-     *
      * @return CBlogTask
      */
-    public function setColor($color)
+    public function setColor(string $color)
     {
         $this->color = $color;
 
@@ -176,11 +154,9 @@ class CBlogTask
     /**
      * Set systemTask.
      *
-     * @param bool $systemTask
-     *
      * @return CBlogTask
      */
-    public function setSystemTask($systemTask)
+    public function setSystemTask(bool $systemTask)
     {
         $this->systemTask = $systemTask;
 
@@ -200,11 +176,9 @@ class CBlogTask
     /**
      * Set taskId.
      *
-     * @param int $taskId
-     *
      * @return CBlogTask
      */
-    public function setTaskId($taskId)
+    public function setTaskId(int $taskId)
     {
         $this->taskId = $taskId;
 
@@ -224,11 +198,9 @@ class CBlogTask
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CBlogTask
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 

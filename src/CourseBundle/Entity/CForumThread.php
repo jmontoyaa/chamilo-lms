@@ -1,243 +1,177 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
+use Chamilo\CoreBundle\Entity\User;
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * CForumThread.
  *
  * @ORM\Table(
- *  name="c_forum_thread",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="idx_forum_thread_forum_id", columns={"forum_id"})
- *  }
+ *     name="c_forum_thread",
+ *     indexes={
+ *     }
  * )
- * @ORM\Entity(repositoryClass="Chamilo\CourseBundle\Repository\CForumThreadRepository")
+ * @ORM\Entity
  */
-class CForumThread
+class CForumThread extends AbstractResource implements ResourceInterface
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
+     * @Assert\NotBlank()
      *
-     * @ORM\Column(name="c_id", type="integer")
+     * @ORM\Column(name="thread_title", type="string", length=255, nullable=false)
      */
-    protected $cId;
+    protected string $threadTitle;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="thread_id", type="integer")
+     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CForum", inversedBy="threads")
+     * @ORM\JoinColumn(name="forum_id", referencedColumnName="iid", nullable=true, onDelete="SET NULL")
      */
-    protected $threadId;
+    protected ?CForum $forum = null;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(name="thread_title", type="string", length=255, nullable=true)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User")
+     * @ORM\JoinColumn(name="thread_poster_id", referencedColumnName="id")
      */
-    protected $threadTitle;
+    protected User $user;
 
     /**
-     * @var CForumForum|null
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CForumForum", inversedBy="threads")
-     * @ORM\JoinColumn(name="forum_id", referencedColumnName="iid")
+     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CForumPost", cascade={"persist", "remove"})
+     * @ORM\JoinColumn(name="thread_last_post", referencedColumnName="iid", onDelete="SET NULL")
      */
-    protected $forum;
+    protected ?CForumPost $threadLastPost = null;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="thread_replies", type="integer", nullable=false, options={"unsigned":true, "default" = 0})
+     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CLpItem")
+     * @ORM\JoinColumn(name="lp_item_id", referencedColumnName="iid", onDelete="CASCADE")
      */
-    protected $threadReplies;
+    protected ?CLpItem $item = null;
 
     /**
-     * @var int
+     * @var Collection|CForumPost[]
      *
-     * @ORM\Column(name="thread_poster_id", type="integer", nullable=true)
+     * @ORM\OneToMany(targetEntity="CForumPost", mappedBy="thread", cascade={"persist", "remove"}, orphanRemoval=true)
      */
-    protected $threadPosterId;
+    protected Collection $posts;
 
     /**
-     * @var string
+     * @var Collection|CForumThreadQualify[]
      *
-     * @ORM\Column(name="thread_poster_name", type="string", length=100, nullable=true)
+     * @ORM\OneToMany(targetEntity="CForumThreadQualify", mappedBy="thread", cascade={"persist", "remove"})
      */
-    protected $threadPosterName;
+    protected Collection $qualifications;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="thread_views", type="integer", nullable=false, options={"unsigned":true, "default" = 0})
+     * @ORM\Column(name="thread_date", type="datetime", nullable=false)
      */
-    protected $threadViews;
+    protected DateTime $threadDate;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="thread_last_post", type="integer", nullable=true)
+     * @ORM\Column(name="thread_replies", type="integer", nullable=false, options={"unsigned":true, "default":0})
      */
-    protected $threadLastPost;
+    protected int $threadReplies;
 
     /**
-     * @var \DateTime
-     *
-     * @ORM\Column(name="thread_date", type="datetime", nullable=true)
+     * @ORM\Column(name="thread_views", type="integer", nullable=false, options={"unsigned":true, "default":0})
      */
-    protected $threadDate;
+    protected int $threadViews;
 
     /**
-     * @var bool
-     *
-     * @ORM\Column(name="thread_sticky", type="boolean", nullable=true)
+     * @ORM\Column(name="thread_sticky", type="boolean", nullable=false)
      */
-    protected $threadSticky;
+    protected bool $threadSticky;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="locked", type="integer", nullable=false)
      */
-    protected $locked;
+    protected int $locked;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="session_id", type="integer", nullable=true)
-     */
-    protected $sessionId;
-
-    /**
-     * @var string
-     *
      * @ORM\Column(name="thread_title_qualify", type="string", length=255, nullable=true)
      */
-    protected $threadTitleQualify;
+    protected ?string $threadTitleQualify = null;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="thread_qualify_max", type="float", precision=6, scale=2, nullable=false)
      */
-    protected $threadQualifyMax;
+    protected float $threadQualifyMax;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="thread_close_date", type="datetime", nullable=true)
      */
-    protected $threadCloseDate;
+    protected ?DateTime $threadCloseDate = null;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="thread_weight", type="float", precision=6, scale=2, nullable=false)
      */
-    protected $threadWeight;
+    protected float $threadWeight;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="thread_peer_qualify", type="boolean")
      */
-    protected $threadPeerQualify;
+    protected bool $threadPeerQualify;
 
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="lp_item_id", type="integer", options={"unsigned":true})
-     */
-    protected $lpItemId;
-
-    /**
-     * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="Chamilo\CourseBundle\Entity\CForumPost", mappedBy="thread")
-     */
-    protected $posts;
-
-    /**
-     * @var CItemProperty
-     */
-    protected $itemProperty;
-
-    /**
-     * Constructor.
-     */
     public function __construct()
     {
+        $this->posts = new ArrayCollection();
+        $this->qualifications = new ArrayCollection();
         $this->threadPeerQualify = false;
         $this->threadReplies = 0;
         $this->threadViews = 0;
+        $this->locked = 0;
+        $this->threadQualifyMax = 0;
+        $this->threadWeight = 0;
+        $this->threadSticky = false;
     }
 
-    /**
-     * @return bool
-     */
-    public function isThreadPeerQualify()
+    public function __toString(): string
+    {
+        return $this->getThreadTitle();
+    }
+
+    public function isThreadPeerQualify(): bool
     {
         return $this->threadPeerQualify;
     }
 
-    /**
-     * set threadPeerQualify.
-     *
-     * @param bool $threadPeerQualify
-     *
-     * @return $this
-     */
-    public function setThreadPeerQualify($threadPeerQualify)
+    public function setThreadPeerQualify(bool $threadPeerQualify): self
     {
         $this->threadPeerQualify = $threadPeerQualify;
 
         return $this;
     }
 
-    /**
-     * Set threadTitle.
-     *
-     * @param string $threadTitle
-     *
-     * @return CForumThread
-     */
-    public function setThreadTitle($threadTitle)
+    public function setThreadTitle(string $threadTitle): self
     {
         $this->threadTitle = $threadTitle;
 
         return $this;
     }
 
-    /**
-     * Get threadTitle.
-     *
-     * @return string
-     */
     public function getThreadTitle()
     {
         return $this->threadTitle;
     }
 
-    /**
-     * Set forum.
-     *
-     * @return CForumThread
-     */
-    public function setForum(CForumForum $forum = null)
+    public function setForum(CForum $forum = null): self
     {
         $this->forum = $forum;
 
@@ -247,21 +181,14 @@ class CForumThread
     /**
      * Get forumId.
      *
-     * @return CForumForum|null
+     * @return null|CForum
      */
     public function getForum()
     {
         return $this->forum;
     }
 
-    /**
-     * Set threadReplies.
-     *
-     * @param int $threadReplies
-     *
-     * @return CForumThread
-     */
-    public function setThreadReplies($threadReplies)
+    public function setThreadReplies(int $threadReplies): self
     {
         $this->threadReplies = $threadReplies;
 
@@ -278,62 +205,7 @@ class CForumThread
         return $this->threadReplies;
     }
 
-    /**
-     * Set threadPosterId.
-     *
-     * @param int $threadPosterId
-     *
-     * @return CForumThread
-     */
-    public function setThreadPosterId($threadPosterId)
-    {
-        $this->threadPosterId = $threadPosterId;
-
-        return $this;
-    }
-
-    /**
-     * Get threadPosterId.
-     *
-     * @return int
-     */
-    public function getThreadPosterId()
-    {
-        return $this->threadPosterId;
-    }
-
-    /**
-     * Set threadPosterName.
-     *
-     * @param string $threadPosterName
-     *
-     * @return CForumThread
-     */
-    public function setThreadPosterName($threadPosterName)
-    {
-        $this->threadPosterName = $threadPosterName;
-
-        return $this;
-    }
-
-    /**
-     * Get threadPosterName.
-     *
-     * @return string
-     */
-    public function getThreadPosterName()
-    {
-        return $this->threadPosterName;
-    }
-
-    /**
-     * Set threadViews.
-     *
-     * @param int $threadViews
-     *
-     * @return CForumThread
-     */
-    public function setThreadViews($threadViews)
+    public function setThreadViews(int $threadViews): self
     {
         $this->threadViews = $threadViews;
 
@@ -350,38 +222,7 @@ class CForumThread
         return $this->threadViews;
     }
 
-    /**
-     * Set threadLastPost.
-     *
-     * @param int $threadLastPost
-     *
-     * @return CForumThread
-     */
-    public function setThreadLastPost($threadLastPost)
-    {
-        $this->threadLastPost = $threadLastPost;
-
-        return $this;
-    }
-
-    /**
-     * Get threadLastPost.
-     *
-     * @return int
-     */
-    public function getThreadLastPost()
-    {
-        return $this->threadLastPost;
-    }
-
-    /**
-     * Set threadDate.
-     *
-     * @param \DateTime $threadDate
-     *
-     * @return CForumThread
-     */
-    public function setThreadDate($threadDate)
+    public function setThreadDate(DateTime $threadDate): self
     {
         $this->threadDate = $threadDate;
 
@@ -391,21 +232,14 @@ class CForumThread
     /**
      * Get threadDate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getThreadDate()
     {
         return $this->threadDate;
     }
 
-    /**
-     * Set threadSticky.
-     *
-     * @param bool $threadSticky
-     *
-     * @return CForumThread
-     */
-    public function setThreadSticky($threadSticky)
+    public function setThreadSticky(bool $threadSticky): self
     {
         $this->threadSticky = $threadSticky;
 
@@ -422,14 +256,7 @@ class CForumThread
         return $this->threadSticky;
     }
 
-    /**
-     * Set locked.
-     *
-     * @param int $locked
-     *
-     * @return CForumThread
-     */
-    public function setLocked($locked)
+    public function setLocked(int $locked): self
     {
         $this->locked = $locked;
 
@@ -446,38 +273,7 @@ class CForumThread
         return $this->locked;
     }
 
-    /**
-     * Set sessionId.
-     *
-     * @param int $sessionId
-     *
-     * @return CForumThread
-     */
-    public function setSessionId($sessionId)
-    {
-        $this->sessionId = $sessionId;
-
-        return $this;
-    }
-
-    /**
-     * Get sessionId.
-     *
-     * @return int
-     */
-    public function getSessionId()
-    {
-        return $this->sessionId;
-    }
-
-    /**
-     * Set threadTitleQualify.
-     *
-     * @param string $threadTitleQualify
-     *
-     * @return CForumThread
-     */
-    public function setThreadTitleQualify($threadTitleQualify)
+    public function setThreadTitleQualify(string $threadTitleQualify): self
     {
         $this->threadTitleQualify = $threadTitleQualify;
 
@@ -494,14 +290,7 @@ class CForumThread
         return $this->threadTitleQualify;
     }
 
-    /**
-     * Set threadQualifyMax.
-     *
-     * @param float $threadQualifyMax
-     *
-     * @return CForumThread
-     */
-    public function setThreadQualifyMax($threadQualifyMax)
+    public function setThreadQualifyMax(float $threadQualifyMax): self
     {
         $this->threadQualifyMax = $threadQualifyMax;
 
@@ -518,14 +307,7 @@ class CForumThread
         return $this->threadQualifyMax;
     }
 
-    /**
-     * Set threadCloseDate.
-     *
-     * @param \DateTime $threadCloseDate
-     *
-     * @return CForumThread
-     */
-    public function setThreadCloseDate($threadCloseDate)
+    public function setThreadCloseDate(DateTime $threadCloseDate): self
     {
         $this->threadCloseDate = $threadCloseDate;
 
@@ -535,21 +317,14 @@ class CForumThread
     /**
      * Get threadCloseDate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getThreadCloseDate()
     {
         return $this->threadCloseDate;
     }
 
-    /**
-     * Set threadWeight.
-     *
-     * @param float $threadWeight
-     *
-     * @return CForumThread
-     */
-    public function setThreadWeight($threadWeight)
+    public function setThreadWeight(float $threadWeight): self
     {
         $this->threadWeight = $threadWeight;
 
@@ -567,78 +342,6 @@ class CForumThread
     }
 
     /**
-     * Set threadId.
-     *
-     * @param int $threadId
-     *
-     * @return CForumThread
-     */
-    public function setThreadId($threadId)
-    {
-        $this->threadId = $threadId;
-
-        return $this;
-    }
-
-    /**
-     * Get threadId.
-     *
-     * @return int
-     */
-    public function getThreadId()
-    {
-        return $this->threadId;
-    }
-
-    /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CForumThread
-     */
-    public function setCId($cId)
-    {
-        $this->cId = $cId;
-
-        return $this;
-    }
-
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
-    {
-        return $this->cId;
-    }
-
-    /**
-     * Set lpItemId.
-     *
-     * @param int $lpItemId
-     *
-     * @return $this
-     */
-    public function setLpItemId($lpItemId)
-    {
-        $this->lpItemId = $lpItemId;
-
-        return $this;
-    }
-
-    /**
-     * Get lpId.
-     *
-     * @return int
-     */
-    public function getLpItemId()
-    {
-        return $this->lpItemId;
-    }
-
-    /**
      * Get iid.
      *
      * @return int
@@ -648,29 +351,80 @@ class CForumThread
         return $this->iid;
     }
 
+    public function getUser(): User
+    {
+        return $this->user;
+    }
+
+    public function setUser(User $user): self
+    {
+        $this->user = $user;
+
+        return $this;
+    }
+
     /**
-     * @return ArrayCollection|CForumPost[]
+     * @return Collection|CForumPost[]
      */
     public function getPosts()
     {
         return $this->posts;
     }
 
-    /**
-     * @return CForumThread
-     */
-    public function setItemProperty(CItemProperty $itemProperty)
+    public function getThreadLastPost(): ?CForumPost
     {
-        $this->itemProperty = $itemProperty;
+        return $this->threadLastPost;
+    }
+
+    public function setThreadLastPost(CForumPost $threadLastPost): self
+    {
+        $this->threadLastPost = $threadLastPost;
 
         return $this;
     }
 
     /**
-     * @return CItemProperty
+     * @return CForumThreadQualify[]|Collection
      */
-    public function getItemProperty()
+    public function getQualifications()
     {
-        return $this->itemProperty;
+        return $this->qualifications;
+    }
+
+    /**
+     * @param CForumThreadQualify[]|Collection $qualifications
+     */
+    public function setQualifications(Collection $qualifications): self
+    {
+        $this->qualifications = $qualifications;
+
+        return $this;
+    }
+
+    public function getItem(): ?CLpItem
+    {
+        return $this->item;
+    }
+
+    public function setItem(?CLpItem $item): self
+    {
+        $this->item = $item;
+
+        return $this;
+    }
+
+    public function getResourceIdentifier(): int
+    {
+        return $this->getIid();
+    }
+
+    public function getResourceName(): string
+    {
+        return $this->getThreadTitle();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setThreadTitle($name);
     }
 }

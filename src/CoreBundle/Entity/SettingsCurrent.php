@@ -1,121 +1,101 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * SettingsCurrent.
+ * Platform settings.
  *
  * @ORM\Table(
  *     name="settings_current",
- *     options={"row_format":"DYNAMIC"},
+ *     options={"row_format"="DYNAMIC"},
  *     uniqueConstraints={
- *     @ORM\UniqueConstraint(
- *         name="unique_setting",
- *         columns={"variable", "subkey", "access_url"})
+ *         @ORM\UniqueConstraint(
+ *             name="unique_setting",
+ *             columns={"variable", "subkey", "access_url"})
  *     },
- *     indexes={@ORM\Index(name="access_url", columns={"access_url"})}
+ *     indexes={
+ *         @ORM\Index(name="access_url", columns={"access_url"})
+ *     }
  * )
  * @ORM\Entity
  */
 class SettingsCurrent
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var AccessUrl
-     *
      * @ORM\ManyToOne(targetEntity="AccessUrl", inversedBy="settings", cascade={"persist"})
      * @ORM\JoinColumn(name="access_url", referencedColumnName="id")
      */
-    protected $url;
+    protected AccessUrl $url;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(name="variable", type="string", length=190, nullable=true)
+     * @Assert\NotBlank()
+     * @ORM\Column(name="variable", type="string", length=190, nullable=false)
      */
-    protected $variable;
+    protected string $variable;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="subkey", type="string", length=190, nullable=true)
      */
-    protected $subkey;
+    protected ?string $subkey = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="type", type="string", length=255, nullable=true)
      */
-    protected $type;
+    protected ?string $type = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="category", type="string", length=255, nullable=true)
      */
-    protected $category;
+    protected ?string $category = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="selected_value", type="text", nullable=true)
      */
-    protected $selectedValue;
+    protected ?string $selectedValue = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="title", type="string", length=255, nullable=false)
      */
-    protected $title;
+    protected string $title;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="comment", type="string", length=255, nullable=true)
      */
-    protected $comment;
+    protected ?string $comment = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="scope", type="string", length=50, nullable=true)
      */
-    protected $scope;
+    protected string $scope;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="subkeytext", type="string", length=255, nullable=true)
      */
-    protected $subkeytext;
+    protected string $subkeytext;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="access_url_changeable", type="integer", nullable=false)
      */
-    protected $accessUrlChangeable;
+    protected int $accessUrlChangeable;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="access_url_locked", type="integer", nullable=false, options={"default": 0 } )
+     * @ORM\Column(name="access_url_locked", type="integer", nullable=false, options={"default":0 })
      */
-    protected $accessUrlLocked = 0;
+    protected int $accessUrlLocked = 0;
 
     /**
      * Constructor.
@@ -125,14 +105,7 @@ class SettingsCurrent
         $this->accessUrlLocked = 0;
     }
 
-    /**
-     * Set variable.
-     *
-     * @param string $variable
-     *
-     * @return SettingsCurrent
-     */
-    public function setVariable($variable)
+    public function setVariable(string $variable): self
     {
         $this->variable = $variable;
 
@@ -149,14 +122,7 @@ class SettingsCurrent
         return $this->variable;
     }
 
-    /**
-     * Set subkey.
-     *
-     * @param string $subkey
-     *
-     * @return SettingsCurrent
-     */
-    public function setSubkey($subkey)
+    public function setSubkey(string $subkey): self
     {
         $this->subkey = $subkey;
 
@@ -173,14 +139,7 @@ class SettingsCurrent
         return $this->subkey;
     }
 
-    /**
-     * Set type.
-     *
-     * @param string $type
-     *
-     * @return SettingsCurrent
-     */
-    public function setType($type)
+    public function setType(string $type): self
     {
         $this->type = $type;
 
@@ -197,14 +156,7 @@ class SettingsCurrent
         return $this->type;
     }
 
-    /**
-     * Set category.
-     *
-     * @param string $category
-     *
-     * @return SettingsCurrent
-     */
-    public function setCategory($category)
+    public function setCategory(?string $category): self
     {
         $this->category = $category;
 
@@ -221,14 +173,7 @@ class SettingsCurrent
         return $this->category;
     }
 
-    /**
-     * Set selectedValue.
-     *
-     * @param string $selectedValue
-     *
-     * @return SettingsCurrent
-     */
-    public function setSelectedValue($selectedValue)
+    public function setSelectedValue(?string $selectedValue): self
     {
         $this->selectedValue = $selectedValue;
 
@@ -245,14 +190,7 @@ class SettingsCurrent
         return $this->selectedValue;
     }
 
-    /**
-     * Set title.
-     *
-     * @param string $title
-     *
-     * @return SettingsCurrent
-     */
-    public function setTitle($title)
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
@@ -269,14 +207,7 @@ class SettingsCurrent
         return $this->title;
     }
 
-    /**
-     * Set comment.
-     *
-     * @param string $comment
-     *
-     * @return SettingsCurrent
-     */
-    public function setComment($comment)
+    public function setComment(string $comment): self
     {
         $this->comment = $comment;
 
@@ -293,14 +224,7 @@ class SettingsCurrent
         return $this->comment;
     }
 
-    /**
-     * Set scope.
-     *
-     * @param string $scope
-     *
-     * @return SettingsCurrent
-     */
-    public function setScope($scope)
+    public function setScope(string $scope): self
     {
         $this->scope = $scope;
 
@@ -317,14 +241,7 @@ class SettingsCurrent
         return $this->scope;
     }
 
-    /**
-     * Set subkeytext.
-     *
-     * @param string $subkeytext
-     *
-     * @return SettingsCurrent
-     */
-    public function setSubkeytext($subkeytext)
+    public function setSubkeytext(string $subkeytext): self
     {
         $this->subkeytext = $subkeytext;
 
@@ -341,14 +258,7 @@ class SettingsCurrent
         return $this->subkeytext;
     }
 
-    /**
-     * Set accessUrlChangeable.
-     *
-     * @param int $accessUrlChangeable
-     *
-     * @return SettingsCurrent
-     */
-    public function setAccessUrlChangeable($accessUrlChangeable)
+    public function setAccessUrlChangeable(int $accessUrlChangeable): self
     {
         $this->accessUrlChangeable = $accessUrlChangeable;
 
@@ -365,16 +275,9 @@ class SettingsCurrent
         return $this->accessUrlChangeable;
     }
 
-    /**
-     * Set accessUrlLocked.
-     *
-     * @param int $accessUrlLocked
-     *
-     * @return SettingsCurrent
-     */
-    public function setAccessUrlLocked($accessUrlLocked)
+    public function setAccessUrlLocked(int $accessUrlLocked): self
     {
-        $this->accessUrlLocked = (int) $accessUrlLocked;
+        $this->accessUrlLocked = $accessUrlLocked;
 
         return $this;
     }
@@ -407,12 +310,7 @@ class SettingsCurrent
         return $this->url;
     }
 
-    /**
-     * @param AccessUrl $url
-     *
-     * @return SettingsCurrent
-     */
-    public function setUrl($url)
+    public function setUrl(AccessUrl $url): self
     {
         $this->url = $url;
 

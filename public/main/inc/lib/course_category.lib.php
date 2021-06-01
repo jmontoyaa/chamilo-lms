@@ -1,11 +1,50 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * Class CourseCategory.
- */
+use Chamilo\CoreBundle\Entity\Asset;
+use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CoreBundle\Entity\CourseCategory as CourseCategoryEntity;
+use Doctrine\Common\Collections\Criteria;
+
 class CourseCategory
 {
+    /**
+     * Get category details from a simple category code.
+     *
+     * @param string|null $categoryCode The literal category code
+     *
+     * @return array
+     */
+    public static function getCategory(string $categoryCode = null)
+    {
+        if (!empty($categoryCode)) {
+            $table = Database::get_main_table(TABLE_MAIN_CATEGORY);
+            $categoryCode = Database::escape_string($categoryCode);
+            $sql = "SELECT * FROM $table WHERE code ='$categoryCode'";
+            $result = Database::query($sql);
+
+            if (Database::num_rows($result)) {
+                $category = Database::fetch_array($result, 'ASSOC');
+                if ($category) {
+                    // Get access url id
+                    $table = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE_CATEGORY);
+                    $sql = "SELECT * FROM $table WHERE course_category_id = ".$category['id'];
+                    $result = Database::query($sql);
+                    $result = Database::fetch_array($result);
+                    if ($result) {
+                        $category['access_url_id'] = $result['access_url_id'];
+                    }
+
+                    return $category;
+                }
+            }
+        }
+
+        return [];
+    }
+
     /**
      * Returns the category fields from the database from an int ID.
      *
@@ -18,26 +57,6 @@ class CourseCategory
         $table = Database::get_main_table(TABLE_MAIN_CATEGORY);
         $categoryId = (int) $categoryId;
         $sql = "SELECT * FROM $table WHERE id = $categoryId";
-        $result = Database::query($sql);
-        if (Database::num_rows($result)) {
-            return Database::fetch_array($result, 'ASSOC');
-        }
-
-        return [];
-    }
-
-    /**
-     * Get category details from a simple category code.
-     *
-     * @param string $categoryCode The literal category code
-     *
-     * @return array
-     */
-    public static function getCategory($categoryCode)
-    {
-        $table = Database::get_main_table(TABLE_MAIN_CATEGORY);
-        $categoryCode = Database::escape_string($categoryCode);
-        $sql = "SELECT * FROM $table WHERE code ='$categoryCode'";
         $result = Database::query($sql);
         if (Database::num_rows($result)) {
             $category = Database::fetch_array($result, 'ASSOC');
@@ -56,62 +75,6 @@ class CourseCategory
         }
 
         return [];
-    }
-
-    /**
-     * @param int|null $category Optional. Parent category ID.
-     *
-     * @return array
-     */
-    public static function getCategories($category = null)
-    {
-        $tbl_category = Database::get_main_table(TABLE_MAIN_CATEGORY);
-        $tbl_course = Database::get_main_table(TABLE_MAIN_COURSE);
-        $category = (int) $category;
-        $conditions = null;
-
-        $table = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE_CATEGORY);
-        $conditions = " INNER JOIN $table a ON (t1.id = a.course_category_id)";
-        $whereCondition = " AND a.access_url_id = ".api_get_current_access_url_id();
-        $allowBaseCategories = api_get_configuration_value('allow_base_course_category');
-        if ($allowBaseCategories) {
-            $whereCondition = " AND (a.access_url_id = ".api_get_current_access_url_id()." OR a.access_url_id = 1) ";
-        }
-
-        $parentIdCondition = " AND (t1.parent_id IS NULL OR t1.parent_id = '' )";
-        if ($category) {
-            $parentIdCondition = " AND t1.parent_id = $category ";
-        }
-
-        $sql = "SELECT
-                t1.name,
-                t1.code,
-                t1.parent_id,
-                t1.tree_pos,
-                t1.children_count,
-                COUNT(DISTINCT t3.code) AS nbr_courses,
-                a.access_url_id
-                FROM $tbl_category t1
-                $conditions
-                LEFT JOIN $tbl_category t2
-                ON t1.id = t2.parent_id
-                LEFT JOIN $tbl_course t3
-                ON t3.category_id = t1.id
-                WHERE
-                    1 = 1
-                    $parentIdCondition
-                    $whereCondition
-                GROUP BY t1.name,
-                         t1.code,
-                         t1.parent_id,
-                         t1.tree_pos,
-                         t1.children_count
-                ORDER BY t1.tree_pos";
-
-        $result = Database::query($sql);
-        $categories = Database::store_result($result, 'ASSOC');
-
-        return $categories;
     }
 
     /**
@@ -135,81 +98,85 @@ class CourseCategory
         }
 
         $sql = "SELECT
-                t1.id, 
-                t1.name, 
-                t1.code, 
-                t1.parent_id, 
-                t1.tree_pos, 
-                t1.children_count, 
-                COUNT(DISTINCT t3.code) AS number_courses 
-                FROM $tbl_category t1 
+                t1.id,
+                t1.name,
+                t1.code,
+                t1.parent_id,
+                t1.tree_pos,
+                t1.children_count,
+                COUNT(DISTINCT t3.code) AS number_courses
+                FROM $tbl_category t1
                 $conditions
-                LEFT JOIN $tbl_course t3 
+                LEFT JOIN $tbl_course t3
                 ON t3.category_id=t1.id
                 WHERE 1=1
-                    $whereCondition 
+                    $whereCondition
                 GROUP BY
-                    t1.name, 
-                    t1.code, 
-                    t1.parent_id, 
-                    t1.tree_pos, 
-                    t1.children_count 
+                    t1.name,
+                    t1.code,
+                    t1.parent_id,
+                    t1.tree_pos,
+                    t1.children_count
                 ORDER BY t1.parent_id, t1.tree_pos";
 
         $result = Database::query($sql);
-        $categories = Database::store_result($result, 'ASSOC');
 
-        return $categories;
+        return Database::store_result($result, 'ASSOC');
     }
 
     /**
      * @param string $code
      * @param string $name
      * @param string $canHaveCourses
-     * @param int    $parent_id
-     *
-     * @return bool
+     * @param null|int    $parentId
      */
-    public static function addNode($code, $name, $canHaveCourses, $parent_id)
+    public static function add($code, $name, $canHaveCourses, $description = '', $parentId = null): ?CourseCategoryEntity
     {
         $table = Database::get_main_table(TABLE_MAIN_CATEGORY);
         $code = trim($code);
         $name = trim($name);
-        $parent_id = (int) $parent_id;
+        $parentId = (int) $parentId;
 
         $code = CourseManager::generate_course_code($code);
         $sql = "SELECT 1 FROM $table
                 WHERE code = '".Database::escape_string($code)."'";
         $result = Database::query($sql);
         if (Database::num_rows($result)) {
-            return false;
+            return null;
         }
         $result = Database::query("SELECT MAX(tree_pos) AS maxTreePos FROM $table");
         $row = Database::fetch_array($result);
         $tree_pos = $row['maxTreePos'] + 1;
+        $parentId = empty($parentId) ? null : $parentId;
 
-        $params = [
-            'name' => $name,
-            'code' => $code,
-            'parent_id' => empty($parent_id) ? null : $parent_id,
-            'tree_pos' => $tree_pos,
-            'children_count' => 0,
-            'auth_course_child' => $canHaveCourses,
-            'auth_cat_child' => 'TRUE',
-        ];
+        $repo = Container::getCourseCategoryRepository();
+        $category = new CourseCategoryEntity();
+        $category
+            ->setName($name)
+            ->setCode($code)
+            ->setDescription($description)
+            ->setTreePos($tree_pos)
+            ->setAuthCourseChild($canHaveCourses)
+            ->setAuthCatChild('TRUE');
 
-        $categoryId = Database::insert($table, $params);
+        if (!empty($parentId)) {
+            $category->setParent($repo->find($parentId));
+        }
+
+        $repo->save($category);
+
+        $categoryId = $category->getId();
         if ($categoryId) {
-            self::updateParentCategoryChildrenCount($parent_id, 1);
+            self::updateParentCategoryChildrenCount($parentId, 1);
             UrlManager::addCourseCategoryListToUrl(
                 [$categoryId],
                 [api_get_current_access_url_id()]
             );
 
-            return $categoryId;
+            return $category;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -226,7 +193,7 @@ class CourseCategory
         // First get to the highest level possible in the tree
         $result = Database::query("SELECT parent_id FROM $table WHERE id = '$categoryId'");
         $row = Database::fetch_array($result);
-        if ($row !== false && $row['parent_id'] != 0) {
+        if (false !== $row && 0 != $row['parent_id']) {
             // if a parent was found, enter there to see if he's got one more parent
             self::updateParentCategoryChildrenCount($row['parent_id'], $delta);
         }
@@ -238,20 +205,20 @@ class CourseCategory
         Database::query($sql);
     }
 
-    /**
-     * @param string $node
-     *
-     * @return bool
-     */
-    public static function deleteNode($node)
+    public static function delete($categoryId): bool
     {
-        $category = self::getCategory($node);
-
-        if (empty($category)) {
+        $repo = Container::getCourseCategoryRepository();
+        $category = $repo->find($categoryId);
+        if (null === $category) {
             return false;
         }
 
-        $tbl_course = Database::get_main_table(TABLE_MAIN_COURSE);
+        $repo->delete($category);
+
+        return true;
+
+        // @todo check that doctrine deletes all the connections.
+        /*$tbl_course = Database::get_main_table(TABLE_MAIN_COURSE);
         $tbl_category = Database::get_main_table(TABLE_MAIN_CATEGORY);
         $node = Database::escape_string($node);
         $result = Database::query("SELECT parent_id, tree_pos FROM $tbl_category WHERE code='$node'");
@@ -279,41 +246,31 @@ class CourseCategory
             }
 
             return true;
-        }
+        }*/
     }
 
-    /**
-     * @param string $code
-     * @param string $name
-     * @param string $canHaveCourses
-     * @param string $old_code
-     *
-     * @return bool
-     */
-    public static function editNode($code, $name, $canHaveCourses, $old_code)
+    public static function edit($categoryId, $name, $canHaveCourses, $code, $description): CourseCategoryEntity
     {
-        $tbl_category = Database::get_main_table(TABLE_MAIN_CATEGORY);
-
-        $code = trim(Database::escape_string($code));
         $name = trim(Database::escape_string($name));
-        $old_code = Database::escape_string($old_code);
         $canHaveCourses = Database::escape_string($canHaveCourses);
 
-        $code = CourseManager::generate_course_code($code);
-        // Updating category
-        $sql = "UPDATE $tbl_category SET 
-                    name='$name', 
-                    code='$code', 
-                    auth_course_child = '$canHaveCourses'
-                WHERE code = '$old_code'";
-        Database::query($sql);
+        $repo = Container::getCourseCategoryRepository();
+        $category = $repo->find($categoryId);
+
+        $category
+            ->setCode($name)
+            ->setName($name)
+            ->setDescription($description)
+            ->setAuthCourseChild($canHaveCourses);
+
+        $repo->save($category);
 
         // Updating children
-        $sql = "UPDATE $tbl_category SET parent_id = '$code'
+        /*$sql = "UPDATE $tbl_category SET parent_id = '$code'
             WHERE parent_id = '$old_code'";
-        Database::query($sql);
+        Database::query($sql);*/
 
-        return true;
+        return $category;
     }
 
     /**
@@ -374,35 +331,6 @@ class CourseCategory
     }
 
     /**
-     * Counts the number of children categories a category has.
-     *
-     * @param int $categoryId The ID of the category of which we want to count the children
-     *
-     * @return mixed The number of subcategories this category has
-     */
-    public static function courseCategoryChildrenCount($categoryId)
-    {
-        $table = Database::get_main_table(TABLE_MAIN_CATEGORY);
-        $categoryId = (int) $categoryId;
-        $count = 0;
-        if (empty($categoryId)) {
-            return 0;
-        }
-        $sql = "SELECT id, code FROM $table 
-                WHERE parent_id = $categoryId";
-        $result = Database::query($sql);
-        while ($row = Database::fetch_array($result)) {
-            $count += self::courseCategoryChildrenCount($row['id']);
-        }
-        $sql = "UPDATE $table SET 
-                    children_count = $count 
-                WHERE id = $categoryId";
-        Database::query($sql);
-
-        return $count + 1;
-    }
-
-    /**
      * @param string $categoryCode
      *
      * @return array
@@ -411,42 +339,13 @@ class CourseCategory
     {
         $table = Database::get_main_table(TABLE_MAIN_CATEGORY);
         $categoryCode = Database::escape_string($categoryCode);
-        $sql = "SELECT code, id FROM $table 
+        $sql = "SELECT code, id FROM $table
                 WHERE parent_id = '$categoryCode'";
         $result = Database::query($sql);
         $children = [];
         while ($row = Database::fetch_array($result, 'ASSOC')) {
             $children[] = $row;
             $subChildren = self::getChildren($row['code']);
-            $children = array_merge($children, $subChildren);
-        }
-
-        return $children;
-    }
-
-    /**
-     * @param string $categoryCode
-     *
-     * @return array
-     */
-    public static function getParents($categoryCode)
-    {
-        if (empty($categoryCode)) {
-            return [];
-        }
-
-        $table = Database::get_main_table(TABLE_MAIN_CATEGORY);
-        $categoryCode = Database::escape_string($categoryCode);
-        $sql = "SELECT code, parent_id 
-                FROM $table
-                WHERE code = '$categoryCode'";
-
-        $result = Database::query($sql);
-        $children = [];
-        while ($row = Database::fetch_array($result, 'ASSOC')) {
-            $parent = self::getCategory($row['parent_id']);
-            $children[] = $row;
-            $subChildren = self::getParents($parent ? $parent['code'] : null);
             $children = array_merge($children, $subChildren);
         }
 
@@ -468,18 +367,43 @@ class CourseCategory
             foreach ($parents as $category) {
                 $categories[] = $category['code'];
             }
-            $categoriesInString = implode(' > ', $categories).' > ';
 
-            return $categoriesInString;
+            return implode(' > ', $categories).' > ';
         }
 
         return null;
     }
 
     /**
-     * @return string
+     * @param string $categoryCode
+     *
+     * @return array
      */
-    public static function listCategories(array $categorySource = [])
+    public static function getParents($categoryCode)
+    {
+        if (empty($categoryCode)) {
+            return [];
+        }
+
+        $table = Database::get_main_table(TABLE_MAIN_CATEGORY);
+        $categoryCode = Database::escape_string($categoryCode);
+        $sql = "SELECT code, parent_id
+                FROM $table
+                WHERE code = '$categoryCode'";
+
+        $result = Database::query($sql);
+        $children = [];
+        while ($row = Database::fetch_array($result, 'ASSOC')) {
+            $parent = self::getCategory($row['parent_id']);
+            $children[] = $row;
+            $subChildren = self::getParents($parent ? $parent['code'] : null);
+            $children = array_merge($children, $subChildren);
+        }
+
+        return $children;
+    }
+
+    public static function listCategories(array $categorySource = []): string
     {
         $categories = self::getCategories($categorySource ? $categorySource['id'] : null);
         $categoryCode = $categorySource ? Security::remove_XSS($categorySource['code']) : '';
@@ -503,13 +427,14 @@ class CourseCategory
 
             $editIcon = Display::return_icon(
                 'edit.png',
-                get_lang('Edit this category'),
+                get_lang('Edit'),
                 null,
                 ICON_SIZE_SMALL
             );
+            $exportIcon = Display::return_icon('export_csv.png', get_lang('ExportAsCSV'), '');
             $deleteIcon = Display::return_icon(
                 'delete.png',
-                get_lang('Delete this category'),
+                get_lang('Delete'),
                 null,
                 ICON_SIZE_SMALL
             );
@@ -522,32 +447,50 @@ class CourseCategory
 
             $urlId = api_get_current_access_url_id();
             foreach ($categories as $category) {
-                $editUrl = $mainUrl.'&id='.$category['code'].'&action=edit';
-                $moveUrl = $mainUrl.'&id='.$category['code'].'&action=moveUp&tree_pos='.$category['tree_pos'];
-                $deleteUrl = $mainUrl.'&id='.$category['code'].'&action=delete';
+                $categoryId = $category->getId();
+                $code = $category->getCode();
+                $editUrl = $mainUrl.'&id='.$categoryId.'&action=edit';
+                $moveUrl = $mainUrl.'&id='.$categoryId.'&action=moveUp&tree_pos='.$category->getTreePos();
+                $deleteUrl = $mainUrl.'&id='.$categoryId.'&action=delete';
+                $exportUrl = $mainUrl.'&id='.$categoryId.'&action=export';
 
                 $actions = [];
+                $criteria = Criteria::create();
+                $criteria->where(Criteria::expr()->eq('status', User::STUDENT));
 
-                if ($urlId == $category['access_url_id']) {
+                $inUrl = $category->getUrls()->filter(
+                    function ($entry) use ($urlId) {
+                        return $entry->getUrl()->getId() === $urlId;
+                    }
+                );
+
+                if ($inUrl->count() > 0) {
                     $actions[] = Display::url($editIcon, $editUrl);
                     $actions[] = Display::url($moveIcon, $moveUrl);
-                    $actions[] = Display::url($deleteIcon, $deleteUrl);
+                    $actions[] = Display::url($exportIcon, $exportUrl);
+                    $actions[] = Display::url(
+                        $deleteIcon,
+                        $deleteUrl,
+                        ['onclick' => 'javascript: if (!confirm(\''.addslashes(api_htmlentities(sprintf(get_lang('Please confirm your choice')), ENT_QUOTES)).'\')) return false;',]
+                    );
                 }
 
-                $url = api_get_path(WEB_CODE_PATH).'admin/course_category.php?category='.$category['code'];
+                $url = api_get_path(WEB_CODE_PATH).'admin/course_category.php?id='.$categoryId;
                 $title = Display::url(
                     Display::return_icon(
                         'folder_document.gif',
                         get_lang('Open this category'),
                         null,
                         ICON_SIZE_SMALL
-                    ).' '.$category['name'].' ('.$category['code'].')',
+                    ).' '.$category->getName().' ('.$code.')',
                     $url
                 );
+
+                $countCourses = $category->getCourses()->count();
                 $content = [
                     $title,
-                    $category['children_count'],
-                    $category['nbr_courses'],
+                    $category->getChildrenCount(),
+                    $countCourses,
                     implode('', $actions),
                 ];
                 $column = 0;
@@ -559,9 +502,73 @@ class CourseCategory
             }
 
             return $table->toHtml();
-        } else {
-            return Display::return_message(get_lang('There are no categories here'), 'warning');
         }
+
+        return Display::return_message(get_lang('There are no categories here'), 'warning');
+    }
+
+    /**
+     * @param int|null $category Optional. Parent category ID.
+     *
+     * @return CourseCategoryEntity[]
+     */
+    public static function getCategories($category = null)
+    {
+        $repo = Container::getCourseCategoryRepository();
+        $category = (int) $category;
+
+        return $repo->findAllInAccessUrl(
+            api_get_current_access_url_id(),
+            api_get_configuration_value('allow_base_course_category'),
+            $category
+        );
+
+        /*
+        $table = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE_CATEGORY);
+        $conditions = " INNER JOIN $table a ON (t1.id = a.course_category_id)";
+        $whereCondition = " AND a.access_url_id = ".api_get_current_access_url_id();
+        $allowBaseCategories = api_get_configuration_value('allow_base_course_category');
+        if ($allowBaseCategories) {
+            $whereCondition = " AND (a.access_url_id = ".api_get_current_access_url_id()." OR a.access_url_id = 1) ";
+        }
+
+        $parentIdCondition = " AND (t1.parent_id IS NULL OR t1.parent_id = '' )";
+
+        if ($category) {
+            $parentIdCondition = " AND t1.parent_id = $category ";
+        }
+
+        $sql = "SELECT
+                t1.name,
+                t1.code,
+                t1.parent_id,
+                t1.tree_pos,
+                t1.children_count,
+                COUNT(DISTINCT t4.code) AS nbr_courses,
+                a.access_url_id
+                FROM $tbl_category t1
+                $conditions
+                LEFT JOIN $tbl_category t2
+                ON t1.id = t2.parent_id
+                LEFT JOIN $tbl_course_rel_category t3
+                ON t1.id = t3.course_category_id
+                LEFT JOIN $tbl_course t4
+                ON t3.course_id = t4.id
+                WHERE
+                    1 = 1
+                    $parentIdCondition
+                    $whereCondition
+                GROUP BY t1.name,
+                         t1.code,
+                         t1.parent_id,
+                         t1.tree_pos,
+                         t1.children_count
+                ORDER BY t1.tree_pos
+        ";
+
+        $result = Database::query($sql);
+
+        return Database::store_result($result, 'ASSOC');*/
     }
 
     /**
@@ -597,8 +604,16 @@ class CourseCategory
                 ORDER BY tree_pos";
         $res = Database::query($sql);
 
+        $categoryToAvoid = '';
+        if (!api_is_platform_admin()) {
+            $categoryToAvoid = api_get_configuration_value('course_category_code_to_use_as_model');
+        }
         $categories[''] = '-';
         while ($cat = Database::fetch_array($res)) {
+            $categoryCode = $cat['code'];
+            if (!empty($categoryToAvoid) && $categoryToAvoid == $categoryCode) {
+                continue;
+            }
             $categories[$cat['id']] = '('.$cat['code'].') '.$cat['name'];
             ksort($categories);
         }
@@ -608,26 +623,63 @@ class CourseCategory
 
     /**
      * @param string $category_code
-     * @param string $searchTerm
+     * @param string $keyword
+     *
+     * @paran bool  $avoidCourses
+     * @paran array $conditions
      *
      * @return int
      */
-    public static function countCoursesInCategory($category_code = '', $searchTerm = '')
-    {
+    public static function countCoursesInCategory(
+        $category_code = '',
+        $keyword = '',
+        $avoidCourses = true,
+        $conditions = []
+    ) {
+        return self::getCoursesInCategory($category_code, $keyword, $avoidCourses, $conditions, true);
+    }
+
+    /**
+     * @return \Chamilo\CoreBundle\Entity\Course[]
+     */
+    public static function getCoursesInCategory(
+        $categoryId,
+        $keyword = '',
+        $avoidCourses = true,
+        $conditions = [],
+        $getCount = false
+    ) {
+        $repo = Container::getCourseCategoryRepository();
+        /** @var CourseCategoryEntity $category */
+        $category = $repo->find($categoryId);
+
+        // @todo add filters
+
+        return $category->getCourses();
+
         $tbl_course = Database::get_main_table(TABLE_MAIN_COURSE);
         $tblCourseCategory = Database::get_main_table(TABLE_MAIN_CATEGORY);
-
+        $keyword = Database::escape_string($keyword);
         $categoryCode = Database::escape_string($category_code);
-        $searchTerm = Database::escape_string($searchTerm);
+        $avoidCoursesCondition = '';
+        if ($avoidCourses) {
+            $avoidCoursesCondition = CoursesAndSessionsCatalog::getAvoidCourseCondition();
+        }
 
-        $avoidCoursesCondition = CoursesAndSessionsCatalog::getAvoidCourseCondition();
         $visibilityCondition = CourseManager::getCourseVisibilitySQLCondition('course', true);
 
-        $categoryJoin = '';
+        $sqlInjectJoins = '';
+        $where = ' AND 1 = 1 ';
+        $sqlInjectWhere = '';
+        if (!empty($conditions)) {
+            $sqlInjectJoins = $conditions['inject_joins'];
+            $where = $conditions['where'];
+            $sqlInjectWhere = $conditions['inject_where'];
+        }
         $categoryFilter = '';
-        if ($categoryCode === 'ALL') {
+        if ('ALL' === $categoryCode || empty($categoryCode)) {
             // Nothing to do
-        } elseif ($categoryCode === 'NONE') {
+        } elseif ('NONE' === $categoryCode) {
             $categoryFilter = ' AND course.category_id IS NULL ';
         } else {
             $categoryJoin = " INNER JOIN $tblCourseCategory cat ON course.category_id = cat.id ";
@@ -635,20 +687,26 @@ class CourseCategory
         }
 
         $searchFilter = '';
-        if (!empty($searchTerm)) {
+        if (!empty($keyword)) {
             $searchFilter = ' AND (
-                course.code LIKE "%'.$searchTerm.'%" OR 
-                course.title LIKE "%'.$searchTerm.'%" OR 
-                course.tutor_name LIKE "%'.$searchTerm.'%"
+                course.code LIKE "%'.$keyword.'%" OR
+                course.title LIKE "%'.$keyword.'%" OR
+                course.tutor_name LIKE "%'.$keyword.'%"
             ) ';
         }
 
         $urlCondition = ' url_rel_course.access_url_id = '.api_get_current_access_url_id().' AND';
         $tbl_url_rel_course = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE);
-        $sql = "SELECT count(course.id) as count 
+
+        $select = " DISTINCT course.id, course.code, course.title ";
+        if ($getCount) {
+            $select = "count(DISTINCT course.id) as count";
+        }
+        $sql = "SELECT $select
                 FROM $tbl_course as course
                 INNER JOIN $tbl_url_rel_course as url_rel_course
                 ON (url_rel_course.c_id = course.id)
+                $sqlInjectJoins
                 $categoryJoin
                 WHERE
                     $urlCondition
@@ -658,12 +716,18 @@ class CourseCategory
                     $searchFilter
                     $avoidCoursesCondition
                     $visibilityCondition
+                    $where
+                    $sqlInjectWhere
             ";
 
         $result = Database::query($sql);
-        $row = Database::fetch_array($result);
+        if ($getCount) {
+            $row = Database::fetch_array($result);
 
-        return (int) $row['count'];
+            return (int) $row['count'];
+        }
+
+        return Database::store_result($result, 'ASSOC');
     }
 
     /**
@@ -708,6 +772,11 @@ class CourseCategory
         $table = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE_CATEGORY);
         $conditions = " INNER JOIN $table a ON (c.id = a.course_category_id)";
         $whereCondition = " AND a.access_url_id = ".api_get_current_access_url_id();
+
+        $allowBaseCategories = api_get_configuration_value('allow_base_course_category');
+        if ($allowBaseCategories) {
+            $whereCondition = " AND (a.access_url_id = ".api_get_current_access_url_id()." OR a.access_url_id = 1) ";
+        }
 
         $keyword = Database::escape_string($keyword);
 
@@ -787,6 +856,48 @@ class CourseCategory
     }
 
     /**
+     * Get li HTML of page number.
+     *
+     * @param        $pageNumber
+     * @param        $pageLength
+     * @param array  $liAttributes
+     * @param string $content
+     *
+     * @return string
+     */
+    public static function getPageNumberItem(
+        $pageNumber,
+        $pageLength,
+        $liAttributes = [],
+        $content = ''
+    ) {
+        // Get page URL
+        $url = self::getCourseCategoryUrl(
+            $pageNumber,
+            $pageLength
+        );
+
+        // If is current page ('active' class) clear URL
+        if (isset($liAttributes) && is_array($liAttributes) && isset($liAttributes['class'])) {
+            if (false !== strpos('active', $liAttributes['class'])) {
+                $url = '';
+            }
+        }
+
+        $content = !empty($content) ? $content : $pageNumber;
+
+        return Display::tag(
+            'li',
+            Display::url(
+                $content,
+                $url,
+                ['class' => 'page-link']
+            ),
+            $liAttributes
+        );
+    }
+
+    /**
      * Return URL to course catalog.
      *
      * @param int    $pageCurrent
@@ -808,11 +919,13 @@ class CourseCategory
         $action = isset($action) ? Security::remove_XSS($action) : $requestAction;
         $searchTerm = isset($_REQUEST['search_term']) ? Security::remove_XSS($_REQUEST['search_term']) : null;
 
-        if ($action === 'subscribe_user_with_password') {
+        if ('subscribe_user_with_password' === $action) {
             $action = 'subscribe';
         }
 
-        $categoryCodeRequest = isset($_REQUEST['category_code']) ? Security::remove_XSS($_REQUEST['category_code']) : null;
+        $categoryCodeRequest = isset($_REQUEST['category_code']) ? Security::remove_XSS(
+            $_REQUEST['category_code']
+        ) : null;
         $categoryCode = isset($categoryCode) ? Security::remove_XSS($categoryCode) : $categoryCodeRequest;
         $hiddenLinksRequest = isset($_REQUEST['hidden_links']) ? Security::remove_XSS($_REQUEST['hidden_links']) : null;
         $hiddenLinks = isset($hiddenLinks) ? Security::remove_XSS($hiddenLinksRequest) : $categoryCodeRequest;
@@ -839,48 +952,6 @@ class CourseCategory
         }
 
         return $pageUrl;
-    }
-
-    /**
-     * Get li HTML of page number.
-     *
-     * @param $pageNumber
-     * @param $pageLength
-     * @param array  $liAttributes
-     * @param string $content
-     *
-     * @return string
-     */
-    public static function getPageNumberItem(
-        $pageNumber,
-        $pageLength,
-        $liAttributes = [],
-        $content = ''
-    ) {
-        // Get page URL
-        $url = self::getCourseCategoryUrl(
-            $pageNumber,
-            $pageLength
-        );
-
-        // If is current page ('active' class) clear URL
-        if (isset($liAttributes) && is_array($liAttributes) && isset($liAttributes['class'])) {
-            if (strpos('active', $liAttributes['class']) !== false) {
-                $url = '';
-            }
-        }
-
-        $content = !empty($content) ? $content : $pageNumber;
-
-        return Display::tag(
-            'li',
-            Display::url(
-                $content,
-                $url,
-                ['class' => 'page-link']
-            ),
-            $liAttributes
-        );
     }
 
     /**
@@ -915,62 +986,40 @@ class CourseCategory
         return $nameTools;
     }
 
-    /**
-     * Save image for a course category.
-     *
-     * @param int   $categoryId Course category ID
-     * @param array $fileData   File data from $_FILES
-     */
-    public static function saveImage($categoryId, $fileData)
+    public static function deleteImage(CourseCategoryEntity $category)
     {
-        $categoryInfo = self::getCategoryById($categoryId);
-        if (empty($categoryInfo)) {
-            return;
-        }
+        $assetRepo = Container::getAssetRepository();
+        $assetId = $category->getImage();
+        $asset = $assetRepo->find($assetId);
+        $assetRepo->delete($asset);
 
-        if (!empty($fileData['error'])) {
-            return;
-        }
-
-        $extension = getextension($fileData['name']);
-        $dirName = 'course_category/';
-        $fileDir = api_get_path(SYS_UPLOAD_PATH).$dirName;
-        $fileName = "cc_$categoryId.{$extension[0]}";
-
-        if (!file_exists($fileDir)) {
-            mkdir($fileDir, api_get_permissions_for_new_directories(), true);
-        }
-
-        $image = new Image($fileData['tmp_name']);
-        $image->send_image($fileDir.$fileName);
-
-        $table = Database::get_main_table(TABLE_MAIN_CATEGORY);
-        Database::update(
-            $table,
-            ['image' => $dirName.$fileName],
-            ['id = ?' => $categoryId]
-        );
+        $category->setImage('');
+        $repo = Container::getCourseCategoryRepository();
+        $repo->save($category);
     }
 
     /**
-     * @param $categoryId
-     * @param string $description
+     * Save image for a course category.
      *
-     * @return string
+     * @param array $fileData File data from $_FILES
      */
-    public static function saveDescription($categoryId, $description)
+    public static function saveImage(CourseCategoryEntity $category, $fileData)
     {
-        $categoryInfo = self::getCategoryById($categoryId);
-        if (empty($categoryInfo)) {
-            return false;
-        }
-        $table = Database::get_main_table(TABLE_MAIN_CATEGORY);
-        Database::update(
-            $table,
-            ['description' => $description],
-            ['id = ?' => $categoryId]
-        );
+        if (isset($fileData['tmp_name']) && !empty($fileData['tmp_name'])) {
+            $categoryId = $category->getId();
+            $extension = getextension($fileData['name']);
+            $fileName = "cc_$categoryId.{$extension[0]}";
 
-        return true;
+            $repo = Container::getAssetRepository();
+            $asset = new Asset();
+            $asset
+                ->setCategory(Asset::COURSE_CATEGORY)
+                ->setTitle($fileName);
+            $asset = $repo->createFromRequest($asset, $fileData);
+
+            $category->setImage($asset->getId());
+            $repo = Container::getCourseCategoryRepository();
+            $repo->save($category);
+        }
     }
 }

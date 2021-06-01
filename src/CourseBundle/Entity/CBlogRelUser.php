@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
@@ -10,53 +12,43 @@ use Doctrine\ORM\Mapping as ORM;
  * CBlogRelUser.
  *
  * @ORM\Table(
- *  name="c_blog_rel_user",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_blog_rel_user",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CBlogRelUser
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="blog_id", type="integer")
      */
-    protected $blogId;
+    protected int $blogId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="user_id", type="integer")
      */
-    protected $userId;
+    protected int $userId;
 
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CBlogRelUser
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
@@ -76,11 +68,9 @@ class CBlogRelUser
     /**
      * Set blogId.
      *
-     * @param int $blogId
-     *
      * @return CBlogRelUser
      */
-    public function setBlogId($blogId)
+    public function setBlogId(int $blogId)
     {
         $this->blogId = $blogId;
 
@@ -100,11 +90,9 @@ class CBlogRelUser
     /**
      * Set userId.
      *
-     * @param int $userId
-     *
      * @return CBlogRelUser
      */
-    public function setUserId($userId)
+    public function setUserId(int $userId)
     {
         $this->userId = $userId;
 

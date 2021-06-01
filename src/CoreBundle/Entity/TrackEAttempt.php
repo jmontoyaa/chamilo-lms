@@ -1,124 +1,125 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
 use Chamilo\CoreBundle\Traits\CourseTrait;
+use Chamilo\CoreBundle\Traits\UserTrait;
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * TrackEAttempt.
+ * Questions per quiz user attempts.
  *
  * @ORM\Table(
- *  name="track_e_attempt",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="exe_id", columns={"exe_id"}),
- *      @ORM\Index(name="user_id", columns={"user_id"}),
- *      @ORM\Index(name="question_id", columns={"question_id"}),
- *      @ORM\Index(name="idx_track_e_attempt_tms", columns={"tms"}),
- *  }
+ *     name="track_e_attempt",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"}),
+ *         @ORM\Index(name="exe_id", columns={"exe_id"}),
+ *         @ORM\Index(name="user_id", columns={"user_id"}),
+ *         @ORM\Index(name="question_id", columns={"question_id"}),
+ *         @ORM\Index(name="session_id", columns={"session_id"}),
+ *         @ORM\Index(name="idx_track_e_attempt_tms", columns={"tms"}),
+ *     }
  * )
  * @ORM\Entity
  */
 class TrackEAttempt
 {
     use CourseTrait;
+    use UserTrait;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="IDENTITY")
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var int
+     * @Assert\NotBlank()
      *
-     * @ORM\Column(name="exe_id", type="integer", nullable=true)
+     * @ORM\Column(name="exe_id", type="integer", nullable=false)
      */
-    protected $exeId;
+    protected int $exeId;
 
     /**
-     * @var int
+     * @Assert\NotBlank()
      *
-     * @ORM\Column(name="user_id", type="integer", nullable=false)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="trackEAttempts")
+     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $userId;
+    protected User $user;
 
     /**
-     * @var int
+     * @Assert\NotBlank()
      *
      * @ORM\Column(name="question_id", type="integer", nullable=false)
      */
-    protected $questionId;
+    protected ?int $questionId = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="answer", type="text", nullable=false)
      */
-    protected $answer;
+    protected string $answer;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="teacher_comment", type="text", nullable=false)
      */
-    protected $teacherComment;
+    protected string $teacherComment;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="marks", type="float", precision=6, scale=2, nullable=false)
      */
-    protected $marks;
+    protected float $marks;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="position", type="integer", nullable=true)
      */
-    protected $position;
+    protected ?int $position = null;
 
     /**
-     * @var \DateTime
-     *
-     * @ORM\Column(name="tms", type="datetime", nullable=true)
+     * @ORM\Column(name="tms", type="datetime", nullable=false)
      */
-    protected $tms;
+    protected DateTime $tms;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="session_id", type="integer", nullable=false)
      */
-    protected $sessionId;
+    protected int $sessionId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="filename", type="string", length=255, nullable=true)
      */
-    protected $filename;
+    protected ?string $filename = null;
 
     /**
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course", inversedBy="trackEAttempts")
      * @ORM\JoinColumn(name="c_id", referencedColumnName="id")
      */
-    protected $course;
+    protected Course $course;
+
+    /**
+     * @ORM\Column(name="seconds_spent", type="integer")
+     */
+    protected int $secondsSpent;
+
+    public function __construct()
+    {
+        $this->teacherComment = '';
+        $this->secondsSpent = 0;
+    }
 
     /**
      * Set exeId.
      *
-     * @param int $exeId
-     *
      * @return TrackEAttempt
      */
-    public function setExeId($exeId)
+    public function setExeId(int $exeId)
     {
         $this->exeId = $exeId;
 
@@ -136,37 +137,11 @@ class TrackEAttempt
     }
 
     /**
-     * Set userId.
-     *
-     * @param int $userId
-     *
-     * @return TrackEAttempt
-     */
-    public function setUserId($userId)
-    {
-        $this->userId = $userId;
-
-        return $this;
-    }
-
-    /**
-     * Get userId.
-     *
-     * @return int
-     */
-    public function getUserId()
-    {
-        return $this->userId;
-    }
-
-    /**
      * Set questionId.
      *
-     * @param int $questionId
-     *
      * @return TrackEAttempt
      */
-    public function setQuestionId($questionId)
+    public function setQuestionId(int $questionId)
     {
         $this->questionId = $questionId;
 
@@ -186,11 +161,9 @@ class TrackEAttempt
     /**
      * Set answer.
      *
-     * @param string $answer
-     *
      * @return TrackEAttempt
      */
-    public function setAnswer($answer)
+    public function setAnswer(string $answer)
     {
         $this->answer = $answer;
 
@@ -210,11 +183,9 @@ class TrackEAttempt
     /**
      * Set teacherComment.
      *
-     * @param string $teacherComment
-     *
      * @return TrackEAttempt
      */
-    public function setTeacherComment($teacherComment)
+    public function setTeacherComment(string $teacherComment)
     {
         $this->teacherComment = $teacherComment;
 
@@ -234,11 +205,9 @@ class TrackEAttempt
     /**
      * Set marks.
      *
-     * @param float $marks
-     *
      * @return TrackEAttempt
      */
-    public function setMarks($marks)
+    public function setMarks(float $marks)
     {
         $this->marks = $marks;
 
@@ -258,11 +227,9 @@ class TrackEAttempt
     /**
      * Set position.
      *
-     * @param int $position
-     *
      * @return TrackEAttempt
      */
-    public function setPosition($position)
+    public function setPosition(int $position)
     {
         $this->position = $position;
 
@@ -282,11 +249,9 @@ class TrackEAttempt
     /**
      * Set tms.
      *
-     * @param \DateTime $tms
-     *
      * @return TrackEAttempt
      */
-    public function setTms($tms)
+    public function setTms(DateTime $tms)
     {
         $this->tms = $tms;
 
@@ -296,7 +261,7 @@ class TrackEAttempt
     /**
      * Get tms.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getTms()
     {
@@ -306,11 +271,9 @@ class TrackEAttempt
     /**
      * Set sessionId.
      *
-     * @param int $sessionId
-     *
      * @return TrackEAttempt
      */
-    public function setSessionId($sessionId)
+    public function setSessionId(int $sessionId)
     {
         $this->sessionId = $sessionId;
 
@@ -330,11 +293,9 @@ class TrackEAttempt
     /**
      * Set filename.
      *
-     * @param string $filename
-     *
      * @return TrackEAttempt
      */
-    public function setFilename($filename)
+    public function setFilename(string $filename)
     {
         $this->filename = $filename;
 
@@ -359,5 +320,17 @@ class TrackEAttempt
     public function getId()
     {
         return $this->id;
+    }
+
+    public function getSecondsSpent(): int
+    {
+        return $this->secondsSpent;
+    }
+
+    public function setSecondsSpent(int $secondsSpent): self
+    {
+        $this->secondsSpent = $secondsSpent;
+
+        return $this;
     }
 }

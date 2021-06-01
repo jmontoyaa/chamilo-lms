@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Entity\TrackEHotspot;
@@ -8,8 +9,6 @@ use Chamilo\CourseBundle\Entity\CQuizQuestion;
 
 /**
  * This file generates a json answer to the question preview.
- *
- * @package chamilo.exercise
  *
  * @author Toon Keppens, Julio Montoya adding hotspot "medical" support
  */
@@ -25,6 +24,9 @@ $userId = api_get_user_id();
 $courseId = api_get_course_int_id();
 $objExercise = new Exercise($courseId);
 $debug = false;
+if ($debug) {
+    error_log("Call to hotspot_answers.as.php");
+}
 $trackExerciseInfo = $objExercise->get_stat_track_exercise_info_by_exe_id($exeId);
 
 // Check if student has access to the hotspot answers
@@ -51,6 +53,9 @@ if (!api_is_allowed_to_edit(null, true)) {
 $questionRepo = Container::getQuestionRepository();
 /** @var CQuizQuestion $objQuestion */
 $objQuestion = $questionRepo->find($questionId);
+if (empty($objQuestion)) {
+    exit;
+}
 
 $answer_type = $objQuestion->getType(); //very important
 $TBL_ANSWERS = Database::get_course_table(TABLE_QUIZ_ANSWER);
@@ -58,11 +63,11 @@ $TBL_ANSWERS = Database::get_course_table(TABLE_QUIZ_ANSWER);
 $resourceFile = $objQuestion->getResourceNode()->getResourceFile();
 $pictureWidth = $resourceFile->getWidth();
 $pictureHeight = $resourceFile->getHeight();
-$imagePath = $questionRepo->getHotSpotImageUrl($objQuestion);
+$imagePath = $questionRepo->getHotSpotImageUrl($objQuestion).'?'.api_get_cidreq();
 
 $objExercise->read($exerciseId);
 
-if (empty($objQuestion) || empty($objExercise)) {
+if (empty($objExercise)) {
     exit;
 }
 
@@ -70,35 +75,18 @@ $em = Database::getManager();
 
 $data = [];
 $data['type'] = 'solution';
-$data['lang'] = [
-    'Square' => get_lang('Square'),
-    'Ellipse' => get_lang('Ellipse'),
-    'Polygon' => get_lang('Polygon'),
-    'HotspotStatus1' => get_lang('HotspotStatus1'),
-    'HotspotStatus2Polygon' => get_lang('HotspotStatus2Polygon'),
-    'HotspotStatus2Other' => get_lang('HotspotStatus2Other'),
-    'HotspotStatus3' => get_lang('HotspotStatus3'),
-    'HotspotShowUserPoints' => get_lang('HotspotShowUserPoints'),
-    'ShowHotspots' => get_lang('ShowHotspots'),
-    'Triesleft' => get_lang('Triesleft'),
-    'HotspotExerciseFinished' => get_lang('HotspotExerciseFinished'),
-    'NextAnswer' => get_lang('NextAnswer'),
-    'Delineation' => get_lang('Delineation'),
-    'CloseDelineation' => get_lang('CloseDelineation'),
-    'Oar' => get_lang('Oar'),
-    'ClosePolygon' => get_lang('ClosePolygon'),
-    'DelineationStatus1' => get_lang('DelineationStatus1'),
-];
+$data['lang'] = HotSpot::getLangVariables();
 $data['image'] = $imagePath;
 $data['image_width'] = $pictureWidth;
 $data['image_height'] = $pictureHeight;
-$data['courseCode'] = $_course['path'];
 $data['hotspots'] = [];
 
+$resultDisable = $objExercise->selectResultsDisabled();
 $showTotalScoreAndUserChoicesInLastAttempt = true;
 if (in_array(
-    $objExercise->selectResultsDisabled(), [
+    $resultDisable, [
         RESULT_DISABLE_SHOW_SCORE_ATTEMPT_SHOW_ANSWERS_LAST_ATTEMPT,
+        RESULT_DISABLE_SHOW_SCORE_ATTEMPT_SHOW_ANSWERS_LAST_ATTEMPT_NO_FEEDBACK,
         RESULT_DISABLE_DONT_SHOW_SCORE_ONLY_IF_USER_FINISHES_ATTEMPTS_SHOW_ALWAYS_FEEDBACK,
     ]
 )
@@ -129,14 +117,14 @@ if (in_array(
 }
 
 $hideExpectedAnswer = false;
-if ($objExercise->getFeedbackType() == 0 &&
-    $objExercise->selectResultsDisabled() == RESULT_DISABLE_SHOW_SCORE_ONLY
+if (0 == $objExercise->getFeedbackType() &&
+    RESULT_DISABLE_SHOW_SCORE_ONLY == $resultDisable
 ) {
     $hideExpectedAnswer = true;
 }
 
 if (in_array(
-    $objExercise->selectResultsDisabled(), [
+    $resultDisable, [
         RESULT_DISABLE_SHOW_SCORE_ATTEMPT_SHOW_ANSWERS_LAST_ATTEMPT,
         RESULT_DISABLE_DONT_SHOW_SCORE_ONLY_IF_USER_FINISHES_ATTEMPTS_SHOW_ALWAYS_FEEDBACK,
     ]
@@ -145,13 +133,43 @@ if (in_array(
     $hideExpectedAnswer = $showTotalScoreAndUserChoicesInLastAttempt ? false : true;
 }
 
+if (in_array(
+    $resultDisable, [
+        RESULT_DISABLE_SHOW_SCORE_ATTEMPT_SHOW_ANSWERS_LAST_ATTEMPT_NO_FEEDBACK,
+    ]
+)
+) {
+    $hideExpectedAnswer = false;
+}
+
+$hotSpotWithAnswer = [];
+$data['answers'] = [];
+$rs = $em
+    ->getRepository(TrackEHotspot::class)
+    ->findBy(
+        [
+            'hotspotQuestionId' => $questionId,
+            'course' => $courseId,
+            'hotspotExeId' => $exeId,
+        ],
+        ['hotspotAnswerId' => 'ASC']
+    );
+
+/** @var TrackEHotspot $row */
+foreach ($rs as $row) {
+    $data['answers'][] = $row->getHotspotCoordinate();
+
+    if ($row->getHotspotCorrect()) {
+        $hotSpotWithAnswer[] = $row->getHotspotAnswerId();
+    }
+}
 if (!$hideExpectedAnswer) {
     $qb = $em->createQueryBuilder();
     $qb
         ->select('a')
         ->from('ChamiloCourseBundle:CQuizAnswer', 'a');
 
-    if ($objQuestion->getType() == HOT_SPOT_DELINEATION) {
+    if (HOT_SPOT_DELINEATION == $objQuestion->getType()) {
         $qb
             ->where($qb->expr()->eq('a.cId', $courseId))
             ->andWhere($qb->expr()->eq('a.questionId', $questionId))
@@ -166,8 +184,15 @@ if (!$hideExpectedAnswer) {
 
     $result = $qb->getQuery()->getResult();
 
-    /** @var CQuizAnswer $hotSpotAnswer */
     foreach ($result as $hotSpotAnswer) {
+        if (RESULT_DISABLE_SHOW_SCORE_ATTEMPT_SHOW_ANSWERS_LAST_ATTEMPT_NO_FEEDBACK == $resultDisable) {
+            if (false === $showTotalScoreAndUserChoicesInLastAttempt) {
+                if (!in_array($hotSpotAnswer->getIid(), $hotSpotWithAnswer)) {
+                    continue;
+                }
+            }
+        }
+        /** @var CQuizAnswer $hotSpotAnswer */
         $hotSpot = [];
         $hotSpot['id'] = $hotSpotAnswer->getIid();
         $hotSpot['answer'] = $hotSpotAnswer->getAnswer();
@@ -175,18 +200,23 @@ if (!$hideExpectedAnswer) {
         switch ($hotSpotAnswer->getHotspotType()) {
             case 'square':
                 $hotSpot['type'] = 'square';
+
                 break;
             case 'circle':
                 $hotSpot['type'] = 'circle';
+
                 break;
             case 'poly':
                 $hotSpot['type'] = 'poly';
+
                 break;
             case 'delineation':
                 $hotSpot['type'] = 'delineation';
+
                 break;
             case 'oar':
                 $hotSpot['type'] = 'delineation';
+
                 break;
         }
         $hotSpot['coord'] = $hotSpotAnswer->getHotspotCoordinates();
@@ -218,5 +248,5 @@ header('Content-Type: application/json');
 echo json_encode($data);
 
 if ($debug) {
-    error_log("---------- End call to hotspot_answers.as.php------------");
+    error_log('---------- End call to hotspot_answers.as.php------------');
 }

@@ -1,8 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
-/**
- *	@package chamilo.admin
- */
+
 use Chamilo\CoreBundle\Entity\Course;
 use Chamilo\CoreBundle\Entity\Session;
 
@@ -15,16 +14,16 @@ require_once __DIR__.'/../inc/global.inc.php';
 $this_section = SECTION_PLATFORM_ADMIN;
 $tool_name = get_lang('Edit session courses by user');
 $id_session = isset($_GET['id_session']) ? (int) $_GET['id_session'] : 0;
-SessionManager::protectSession($id_session);
+$session = api_get_session_entity($id_session);
+SessionManager::protectSession($session);
 
 $id_user = intval($_GET['id_user']);
 
 $em = Database::getManager();
-/** @var Session $session */
-$session = $em->find('ChamiloCoreBundle:Session', $id_session);
+$session = api_get_session_entity($id_session);
 $user = api_get_user_entity($id_user);
 
-if (!api_is_platform_admin() && $session->getSessionAdminId() != api_get_user_id()) {
+if (!api_is_platform_admin() && $session->getSessionAdmin()->getId() != api_get_user_id()) {
     api_not_allowed(true);
 }
 
@@ -60,8 +59,7 @@ if ($form->validate()) {
     }
 
     foreach ($values['courses_to_avoid'] as $courseId) {
-        /** @var Course $course */
-        $course = $em->find('ChamiloCoreBundle:Course', $courseId);
+        $course = api_get_course_entity($courseId);
 
         if (!$session->getUserInCourse($user, $course)->count()) {
             continue;
@@ -73,8 +71,7 @@ if ($form->validate()) {
     $coursesToResubscribe = array_diff($avoidedCourseIds, $values['courses_to_avoid']);
 
     foreach ($coursesToResubscribe as $courseId) {
-        /** @var Course $course */
-        $course = $em->find('ChamiloCoreBundle:Course', $courseId);
+        $course = api_get_course_entity($courseId);
 
         if ($session->getUserInCourse($user, $course)->count()) {
             continue;

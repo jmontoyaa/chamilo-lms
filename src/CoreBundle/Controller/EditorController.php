@@ -1,21 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Controller;
 
-use APY\DataGridBundle\Grid\Grid;
-use APY\DataGridBundle\Grid\Row;
-use APY\DataGridBundle\Grid\Source\Entity;
 use Chamilo\CoreBundle\Component\Editor\CkEditor\CkEditor;
 use Chamilo\CoreBundle\Component\Editor\Connector;
-use Chamilo\CoreBundle\Component\Editor\Finder;
 use Chamilo\CoreBundle\Component\Utils\ChamiloApi;
-use Chamilo\CoreBundle\Entity\Resource\AbstractResource;
+use Chamilo\CoreBundle\Entity\AbstractResource;
 use Chamilo\CoreBundle\Repository\ResourceFactory;
 use Chamilo\CoreBundle\Security\Authorization\Voter\ResourceNodeVoter;
-use Chamilo\SettingsBundle\Manager\SettingsManager;
-use FM\ElfinderBundle\Connector\ElFinderConnector;
+use Chamilo\CoreBundle\Settings\SettingsManager;
+use Chamilo\CoreBundle\Traits\ControllerTrait;
+use Chamilo\CoreBundle\Traits\CourseControllerTrait;
+use Chamilo\CoreBundle\Traits\ResourceControllerTrait;
+use Chat;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -29,6 +30,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 class EditorController extends BaseController
 {
+    use ControllerTrait;
+    use ResourceControllerTrait;
+    use CourseControllerTrait;
+
     /**
      * Get templates (left column when creating a document).
      *
@@ -45,8 +50,10 @@ class EditorController extends BaseController
         $templates = $editor->simpleFormatTemplates();
 
         return $this->render(
-            '@ChamiloTheme/Editor/templates.html.twig',
-            ['templates' => $templates]
+            '@ChamiloCore/Editor/templates.html.twig',
+            [
+                'templates' => $templates,
+            ]
         );
     }
 
@@ -55,20 +62,26 @@ class EditorController extends BaseController
      */
     public function editorFileManager(): Response
     {
-        \Chat::setDisableChat();
+        Chat::setDisableChat();
         $params = [
             'course_condition' => '?'.$this->getCourseUrlQuery(),
         ];
 
-        return $this->render('@ChamiloTheme/Editor/elfinder.html.twig', $params);
+        return $this->render('@ChamiloCore/Editor/elfinder.html.twig', $params);
     }
 
     /**
-     * @Route("/resources/{tool}/{type}/{parentId}", methods={"GET"}, name="resources_filemanager")
-     *
-     * @param int $parentId
+     * Route("/resources/document/{nodeId}/manager", methods={"GET"}, name="resources_filemanager").
      */
-    public function customEditorFileManager(ResourceFactory $resourceFactory, Request $request, $tool, $type, Grid $grid, $parentId = 0): Response
+//    public function documentsFileManager(): Response
+//    {
+//        return $this->render('@ChamiloCore/Index/vue.html.twig');
+//    }
+
+    /**
+     * @Route("/resources/{tool}/{type}/{parentId}", methods={"GET"}, name="resources_filemanager_temp")
+     */
+    public function customEditorFileManager(ResourceFactory $resourceFactory, Request $request, $tool, $type, int $parentId = 0): Response
     {
         $id = $request->get('id');
 
@@ -76,11 +89,11 @@ class EditorController extends BaseController
         $session = $this->getCourseSession();
         $parent = $course->getResourceNode();
 
-        $repository = $resourceFactory->createRepository($tool, $type);
+        $repository = $resourceFactory->getRepositoryService($tool, $type);
         $class = $repository->getRepository()->getClassName();
 
         if (!empty($parentId)) {
-            $parent = $repository->getResourceNodeRepository()->find($parentId);
+            $parent = $this->getResourceNodeRepository()->find($parentId);
         }
 
         $this->denyAccessUnlessGranted(
@@ -103,22 +116,8 @@ class EditorController extends BaseController
         $grid->setLimits(20);
         $grid->setHiddenColumns(['iid']);
 
-        /*$grid->setRouteUrl(
-            $this->generateUrl(
-                'chamilo_core_resource_list',
-                [
-                    'tool' => 'document',
-                    'type' => 'files',
-                    'cidReq' => $this->getCourse()->getCode(),
-                    'sid' => $sessionId,
-                    'id' => $id,
-                ]
-            )
-        );*/
-
         $titleColumn = $repository->getTitleColumn($grid);
-
-        $titleColumn->setTitle($this->trans('Name'));
+        //$titleColumn->setTitle($this->trans('Name'));
 
         $routeParams = $this->getResourceParams($request);
 
@@ -145,7 +144,6 @@ class EditorController extends BaseController
                 $class = '';
                 if ($resourceNode->hasResourceFile()) {
                     $documentParams = $this->getResourceParams($request);
-                    //$documentParams['file'] = $resourceNode->getPathForDisplayRemoveBase($removePath);
                     // use id instead of old path (like in Chamilo v1)
                     $documentParams['id'] = $resourceNode->getId();
                     $url = $router->generate(
@@ -162,8 +160,12 @@ class EditorController extends BaseController
         );
 
         return $grid->getGridResponse(
-            '@ChamiloTheme/Editor/custom.html.twig',
-            ['id' => $id, 'grid' => $grid, 'tool' => $tool, 'type' => $type]
+            '@ChamiloCore/Editor/custom.html.twig',
+            [
+                'id' => $id,
+                'tool' => $tool,
+                'type' => $type,
+            ]
         );
     }
 
@@ -207,7 +209,7 @@ class EditorController extends BaseController
         $content = ob_get_contents();
 
         return $this->render(
-            '@ChamiloTheme/layout_empty.html.twig',
+            '@ChamiloCore/layout_empty.html.twig',
             ['content' => $content]
         );*/
     }
@@ -227,17 +229,25 @@ class EditorController extends BaseController
 
         $type = $request->get('type');
         $tool = $request->get('tool');
+        //$node = $request->get('nodeId');        var_dump($node);exit;
+
+        $course = $this->getCourse();
+        $nodeId = 0;
+        if (null !== $course) {
+            $nodeId = $course->getResourceNode()->getId();
+        }
 
         $params = [
             // @todo replace api_get_bootstrap_and_font_awesome
-            'bootstrap_css' => api_get_bootstrap_and_font_awesome(true),
+            'bootstrap_css' => api_get_bootstrap_and_font_awesome(true, false),
             'css_editor' => ChamiloApi::getEditorBlockStylePath(),
             'more_buttons_in_max_mode' => $moreButtonsInMaximizedMode,
             'type' => $type,
             'tool' => $tool,
+            'nodeId' => $nodeId,
         ];
 
-        $renderedView = $this->renderView('@ChamiloTheme/Editor/config_js.html.twig', $params);
+        $renderedView = $this->renderView('@ChamiloCore/Editor/config_js.html.twig', $params);
         $response = new Response($renderedView);
         $response->headers->set('Content-Type', 'text/javascript');
 

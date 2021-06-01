@@ -1,35 +1,42 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Repository;
 
-use APY\DataGridBundle\Grid\Column\Column;
-use APY\DataGridBundle\Grid\Grid;
-use Chamilo\CoreBundle\Component\Utils\ResourceSettings;
+use Chamilo\CoreBundle\Component\Resource\Settings;
 use Chamilo\CoreBundle\Entity\Course;
-use Chamilo\CoreBundle\Entity\Resource\ResourceLink;
-use Chamilo\CoreBundle\Entity\Resource\ResourceNode;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
+use Chamilo\CoreBundle\Entity\ResourceLink;
+use Chamilo\CoreBundle\Entity\ResourceNode;
 use Chamilo\CoreBundle\Entity\Session;
+use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Form\Resource\CDocumentType;
+use Chamilo\CoreBundle\Repository\GridInterface;
 use Chamilo\CoreBundle\Repository\ResourceRepository;
-use Chamilo\CoreBundle\Repository\ResourceRepositoryInterface;
+use Chamilo\CoreBundle\Repository\UploadInterface;
 use Chamilo\CourseBundle\Entity\CDocument;
-use Chamilo\CourseBundle\Entity\CGroupInfo;
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CourseBundle\Entity\CGroup;
+use Doctrine\ORM\QueryBuilder;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
-/**
- * Class CDocumentRepository.
- */
-final class CDocumentRepository extends ResourceRepository implements ResourceRepositoryInterface
+final class CDocumentRepository extends ResourceRepository implements GridInterface, UploadInterface
 {
-    public function getResources(User $user, ResourceNode $parentNode, Course $course = null, Session $session = null, CGroupInfo $group = null)
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, CDocument::class);
+    }
+
+    public function getResources(User $user, ResourceNode $parentNode, Course $course = null, Session $session = null, CGroup $group = null): QueryBuilder
     {
         return $this->getResourcesByCourse($course, $session, $group, $parentNode);
     }
 
-    public function getResourceSettings(): ResourceSettings
+    public function getResourceSettings(): Settings
     {
         $settings = parent::getResourceSettings();
 
@@ -38,69 +45,40 @@ final class CDocumentRepository extends ResourceRepository implements ResourceRe
             ->setAllowResourceCreation(true)
             ->setAllowResourceUpload(true)
             ->setAllowDownloadAll(true)
+            ->setAllowDiskSpace(true)
+            ->setAllowToSaveEditorToResourceFile(true)
         ;
 
         return $settings;
     }
 
-    public function saveUpload(UploadedFile $file)
+    public function saveUpload(UploadedFile $file): ResourceInterface
     {
         $resource = new CDocument();
         $resource
             ->setFiletype('file')
-            ->setSize($file->getSize())
+            //->setSize($file->getSize())
             ->setTitle($file->getClientOriginalName())
         ;
 
         return $resource;
     }
 
-    public function saveResource(FormInterface $form, $course, $session, $fileType)
+    public function setResourceProperties(FormInterface $form, Course $course, Session $session, string $fileType): void
     {
         $newResource = $form->getData();
         $newResource
-            ->setCourse($course)
-            ->setSession($session)
+            //->setCourse($course)
+            //->setSession($session)
             ->setFiletype($fileType)
             //->setTitle($title) // already added in $form->getData()
             ->setReadonly(false)
         ;
 
-        return $newResource;
+        //return $newResource;
     }
 
-    /**
-     * @return string
-     */
-    public function getDocumentUrl(CDocument $document)
-    {
-        // There are no URL for folders.
-        if ('folder' === $document->getFiletype()) {
-            return '';
-        }
-        $file = $document->getResourceNode()->getResourceFile();
-
-        if (null === $file) {
-            return '';
-        }
-
-        $params = [
-            'course' => $document->getCourse()->getCode(),
-            'id' => ltrim($document->getPath(), '/'),
-            'tool' => 'document',
-            'type' => $document->getResourceNode()->getResourceType()->getName(),
-        ];
-
-        return $this->getRouter()->generate(
-            'chamilo_core_resource_view',
-            $params
-        );
-    }
-
-    /**
-     * @return CDocument|null
-     */
-    public function getParent(CDocument $document)
+    public function getParent(CDocument $document): ?CDocument
     {
         $resourceParent = $document->getResourceNode()->getParent();
 
@@ -116,85 +94,21 @@ final class CDocumentRepository extends ResourceRepository implements ResourceRe
         return null;
     }
 
-    /**
-     * @param int    $courseId
-     * @param string $path
-     *
-     * @throws \Doctrine\ORM\NonUniqueResultException
-     */
-    public function getFolderSize($courseId, $path)
+    public function getFolderSize(ResourceNode $resourceNode, Course $course, Session $session = null): int
     {
-        $path = str_replace('_', '\_', $path);
-        $addedSlash = '/' === $path ? '' : '/';
-
-        $repo = $this->getRepository();
-        $qb = $repo->createQueryBuilder('d');
-        $query = $qb
-            ->select('SUM(d.size)')
-            ->innerJoin('d.resourceNode', 'r')
-            ->innerJoin('r.resourceLinks', 'l')
-            ->where('d.path LIKE :path')
-            ->andWhere('d.path NOT LIKE :deleted')
-            ->andWhere('d.path NOT LIKE :extra_path ')
-            ->andWhere('l.visibility <> :visibility')
-            ->andWhere('d.course = :course')
-            ->setParameters([
-                'path' => $path.$addedSlash.'%',
-                'extra_path' => $path.$addedSlash.'%/%',
-                'course' => $courseId,
-                'deleted' => '%_DELETED_%',
-                'visibility' => ResourceLink::VISIBILITY_DELETED,
-            ])
-            ->getQuery();
-
-        return $query->getSingleScalarResult();
+        return $this->getResourceNodeRepository()->getSize($resourceNode, $this->getResourceType(), $course, $session);
     }
 
     /**
-     * @param int $courseId
-     * @param int $groupId
-     * @param int $sessionId
-     *
-     * @throws \Doctrine\ORM\NonUniqueResultException
+     * @return CDocument[]
      */
-    public function getTotalSpace($courseId, $groupId = null, $sessionId = null)
-    {
-        $repo = $this->getRepository();
-        $groupId = empty($groupId) ? null : $groupId;
-        $sessionId = empty($sessionId) ? null : $sessionId;
-
-        $qb = $repo->createQueryBuilder('d');
-        $query = $qb
-            ->select('SUM(d.size)')
-            ->innerJoin('d.resourceNode', 'r')
-            ->innerJoin('r.resourceLinks', 'l')
-            ->where('l.course = :course')
-            ->andWhere('l.group = :group')
-            ->andWhere('l.session = :session')
-            ->andWhere('l.visibility <> :visibility')
-            ->setParameters([
-                'course' => $courseId,
-                'group' => $groupId,
-                'session' => $sessionId,
-                'visibility' => ResourceLink::VISIBILITY_DELETED,
-            ])
-            ->getQuery();
-
-        return $query->getSingleScalarResult();
-    }
-
-    /**
-     * @param int $userId
-     *
-     * @return array
-     */
-    public function getAllDocumentsByAuthor($userId)
+    public function findDocumentsByAuthor(int $userId)
     {
         $repo = $this->repository;
 
         $qb = $repo->createQueryBuilder('d');
         $query = $qb
-            ->innerJoin('d.resourceNode', 'r')
+            ->innerJoin('d.resourceNode', 'node')
             ->innerJoin('r.resourceLinks', 'l')
             ->where('l.user = :user')
             ->andWhere('l.visibility <> :visibility')
@@ -202,13 +116,37 @@ final class CDocumentRepository extends ResourceRepository implements ResourceRe
                 'user' => $userId,
                 'visibility' => ResourceLink::VISIBILITY_DELETED,
             ])
-            ->getQuery();
+            ->getQuery()
+        ;
 
         return $query->getResult();
     }
 
-    public function getTitleColumn(Grid $grid): Column
+    public function countUserDocuments(User $user, Course $course, Session $session = null, CGroup $group = null): int
     {
-        return $grid->getColumn('title');
+        $qb = $this->getResourcesByCourseLinkedToUser($user, $course, $session, $group);
+
+        // Add "not deleted" filters.
+        $qb->select('count(resource)');
+
+        $this->addFileTypeQueryBuilder('file', $qb);
+
+        return $this->getCount($qb);
+    }
+
+    public function getResourceFormType(): string
+    {
+        return CDocumentType::class;
+    }
+
+    protected function addFileTypeQueryBuilder(string $fileType, QueryBuilder $qb = null): QueryBuilder
+    {
+        $qb = $this->getOrCreateQueryBuilder($qb);
+        $qb
+            ->andWhere('resource.fileType :type')
+            ->setParameter('type', $fileType)
+        ;
+
+        return $qb;
     }
 }

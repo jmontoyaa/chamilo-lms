@@ -1,9 +1,6 @@
 <?php
-/* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.messages
- */
+/* For licensing terms, see /license.txt */
 
 /**
  * This script shows a compose area (wysiwyg editor if supported, otherwise
@@ -18,7 +15,7 @@ require_once __DIR__.'/../inc/global.inc.php';
 
 api_block_anonymous_users();
 
-if (api_get_setting('allow_message_tool') !== 'true') {
+if ('true' !== api_get_setting('allow_message_tool')) {
     api_not_allowed(true);
 }
 
@@ -29,7 +26,7 @@ $logInfo = [
 ];
 Event::registerLog($logInfo);
 
-$allowSocial = api_get_setting('allow_social_tool') === 'true';
+$allowSocial = 'true' === api_get_setting('allow_social_tool');
 $nameTools = api_xml_http_response_encode(get_lang('Messages'));
 
 $htmlHeadXtra[] = '<script>
@@ -65,9 +62,8 @@ $tpl = new Template(get_lang('Compose message'));
 function show_compose_to_any($tpl)
 {
     $default['user_list'] = 0;
-    $html = manageForm($default, null, null, $tpl);
 
-    return $html;
+    return manageForm($default, null, null, $tpl);
 }
 
 function show_compose_reply_to_message($message_id, $receiver_id, $tpl)
@@ -78,20 +74,17 @@ function show_compose_reply_to_message($message_id, $receiver_id, $tpl)
 
     $query = "SELECT user_sender_id
               FROM $table
-              WHERE user_receiver_id = ".$receiver_id." AND id = ".$message_id;
+              WHERE user_receiver_id = ".$receiver_id.' AND id = '.$message_id;
     $result = Database::query($query);
     $row = Database::fetch_array($result, 'ASSOC');
     $userInfo = api_get_user_info($row['user_sender_id']);
     if (empty($row['user_sender_id']) || empty($userInfo)) {
-        $html = get_lang('The id of the message to reply to is not valid.');
-
-        return $html;
+        return get_lang('The id of the message to reply to is not valid.');
     }
 
     $default['users'] = [$row['user_sender_id']];
-    $html = manageForm($default, null, $userInfo['complete_name_with_username'], $tpl);
 
-    return $html;
+    return manageForm($default, null, $userInfo['complete_name_with_username'], $tpl);
 }
 
 function show_compose_to_user($receiver_id, $tpl)
@@ -100,9 +93,8 @@ function show_compose_to_user($receiver_id, $tpl)
     $html = get_lang('To').':&nbsp;<strong>'.$userInfo['complete_name'].'</strong>';
     $default['title'] = api_xml_http_response_encode(get_lang('Please enter a title'));
     $default['users'] = [$receiver_id];
-    $html .= manageForm($default, null, '', $tpl);
 
-    return $html;
+    return $html.manageForm($default, null, '', $tpl);
 }
 
 /**
@@ -120,7 +112,7 @@ function manageForm($default, $select_from_user_list = null, $sent_to = '', $tpl
 
     $form = new FormValidator(
         'compose_message',
-        null,
+        'post',
         api_get_self(),
         null,
         ['enctype' => 'multipart/form-data']
@@ -139,7 +131,7 @@ function manageForm($default, $select_from_user_list = null, $sent_to = '', $tpl
                 ]
             );
             $form->addRule('id_text_name', get_lang('Required field'), 'required');
-            $form->addElement('html', '<div id="id_div_search" style="padding:0px" class="message-select-box" >&nbsp;</div>');
+            $form->addHtml('<div id="id_div_search" style="padding:0px" class="message-select-box" >&nbsp;</div>');
             $form->addElement('hidden', 'user_list', 0, ['id' => 'user_list']);
         } else {
             if (!empty($sent_to)) {
@@ -154,6 +146,7 @@ function manageForm($default, $select_from_user_list = null, $sent_to = '', $tpl
                     [],
                     [
                         'multiple' => 'multiple',
+                        'delay' => 1000,
                         'url' => api_get_path(WEB_AJAX_PATH).'message.ajax.php?a=find_users',
                     ]
                 );
@@ -202,7 +195,7 @@ function manageForm($default, $select_from_user_list = null, $sent_to = '', $tpl
             $fileListToString = !empty($attachments) ? implode('<br />', $attachments) : '';
             $form->addLabel('', $fileListToString);
         }
-        $default['title'] = '['.get_lang('Fwd').": ".Security::remove_XSS($message_reply_info['title']).']';
+        $default['title'] = '['.get_lang('Fwd').': '.Security::remove_XSS($message_reply_info['title']).']';
         $form->addHidden('forward_id', $forwardId);
         $form->addHidden('save_form', 'save_form');
         $receiverInfo = api_get_user_info($message_reply_info['user_receiver_id']);
@@ -247,8 +240,8 @@ function manageForm($default, $select_from_user_list = null, $sent_to = '', $tpl
 
     $form->addLabel(
         '',
-        '<iframe 
-            frameborder="0" height="200" width="100%" scrolling="no" 
+        '<iframe
+            frameborder="0" height="200" width="100%" scrolling="no"
             src="'.api_get_path(WEB_CODE_PATH).'messages/record_audio.php"></iframe>'
     );
 
@@ -257,7 +250,7 @@ function manageForm($default, $select_from_user_list = null, $sent_to = '', $tpl
 
     if (!empty($group_id) && !empty($message_id)) {
         $message_info = MessageManager::get_message_by_id($message_id);
-        $default['title'] = get_lang('RE:')." ".$message_info['title'];
+        $default['title'] = get_lang('RE:').' '.$message_info['title'];
     }
     $form->setDefaults($default);
     $html = '';
@@ -273,9 +266,9 @@ function manageForm($default, $select_from_user_list = null, $sent_to = '', $tpl
             $file_comments = $_POST['legend'];
             $title = $default['title'];
             $content = $default['content'];
-            $group_id = isset($default['group_id']) ? $default['group_id'] : null;
-            $parent_id = isset($default['parent_id']) ? $default['parent_id'] : null;
-            $forwardId = isset($_POST['forward_id']) ? $_POST['forward_id'] : false;
+            $group_id = $default['group_id'] ?? null;
+            $parent_id = $default['parent_id'] ?? null;
+            $forwardId = $_POST['forward_id'] ?? false;
 
             if (is_array($user_list) && count($user_list) > 0) {
                 // All is well, send the message
@@ -300,7 +293,7 @@ function manageForm($default, $select_from_user_list = null, $sent_to = '', $tpl
                     if ($res) {
                         $userInfo = api_get_user_info($userId);
                         Display::addFlash(Display::return_message(
-                            get_lang('The message has been sent to')."&nbsp;<b>".$userInfo['complete_name_with_username']."</b>",
+                            get_lang('The message has been sent to').'&nbsp;<b>'.$userInfo['complete_name_with_username'].'</b>',
                             'confirmation',
                             false
                         ));
@@ -308,7 +301,9 @@ function manageForm($default, $select_from_user_list = null, $sent_to = '', $tpl
                 }
                 MessageManager::cleanAudioMessage();
             } else {
-                Display::addFlash(Display::return_message('There was an error while trying to send the message.', 'error'));
+                Display::addFlash(
+                    Display::return_message('There was an error while trying to send the message.', 'error')
+                );
             }
         }
         Security::clear_token();
@@ -345,7 +340,7 @@ $interbreadcrumb[] = [
 
 $group_id = isset($_REQUEST['group_id']) ? (int) $_REQUEST['group_id'] : 0;
 $social_right_content = null;
-if ($group_id != 0) {
+if (0 != $group_id) {
     $social_right_content .= '<div class=actions>';
     $social_right_content .= '<a href="'.api_get_path(WEB_CODE_PATH).'social/group_view.php?id='.$group_id.'">'.
         Display::return_icon('back.png', api_xml_http_response_encode(get_lang('Compose message'))).'</a>';
@@ -356,7 +351,7 @@ if ($group_id != 0) {
     if ($allowSocial) {
     } else {
         $social_right_content .= '<div class=actions>';
-        if (api_get_setting('allow_message_tool') === 'true') {
+        if ('true' === api_get_setting('allow_message_tool')) {
             $social_right_content .= '<a href="'.api_get_path(WEB_CODE_PATH).'messages/new_message.php">'.
                 Display::return_icon('message_new.png', get_lang('Compose message')).'</a>';
             $social_right_content .= '<a href="'.api_get_path(WEB_CODE_PATH).'messages/inbox.php">'.
@@ -375,15 +370,15 @@ if ($allowSocial) {
     $social_menu_block = SocialManager::show_social_menu('messages');
     $social_right_content .= '<div class="row">';
     $social_right_content .= '<div class="col-md-12">';
-    $social_right_content .= '<div class="actions">';
-    $social_right_content .= '<a href="'.api_get_path(WEB_CODE_PATH).'messages/inbox.php">'.
+
+    $actions = '<a href="'.api_get_path(WEB_CODE_PATH).'messages/inbox.php">'.
         Display::return_icon('back.png', get_lang('Back'), [], 32).'</a>';
-    $social_right_content .= '</div>';
+
+    $social_right_content .= Display::toolbarAction('toolbar', [$actions]);
     $social_right_content .= '</div>';
     $social_right_content .= '<div class="col-md-12">';
 }
 
-// MAIN CONTENT
 if (!isset($_POST['compose'])) {
     if (isset($_GET['re_id'])) {
         $social_right_content .= show_compose_reply_to_message(
@@ -425,7 +420,10 @@ if (!isset($_POST['compose'])) {
             }
             $social_right_content .= manageForm($default, null, null, $tpl);
         } else {
-            $social_right_content .= Display::return_message(get_lang('There was an error while trying to send the message.'), 'error');
+            $social_right_content .= Display::return_message(
+                get_lang('There was an error while trying to send the message.'),
+                'error'
+            );
         }
     }
 }
@@ -436,16 +434,16 @@ if ($allowSocial) {
 }
 
 // Block Social Avatar
-SocialManager::setSocialUserBlock($tpl, api_get_user_id(), 'messages');
+//SocialManager::setSocialUserBlock($tpl, api_get_user_id(), 'messages');
 
 MessageManager::cleanAudioMessage();
-if ($allowSocial) {
+/*if ($allowSocial) {
     $tpl->assign('social_menu_block', $social_menu_block);
     $tpl->assign('social_right_content', $social_right_content);
     $social_layout = $tpl->get_template('social/inbox.tpl');
     $tpl->display($social_layout);
 } else {
-    $content = $social_right_content;
-    $tpl->assign('content', $content);
-    $tpl->display_one_col_template();
-}
+}*/
+$content = $social_right_content;
+$tpl->assign('content', $content);
+$tpl->display_one_col_template();

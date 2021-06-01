@@ -1,168 +1,182 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Traits\CourseTrait;
+use Chamilo\CoreBundle\Traits\UserTrait;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * GradebookCategory.
- *
  * @ORM\Table(name="gradebook_category",
- *  indexes={
- *     @ORM\Index(name="idx_gb_cat_parent", columns={"parent_id"}),
- *  }))
- * @ORM\Entity
+ *     indexes={
+ *     }))
+ *     @ORM\Entity
  */
 class GradebookCategory
 {
+    use UserTrait;
+    use CourseTrait;
+
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var string
+     * @Assert\NotBlank
      *
      * @ORM\Column(name="name", type="text", nullable=false)
      */
-    protected $name;
+    protected string $name;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="description", type="text", nullable=true)
      */
-    protected $description;
+    protected ?string $description;
 
     /**
-     * @var User
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\UserBundle\Entity\User", inversedBy="gradeBookCategories")
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="gradeBookCategories")
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id")
      */
-    protected $user;
+    protected User $user;
 
     /**
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course", inversedBy="gradebookCategories")
-     * @ORM\JoinColumn(name="c_id", referencedColumnName="id")
+     * @ORM\JoinColumn(name="c_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $course;
+    protected Course $course;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="parent_id", type="integer", nullable=true)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\GradebookCategory", inversedBy="subCategories")
+     * @ORM\JoinColumn(name="parent_id", referencedColumnName="id")
      */
-    protected $parentId;
+    protected ?GradebookCategory $parent = null;
 
     /**
-     * @var float
+     * @var GradebookCategory[]|Collection
      *
+     * @ORM\OneToMany(targetEntity="Chamilo\CoreBundle\Entity\GradebookCategory", mappedBy="parent")
+     */
+    protected Collection $subCategories;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Session")
+     * @ORM\JoinColumn(name="session_id", referencedColumnName="id", onDelete="CASCADE")
+     */
+    protected ?Session $session = null;
+
+    /**
+     * @var SkillRelGradebook[]|Collection
+     *
+     * @ORM\OneToMany(targetEntity="Chamilo\CoreBundle\Entity\SkillRelGradebook", mappedBy="gradeBookCategory")
+     */
+    protected Collection $skills;
+
+    /**
+     * @var Collection|GradebookEvaluation[]
+     *
+     * @ORM\OneToMany(targetEntity="GradebookEvaluation", mappedBy="category", cascade={"persist", "remove"})
+     */
+    protected Collection $evaluations;
+
+    /**
+     * @var Collection|GradebookLink[]
+     *
+     * @ORM\OneToMany(targetEntity="GradebookLink", mappedBy="category", cascade={"persist", "remove"})
+     */
+    protected Collection $links;
+
+    /**
+     * @var Collection|GradebookComment[]
+     *
+     * @ORM\OneToMany(targetEntity="Chamilo\CoreBundle\Entity\GradebookComment", mappedBy="gradeBook")
+     */
+    protected Collection $comments;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\GradeModel")
+     * @ORM\JoinColumn(name="grade_model_id", referencedColumnName="id", onDelete="CASCADE")
+     */
+    protected ?GradeModel $gradeModel = null;
+
+    /**
      * @ORM\Column(name="weight", type="float", precision=10, scale=0, nullable=false)
      */
-    protected $weight;
+    protected float $weight;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="visible", type="boolean", nullable=false)
      */
-    protected $visible;
+    protected bool $visible;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="certif_min_score", type="integer", nullable=true)
      */
-    protected $certifMinScore;
+    protected ?int $certifMinScore = null;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="session_id", type="integer", nullable=true)
-     */
-    protected $sessionId;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="document_id", type="integer", nullable=true)
      */
-    protected $documentId;
+    protected ?int $documentId = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="locked", type="integer", nullable=false)
      */
-    protected $locked;
+    protected ?int $locked;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="default_lowest_eval_exclude", type="boolean", nullable=true)
      */
-    protected $defaultLowestEvalExclude;
+    protected ?bool $defaultLowestEvalExclude = null;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="generate_certificates", type="boolean", nullable=false)
      */
-    protected $generateCertificates;
+    protected bool $generateCertificates;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="grade_model_id", type="integer", nullable=true)
-     */
-    protected $gradeModelId;
-
-    /**
-     * @var bool
-     *
      * @ORM\Column(
-     *      name="is_requirement",
-     *      type="boolean",
-     *      nullable=false,
-     *      options={"default": 0 }
+     *     name="is_requirement",
+     *     type="boolean",
+     *     nullable=false,
+     *     options={"default":0 }
      * )
      */
-    protected $isRequirement;
+    protected bool $isRequirement;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="depends", type="text", nullable=true)
      */
-    protected $depends;
+    protected ?string $depends = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="minimum_to_validate", type="integer", nullable=true)
      */
-    protected $minimumToValidate;
+    protected ?int $minimumToValidate = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="gradebooks_to_validate_in_dependence", type="integer", nullable=true)
      */
-    protected $gradeBooksToValidateInDependence;
+    protected ?int $gradeBooksToValidateInDependence = null;
 
-    /**
-     * GradebookCategory constructor.
-     */
     public function __construct()
     {
+        $this->comments = new ArrayCollection();
+        $this->evaluations = new ArrayCollection();
+        $this->links = new ArrayCollection();
+        $this->subCategories = new ArrayCollection();
+        $this->skills = new ArrayCollection();
+
+        $this->description = '';
         $this->locked = 0;
         $this->generateCertificates = false;
         $this->isRequirement = false;
@@ -178,14 +192,7 @@ class GradebookCategory
         return $this->id;
     }
 
-    /**
-     * Set name.
-     *
-     * @param string $name
-     *
-     * @return GradebookCategory
-     */
-    public function setName($name)
+    public function setName(string $name): self
     {
         $this->name = $name;
 
@@ -202,86 +209,19 @@ class GradebookCategory
         return $this->name;
     }
 
-    /**
-     * Set description.
-     *
-     * @param string $description
-     *
-     * @return GradebookCategory
-     */
-    public function setDescription($description)
+    public function setDescription(?string $description): self
     {
         $this->description = $description;
 
         return $this;
     }
 
-    /**
-     * Get description.
-     *
-     * @return string
-     */
-    public function getDescription()
+    public function getDescription(): ?string
     {
         return $this->description;
     }
 
-    /**
-     * Set course.
-     *
-     * @param \Chamilo\CoreBundle\Entity\Course $course
-     *
-     * @return \Chamilo\CoreBundle\Entity\GradebookCategory
-     */
-    public function setCourse(Course $course)
-    {
-        $this->course = $course;
-
-        return $this;
-    }
-
-    /**
-     * Get course.
-     *
-     * @return \Chamilo\CoreBundle\Entity\Course
-     */
-    public function getCourse()
-    {
-        return $this->course;
-    }
-
-    /**
-     * Set parentId.
-     *
-     * @param int $parentId
-     *
-     * @return GradebookCategory
-     */
-    public function setParentId($parentId)
-    {
-        $this->parentId = $parentId;
-
-        return $this;
-    }
-
-    /**
-     * Get parentId.
-     *
-     * @return int
-     */
-    public function getParentId()
-    {
-        return $this->parentId;
-    }
-
-    /**
-     * Set weight.
-     *
-     * @param float $weight
-     *
-     * @return GradebookCategory
-     */
-    public function setWeight($weight)
+    public function setWeight(float $weight): self
     {
         $this->weight = $weight;
 
@@ -298,14 +238,7 @@ class GradebookCategory
         return $this->weight;
     }
 
-    /**
-     * Set visible.
-     *
-     * @param bool $visible
-     *
-     * @return GradebookCategory
-     */
-    public function setVisible($visible)
+    public function setVisible(bool $visible): self
     {
         $this->visible = $visible;
 
@@ -322,14 +255,7 @@ class GradebookCategory
         return $this->visible;
     }
 
-    /**
-     * Set certifMinScore.
-     *
-     * @param int $certifMinScore
-     *
-     * @return GradebookCategory
-     */
-    public function setCertifMinScore($certifMinScore)
+    public function setCertifMinScore(int $certifMinScore): self
     {
         $this->certifMinScore = $certifMinScore;
 
@@ -347,37 +273,11 @@ class GradebookCategory
     }
 
     /**
-     * Set sessionId.
-     *
-     * @param int $sessionId
-     *
-     * @return GradebookCategory
-     */
-    public function setSessionId($sessionId)
-    {
-        $this->sessionId = $sessionId;
-
-        return $this;
-    }
-
-    /**
-     * Get sessionId.
-     *
-     * @return int
-     */
-    public function getSessionId()
-    {
-        return $this->sessionId;
-    }
-
-    /**
      * Set documentId.
      *
-     * @param int $documentId
-     *
      * @return GradebookCategory
      */
-    public function setDocumentId($documentId)
+    public function setDocumentId(int $documentId)
     {
         $this->documentId = $documentId;
 
@@ -394,14 +294,7 @@ class GradebookCategory
         return $this->documentId;
     }
 
-    /**
-     * Set locked.
-     *
-     * @param int $locked
-     *
-     * @return GradebookCategory
-     */
-    public function setLocked($locked)
+    public function setLocked(int $locked): self
     {
         $this->locked = $locked;
 
@@ -418,14 +311,7 @@ class GradebookCategory
         return $this->locked;
     }
 
-    /**
-     * Set defaultLowestEvalExclude.
-     *
-     * @param bool $defaultLowestEvalExclude
-     *
-     * @return GradebookCategory
-     */
-    public function setDefaultLowestEvalExclude($defaultLowestEvalExclude)
+    public function setDefaultLowestEvalExclude(bool $defaultLowestEvalExclude): self
     {
         $this->defaultLowestEvalExclude = $defaultLowestEvalExclude;
 
@@ -442,14 +328,7 @@ class GradebookCategory
         return $this->defaultLowestEvalExclude;
     }
 
-    /**
-     * Set generateCertificates.
-     *
-     * @param bool $generateCertificates
-     *
-     * @return GradebookCategory
-     */
-    public function setGenerateCertificates($generateCertificates)
+    public function setGenerateCertificates(bool $generateCertificates): self
     {
         $this->generateCertificates = $generateCertificates;
 
@@ -466,40 +345,45 @@ class GradebookCategory
         return $this->generateCertificates;
     }
 
-    /**
-     * Set gradeModelId.
-     *
-     * @param int $gradeModelId
-     *
-     * @return GradebookCategory
-     */
-    public function setGradeModelId($gradeModelId)
+    public function setIsRequirement(bool $isRequirement): self
     {
-        $this->gradeModelId = $gradeModelId;
+        $this->isRequirement = $isRequirement;
 
         return $this;
     }
 
-    /**
-     * Get gradeModelId.
-     *
-     * @return int
-     */
-    public function getGradeModelId()
+    public function getCourse(): Course
     {
-        return $this->gradeModelId;
+        return $this->course;
     }
 
-    /**
-     * Set isRequirement.
-     *
-     * @param bool $isRequirement
-     *
-     * @return GradebookCategory
-     */
-    public function setIsRequirement($isRequirement)
+    public function setCourse(Course $course): self
     {
-        $this->isRequirement = $isRequirement;
+        $this->course = $course;
+
+        return $this;
+    }
+
+    public function getParent(): ?self
+    {
+        return $this->parent;
+    }
+
+    public function setParent(?self $parent): self
+    {
+        $this->parent = $parent;
+
+        return $this;
+    }
+
+    public function getSession(): ?Session
+    {
+        return $this->session;
+    }
+
+    public function setSession(?Session $session): self
+    {
+        $this->session = $session;
 
         return $this;
     }
@@ -526,6 +410,36 @@ class GradebookCategory
         return $this;
     }
 
+    /**
+     * @return GradebookComment[]|Collection
+     */
+    public function getComments()
+    {
+        return $this->comments;
+    }
+
+    /**
+     * @param GradebookComment[]|Collection $comments
+     */
+    public function setComments(Collection $comments): self
+    {
+        $this->comments = $comments;
+
+        return $this;
+    }
+
+    public function getGradeModel(): ?GradeModel
+    {
+        return $this->gradeModel;
+    }
+
+    public function setGradeModel(?GradeModel $gradeModel): self
+    {
+        $this->gradeModel = $gradeModel;
+
+        return $this;
+    }
+
     public function getUser(): User
     {
         return $this->user;
@@ -534,6 +448,98 @@ class GradebookCategory
     public function setUser(User $user): self
     {
         $this->user = $user;
+
+        return $this;
+    }
+
+    /**
+     * @return GradebookEvaluation[]|Collection
+     */
+    public function getEvaluations()
+    {
+        return $this->evaluations;
+    }
+
+    /**
+     * @param GradebookEvaluation[]|Collection $evaluations
+     */
+    public function setEvaluations(Collection $evaluations)
+    {
+        $this->evaluations = $evaluations;
+
+        return $this;
+    }
+
+    /**
+     * @return GradebookLink[]|Collection
+     */
+    public function getLinks()
+    {
+        return $this->links;
+    }
+
+    /**
+     * @param GradebookLink[]|Collection $links
+     */
+    public function setLinks(Collection $links): self
+    {
+        $this->links = $links;
+
+        return $this;
+    }
+
+    public function getSubCategories()
+    {
+        return $this->subCategories;
+    }
+
+    public function hasSubCategories(): bool
+    {
+        return $this->subCategories->count() > 0;
+    }
+
+    public function setSubCategories(Collection $subCategories): self
+    {
+        $this->subCategories = $subCategories;
+
+        return $this;
+    }
+
+    public function getDepends(): ?string
+    {
+        return $this->depends;
+    }
+
+    public function setDepends(?string $depends): self
+    {
+        $this->depends = $depends;
+
+        return $this;
+    }
+
+    public function getMinimumToValidate(): ?int
+    {
+        return $this->minimumToValidate;
+    }
+
+    public function setMinimumToValidate(?int $minimumToValidate): self
+    {
+        $this->minimumToValidate = $minimumToValidate;
+
+        return $this;
+    }
+
+    public function getSkills()
+    {
+        return $this->skills;
+    }
+
+    /**
+     * @param SkillRelGradebook[]|Collection $skills
+     */
+    public function setSkills(Collection $skills): self
+    {
+        $this->skills = $skills;
 
         return $this;
     }

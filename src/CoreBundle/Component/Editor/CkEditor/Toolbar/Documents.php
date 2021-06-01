@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Component\Editor\CkEditor\Toolbar;
@@ -9,7 +11,7 @@ namespace Chamilo\CoreBundle\Component\Editor\CkEditor\Toolbar;
  */
 class Documents extends Basic
 {
-    public $plugins = [];
+    public array $plugins = [];
 
     /**
      * Get the toolbar config.
@@ -61,6 +63,7 @@ class Documents extends Basic
                 'Flash',
                 'Oembed',
                 'Youtube',
+                'VimeoEmbed',
                 'Audio',
                 'Asciimath',
                 'Asciisvg',
@@ -94,7 +97,7 @@ class Documents extends Basic
     protected function getMaximizedToolbar()
     {
         return [
-            $this->getNewPageBlock(),
+            array_merge(['Save'], $this->getNewPageBlock()),
             ['Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', 'inserthtml'],
             ['Undo', 'Redo', '-', 'SelectAll', 'Find', '-', 'RemoveFormat'],
             ['Link', 'Unlink', 'Anchor', 'Glossary'],
@@ -105,6 +108,7 @@ class Documents extends Basic
                 'Oembed',
                 'Flash',
                 'Youtube',
+                'VimeoEmbed',
                 'Audio',
                 'leaflet',
                 'Smiley',
@@ -129,10 +133,10 @@ class Documents extends Basic
                 'BGColor',
                 api_get_configuration_value('translate_html') ? 'Language' : '',
             ],
-            ['true' == api_get_setting('allow_spellcheck') ? 'Scayt' : ''],
+            ['true' === api_get_setting('allow_spellcheck') ? 'Scayt' : ''],
             ['Styles', 'Format', 'Font', 'FontSize'],
             ['PageBreak', 'ShowBlocks'],
-            'true' == api_get_setting('enabled_wiris') ? ['ckeditor_wiris_formulaEditor', 'ckeditor_wiris_CAS'] : [''],
+            'true' === api_get_setting('enabled_wiris') ? ['ckeditor_wiris_formulaEditor', 'ckeditor_wiris_CAS'] : [''],
             ['Toolbarswitch', 'Source'],
         ];
     }
@@ -149,8 +153,10 @@ class Documents extends Basic
                 'Link',
                 'Image',
                 'Video',
+                'Oembed',
                 'Flash',
                 'Youtube',
+                'VimeoEmbed',
                 'Audio',
                 'Table',
                 'Asciimath',

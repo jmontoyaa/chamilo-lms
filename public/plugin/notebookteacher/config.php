@@ -1,9 +1,8 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 /**
  * Config the plugin.
- *
- * @package chamilo.plugin.notebookteacher
  *
  * @author Jose Angel Ruiz <desarrollo@nosolored.com>
  */

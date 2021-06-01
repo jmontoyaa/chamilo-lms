@@ -1,26 +1,22 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
 parameters:
+    app_env: '%env(APP_ENV)%'
     password_encryption: '%env(APP_ENCRYPT_METHOD)%'
     secret: '%env(APP_SECRET)%'
     locale: '%env(APP_LOCALE)%'
     installed: '%env(APP_INSTALLED)%'
+    container.dumper.inline_factories: true
     twig:
         form:
             resources:
                 - 'GeneratorBundle::fields.html.twig'
-
     course_info_is_not_editable: false
-    sonata_media.cdn.host: '/var/upload/media/'
-    sonata_page.varnish.command: 'if [ ! -r "/etc/varnish/secret" ]; then echo "VALID ERROR :/"; else varnishadm -S /etc/varnish/secret -T 127.0.0.1:6082 {{ COMMAND }} "{{ EXPRESSION }}"; fi;'
-#    router.request_context.base_url: '%env(APP_URL_APPEND)%'
-#    asset.request_context.base_path: '%env(APP_URL_APPEND)%'
 
-    glide_config:
-        source: 'oneup_flysystem.resources_filesystem'
-        cache: 'oneup_flysystem.cache_resources_filesystem'
-        #cache: 'var/cache/resource/'
+    #    router.request_context.base_url: '%env(APP_URL_APPEND)%'
+    #    asset.request_context.base_path: '%env(APP_URL_APPEND)%'
 
+    # See https://glide.thephpleague.com/2.0/api/quick-reference/
     glide_media_filters:
         editor_thumbnail:
             w: 64
@@ -46,141 +42,56 @@ services:
         autowire: true      # Automatically injects dependencies in your services.
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
         public: true       # Allows optimizing the container by removing unused services; this also means
-          # fetching services directly from the container via $container->get() won't work.
+        # fetching services directly from the container via $container->get() won't work.
         # The best practice is to be explicit about your dependencies anyway.
-        bind:
-            $passwordEncrypt: '%password_encryption%'
 
+#    App\ApiPlatform\AutoGroupResourceMetadataFactory:
+#        # causes this to decorate around the cached factory so that
+#        # our service is never cached (which, of course, can have performance
+#        # implications!
+#        decoration_priority: -20
+
+    Chamilo\CoreBundle\Component\Utils\AssetDirectoryNamer: ~
+    Chamilo\CoreBundle\Component\Utils\NameConvention: ~
     Chamilo\CoreBundle\Component\Utils\Glide:
         arguments:
-            - {source: '@oneup_flysystem.resources_filesystem', cache: '@oneup_flysystem.cache_resources_filesystem'}
+            - {source: '@oneup_flysystem.resource_filesystem', cache: '@oneup_flysystem.resource_cache_filesystem'}
             - '%glide_media_filters%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
-    _instanceof:
-        Sylius\Bundle\ResourceBundle\Controller\ResourceController:
-            autowire: false
-
-    Chamilo\PageBundle\:
-        resource: '../src/PageBundle/*'
-        exclude: '../src/PageBundle/{Entity,Migrations,Tests}'
-        public: true
 
     Vich\UploaderBundle\Naming\SubdirDirectoryNamer:
-        public: true
-
-    Chamilo\CoreBundle\Component\Naming\SmartUniqueNamer:
         public: true
 
     Chamilo\CoreBundle\Controller\ResourceController:
         arguments:
             - '@Chamilo\CoreBundle\Repository\ResourceFactory'
-            - '@Chamilo\CoreBundle\Block\BreadcrumbBlockService'
 
     Symfony\Component\Mailer\Mailer:
         public: true
-
-    Chamilo\ThemeBundle\:
-        autowire: true
-        resource: '../src/ThemeBundle/*'
-        exclude: '../src/ThemeBundle/{Entity,Migrations,Tests}'
-        public: true
-
-    Chamilo\ThemeBundle\Controller\ExceptionController:
-        public: true
-        arguments:
-            $debug: '%kernel.debug%'
 
     Doctrine\ORM\EntityManager: "@doctrine.orm.default_entity_manager"
 
     chamilo_core.hook_factory:
         class: 'Chamilo\CoreBundle\Hook\HookFactory'
 
-        # makes classes in src/ available to be used as services
-    # this creates a service per class whose id is the fully-qualified class name
-    AdminBundle\:
-        resource: '../src/AdminBundle/*'
-        # you can exclude directories or files
-        # but if a service is unused, it's removed anyway
-        exclude: '../src/AdminBundle/{ChamiloAdminBundle.php,Entity,Repository,Tests}'
-
-    ClassificationBundle\:
-        resource: '../src/ClassificationBundle/*'
-        # you can exclude directories or files
-        # but if a service is unused, it's removed anyway
-        exclude: '../src/ClassificationBundle/{ChamiloClassificationBundle.php,Entity,Admin,Document,Repository,Tests}'
-
-    ContactBundle\:
-        resource: '../src/ContactBundle/*'
-        # you can exclude directories or files
-        # but if a service is unused, it's removed anyway
-        exclude: '../src/ContactBundle/{ChamiloContactBundle.php,Entity,Admin,Controller,DependencyInjection,Form,Repository,Tests}'
-
-    Chamilo\UserBundle\:
-        resource: '../src/UserBundle/*'
-        # you can exclude directories or files
-        # but if a service is unused, it's removed anyway
-        exclude: '../src/UserBundle/{Admin,ChamiloUserBundle.php,Security/FOSUBUserProvider.php,DependencyInjection,Form,EventListener,Entity,Repository}'
-
     chamilo_lti_utils:
         class: Chamilo\LtiBundle\Util\Utils
         arguments: ['@chamilo.settings.manager']
 
-    apy_grid.factory:
-        class: APY\DataGridBundle\Grid\GridFactory
-        arguments: ['@service_container', '@apy_grid.registry']
-        public: true
+    Chamilo\CoreBundle\EventListener\HTTPExceptionListener:
+        tags:
+            - {name: kernel.event_listener, event: kernel.exception}
 
-    apy_grid.registry:
-        class: APY\DataGridBundle\Grid\GridRegistry
-        public: true
-
-sylius_settings:
-    driver: doctrine/orm
-
-# Doctrine audit
-sonata_doctrine_orm_admin:
-    audit:
-        force: false # Audits are set in the admin.yml files with audit:true
-
-# Grid default template
-apy_data_grid:
-    theme: '@ChamiloTheme/Resource/grid_theme.html.twig'
-    limits: [20, 50, 100]
-    persistence: false
-#    no_data_message: "No data"
-#    no_result_message: "No result"
-#    actions_columns_size: -1
-#    actions_columns_title: "Actions"
-#    actions_columns_separator: "<br />"
-    pagerfanta:
-        enable: true
-        view_class: 'Pagerfanta\View\TwitterBootstrap4View'
-        options:
-            prev_message: "«"
-            next_message: "»"
-
-# Course settings
-chamilo_course:
-    driver: doctrine/orm
-
-gregwar_captcha:
-    width: 200
-    height: 50
-    length: 6
-
-imports:
-    - {resource: ../src/CoreBundle/Resources/config/services.yml}
-    - {resource: ../src/PageBundle/Resources/config/services.yml}
-    - {resource: ../vendor/knplabs/doctrine-behaviors/config/orm-services.yml}
-
-#sylius_resource:
-#    resources:
-#        app.exercise_category:
-#            driver: 'doctrine/orm'
-#            classes:
-#                model: 'Chamilo\CourseBundle\Entity\CExerciseCategory'
+    Chamilo\CoreBundle\EventListener\ExceptionListener:
+        arguments: ['@twig']
+        tags:
+            - {name: kernel.event_listener, event: kernel.exception}
 
 cocur_slugify:
     lowercase: true
+
+imports:
+    - {resource: ../src/CoreBundle/Resources/config/services.yml}
+    - {resource: ../src/LtiBundle/Resources/config/services.yml}

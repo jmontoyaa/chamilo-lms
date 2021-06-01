@@ -1,111 +1,82 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * CCourseSetting.
  *
  * @ORM\Table(
- *  name="c_course_setting",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_course_setting",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CCourseSetting
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var string
+     * @Assert\NotBlank()
      *
      * @ORM\Column(name="variable", type="string", length=255, nullable=false)
      */
-    protected $variable;
+    protected string $variable;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="subkey", type="string", length=255, nullable=true)
      */
-    protected $subkey;
+    protected ?string $subkey = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="type", type="string", length=255, nullable=true)
      */
-    protected $type;
+    protected ?string $type = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="category", type="string", length=255, nullable=true)
      */
-    protected $category;
+    protected ?string $category = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="value", type="text", nullable=true)
      */
-    protected $value;
+    protected ?string $value = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="title", type="string", length=255, nullable=false)
      */
-    protected $title;
+    protected ?string $title = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="comment", type="string", length=255, nullable=true)
      */
-    protected $comment;
+    protected ?string $comment = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="subkeytext", type="string", length=255, nullable=true)
      */
-    protected $subkeytext;
+    protected ?string $subkeytext = null;
 
-    /**
-     * Set variable.
-     *
-     * @param string $variable
-     *
-     * @return CCourseSetting
-     */
-    public function setVariable($variable)
+    public function setVariable(string $variable): self
     {
         $this->variable = $variable;
 
@@ -122,14 +93,7 @@ class CCourseSetting
         return $this->variable;
     }
 
-    /**
-     * Set subkey.
-     *
-     * @param string $subkey
-     *
-     * @return CCourseSetting
-     */
-    public function setSubkey($subkey)
+    public function setSubkey(string $subkey): self
     {
         $this->subkey = $subkey;
 
@@ -146,14 +110,7 @@ class CCourseSetting
         return $this->subkey;
     }
 
-    /**
-     * Set type.
-     *
-     * @param string $type
-     *
-     * @return CCourseSetting
-     */
-    public function setType($type)
+    public function setType(string $type): self
     {
         $this->type = $type;
 
@@ -170,14 +127,7 @@ class CCourseSetting
         return $this->type;
     }
 
-    /**
-     * Set category.
-     *
-     * @param string $category
-     *
-     * @return CCourseSetting
-     */
-    public function setCategory($category)
+    public function setCategory(string $category): self
     {
         $this->category = $category;
 
@@ -194,14 +144,7 @@ class CCourseSetting
         return $this->category;
     }
 
-    /**
-     * Set value.
-     *
-     * @param string $value
-     *
-     * @return CCourseSetting
-     */
-    public function setValue($value)
+    public function setValue(string $value): self
     {
         $this->value = $value;
 
@@ -218,14 +161,7 @@ class CCourseSetting
         return $this->value;
     }
 
-    /**
-     * Set title.
-     *
-     * @param string $title
-     *
-     * @return CCourseSetting
-     */
-    public function setTitle($title)
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
@@ -242,14 +178,7 @@ class CCourseSetting
         return $this->title;
     }
 
-    /**
-     * Set comment.
-     *
-     * @param string $comment
-     *
-     * @return CCourseSetting
-     */
-    public function setComment($comment)
+    public function setComment(string $comment): self
     {
         $this->comment = $comment;
 
@@ -266,14 +195,7 @@ class CCourseSetting
         return $this->comment;
     }
 
-    /**
-     * Set subkeytext.
-     *
-     * @param string $subkeytext
-     *
-     * @return CCourseSetting
-     */
-    public function setSubkeytext($subkeytext)
+    public function setSubkeytext(string $subkeytext): self
     {
         $this->subkeytext = $subkeytext;
 
@@ -291,37 +213,11 @@ class CCourseSetting
     }
 
     /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CCourseSetting
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CCourseSetting
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 

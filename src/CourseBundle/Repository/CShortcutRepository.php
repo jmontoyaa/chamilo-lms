@@ -1,52 +1,82 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Repository;
 
-use APY\DataGridBundle\Grid\Column\Column;
-use APY\DataGridBundle\Grid\Grid;
-use Chamilo\CoreBundle\Component\Utils\ResourceSettings;
+use Chamilo\CoreBundle\Entity\AbstractResource;
 use Chamilo\CoreBundle\Entity\Course;
-use Chamilo\CoreBundle\Entity\Resource\AbstractResource;
-use Chamilo\CoreBundle\Entity\Resource\ResourceNode;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
+use Chamilo\CoreBundle\Entity\ResourceNode;
 use Chamilo\CoreBundle\Entity\Session;
+use Chamilo\CoreBundle\Entity\User;
 use Chamilo\CoreBundle\Repository\ResourceRepository;
-use Chamilo\CoreBundle\Repository\ResourceRepositoryInterface;
-use Chamilo\CourseBundle\Entity\CGroupInfo;
+use Chamilo\CourseBundle\Entity\CGroup;
 use Chamilo\CourseBundle\Entity\CShortcut;
-use Chamilo\UserBundle\Entity\User;
-use Doctrine\ORM\Query\Expr\Join;
-use Symfony\Component\Form\FormInterface;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Doctrine\ORM\QueryBuilder;
+use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * Class CShortcutRepository.
- */
-final class CShortcutRepository extends ResourceRepository implements ResourceRepositoryInterface
+final class CShortcutRepository extends ResourceRepository
 {
-    public function getShortcutFromResource(AbstractResource $resource): ?CShortcut
+    public function __construct(ManagerRegistry $registry)
     {
-        $repo = $this->getRepository();
-        $criteria = ['shortCutNode' => $resource->getResourceNode()];
-
-        return $repo->findOneBy($criteria);
+        parent::__construct($registry, CShortcut::class);
     }
 
-    public function getResources(User $user, ResourceNode $parentNode, Course $course = null, Session $session = null, CGroupInfo $group = null)
+    public function getShortcutFromResource(AbstractResource $resource): ?CShortcut
     {
-        $repo = $this->getRepository();
-        $className = $repo->getClassName();
+        $criteria = [
+            'shortCutNode' => $resource->getResourceNode(),
+        ];
 
-        $qb = $repo->getEntityManager()->createQueryBuilder()
+        return $this->findOneBy($criteria);
+    }
+
+    public function addShortCut(AbstractResource $resource, ResourceInterface $parent, Course $course, Session $session = null): CShortcut
+    {
+        $shortcut = $this->getShortcutFromResource($resource);
+
+        if (null === $shortcut) {
+            $shortcut = new CShortcut();
+            $shortcut
+                ->setName($resource->getResourceName())
+                ->setShortCutNode($resource->getResourceNode())
+                ->setParent($parent)
+                ->addCourseLink($course, $session)
+            ;
+
+            $this->create($shortcut);
+        }
+
+        return $shortcut;
+    }
+
+    public function removeShortCut(AbstractResource $resource): bool
+    {
+        $em = $this->getEntityManager();
+        $shortcut = $this->getShortcutFromResource($resource);
+        if (null !== $shortcut) {
+            $em->remove($shortcut);
+            $em->flush();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public function getResources(User $user, ResourceNode $parentNode, Course $course = null, Session $session = null, CGroup $group = null): QueryBuilder
+    {
+        $qb = $this->createQueryBuilder('resource')
             ->select('resource')
-            ->from($className, 'resource')
+            //->from($className, 'resource')
             ->innerJoin(
-                ResourceNode::class,
-                'node',
-                Join::WITH,
-                'resource.resourceNode = node.id'
+                'resource.resourceNode',
+                'node'
             )
+            ->leftJoin('node.resourceFile', 'file')
             //->innerJoin('node.resourceLinks', 'links')
             //->where('node.resourceType = :type')
             //->setParameter('type',$type)
@@ -61,47 +91,6 @@ final class CShortcutRepository extends ResourceRepository implements ResourceRe
             $qb->setParameter('parentNode', $parentNode);
         }
 
-        //$qb->andWhere('node.creator = :creator');
-        //$qb->setParameter('creator', $user);
-        //var_dump($qb->getQuery()->getSQL(), $parentNode->getId());exit;
-
         return $qb;
-    }
-
-    public function getResourceSettings(): ResourceSettings
-    {
-        $settings = parent::getResourceSettings();
-
-        $settings
-            ->setAllowNodeCreation(false)
-            ->setAllowResourceCreation(true)
-            ->setAllowResourceUpload(false)
-        ;
-
-        return $settings;
-    }
-
-    public function saveUpload(UploadedFile $file)
-    {
-        return false;
-    }
-
-    public function saveResource(FormInterface $form, $course, $session, $fileType)
-    {
-        $newResource = $form->getData();
-        $newResource
-            ->setCourse($course)
-            ->setSession($session)
-            ->setFiletype($fileType)
-            //->setTitle($title) // already added in $form->getData()
-            ->setReadonly(false)
-        ;
-
-        return $newResource;
-    }
-
-    public function getTitleColumn(Grid $grid): Column
-    {
-        return $grid->getColumn('name');
     }
 }

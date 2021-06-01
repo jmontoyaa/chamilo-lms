@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Component\Utils\ChamiloApi;
@@ -21,15 +22,15 @@ $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'name';
 
 if (isset($_GET['skill'])) {
     /** @var Skill $skill */
-    $skill = $em->find('ChamiloCoreBundle:Skill', intval($_GET['skill']));
+    $skill = $em->find(Skill::class, $_GET['skill']);
 
-    if ($action === 'name') {
+    if ('name' === $action) {
         $variableLanguage = ChamiloApi::getLanguageVar(
             $skill->getName(false),
             'Skill'
         );
         $originalName = $skill->getName(false);
-    } elseif ($action === 'code') {
+    } elseif ('code' === $action) {
         $variableLanguage = ChamiloApi::getLanguageVar(
             $skill->getShortCode(false),
             'SkillCode'
@@ -53,7 +54,7 @@ if (empty($originalName)) {
 $languageId = isset($_GET['sub_language']) ? intval($_GET['sub_language']) : 0;
 
 $languages = $em
-    ->getRepository('ChamiloCoreBundle:Language')
+    ->getRepository(Language::class)
     ->findAllPlatformSubLanguages();
 
 $languagesOptions = [0 => get_lang('none')];
@@ -93,7 +94,7 @@ $form->setDefaults([
     'variable_language' => '$'.$variableLanguage,
     'original_name' => $originalName,
     'sub_language' => $languageId,
-    'new_language' => $action === 'code' ? $skill->getShortCode() : $skill->getName(),
+    'new_language' => 'code' === $action ? $skill->getShortCode() : $skill->getName(),
 ]);
 $form->addRule('sub_language', get_lang('Required'), 'required');
 $form->freeze(['variable_language', 'original_name']);

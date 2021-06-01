@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Component\Editor\CkEditor\Toolbar;
@@ -16,7 +18,7 @@ class Survey extends Basic
      */
     public function getConfig()
     {
-        if ('true' != api_get_setting('more_buttons_maximized_mode')) {
+        if ('true' !== api_get_setting('more_buttons_maximized_mode')) {
             $config['toolbar'] = $this->getNormalToolbar();
         } else {
             $config['toolbar_minToolbar'] = $this->getMinimizedToolbar();
@@ -56,8 +58,20 @@ class Survey extends Basic
             ['Table', '-', 'CreateDiv'],
             ['BulletedList', 'NumberedList', 'HorizontalRule', '-', 'Outdent', 'Indent', 'Blockquote'],
             ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
-            ['Bold', 'Italic', 'Underline', 'Strike', '-', 'Subscript', 'Superscript', '-', 'TextColor', 'BGColor'],
-            ['true' == api_get_setting('allow_spellcheck') ? 'Scayt' : ''],
+            [
+                'Bold',
+                'Italic',
+                'Underline',
+                'Strike',
+                '-',
+                'Subscript',
+                'Superscript',
+                '-',
+                'TextColor',
+                'BGColor',
+                api_get_configuration_value('translate_html') ? 'Language' : '',
+            ],
+            ['true' === api_get_setting('allow_spellcheck') ? 'Scayt' : ''],
             ['Styles', 'Format', 'Font', 'FontSize'],
             ['PageBreak', 'ShowBlocks', 'Source'],
             ['Toolbarswitch'],
@@ -96,7 +110,17 @@ class Survey extends Basic
             ['Link', 'Image', 'Video', 'Flash', 'Audio', 'Table', 'Asciimath', 'Asciisvg'],
             ['BulletedList', 'NumberedList', 'HorizontalRule'],
             ['JustifyLeft', 'JustifyCenter', 'JustifyRight'],
-            ['Format', 'FontSize', 'Bold', 'Italic', 'Underline', 'TextColor', 'BGColor', 'Source'],
+            [
+                'Format',
+                'FontSize',
+                'Bold',
+                'Italic',
+                'Underline',
+                'TextColor',
+                'BGColor',
+                api_get_configuration_value('translate_html') ? 'Language' : '',
+                'Source',
+            ],
             ['Toolbarswitch'],
         ];
     }

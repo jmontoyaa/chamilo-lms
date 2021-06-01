@@ -1,13 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Controller;
 
-use Chamilo\CoreBundle\Entity\Resource\ResourceLink;
-use Chamilo\CoreBundle\Entity\Resource\ResourceNode;
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\Course;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
+use Chamilo\CoreBundle\Entity\ResourceNode;
+use Chamilo\CoreBundle\Entity\Session;
+use Chamilo\CoreBundle\Repository\ResourceFactory;
 use Chamilo\CoreBundle\Repository\ResourceRepository;
-use Chamilo\CoreBundle\Security\Authorization\Voter\ResourceNodeVoter;
 use Oneup\UploaderBundle\Controller\BlueimpController;
 use Oneup\UploaderBundle\Uploader\File\FileInterface;
 use Oneup\UploaderBundle\Uploader\File\FilesystemFile;
@@ -15,20 +20,14 @@ use Oneup\UploaderBundle\Uploader\Response\EmptyResponse;
 use Symfony\Component\HttpFoundation\File\Exception\UploadException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
-/**
- * Class ResourceUploaderController.
- */
 class ResourceUploadController extends BlueimpController
 {
     /**
      * This will upload an image to the selected node id.
-     * This action is listend by the ResourceUploadListener.
-     *
-     * @return JsonResponse
+     * This action is listen by the ResourceUploadListener.
      */
-    public function upload()
+    public function upload(): JsonResponse
     {
         error_log('upload');
         $container = $this->container;
@@ -44,21 +43,23 @@ class ResourceUploadController extends BlueimpController
 
         $course = null;
         if (!empty($courseId)) {
-            $course = $doctrine->getRepository('ChamiloCoreBundle:Course')->find($courseId);
+            $course = $doctrine->getRepository(Course::class)->find($courseId);
         }
 
         $session = null;
         if (!empty($sessionId)) {
-            $session = $doctrine->getRepository('ChamiloCoreBundle:Session')->find($sessionId);
+            $session = $doctrine->getRepository(Session::class)->find($sessionId);
         }
 
-        $token = $container->get('security.token_storage')->getToken();
-        $user = $token->getUser();
+        /*$token = $container->get('security.token_storage')->getToken();
+        $user = $token->getUser();*/
 
         // Create repository from tool and type.
-        $factory = $container->get('Chamilo\CoreBundle\Repository\ResourceFactory');
+        $factory = $container->get(ResourceFactory::class);
+        $repoService = $factory->getRepositoryService($tool, $type);
+
         /** @var ResourceRepository $repo */
-        $repo = $factory->createRepository($tool, $type);
+        $repo = $container->get($repoService);
 
         /** @var ResourceNode $parent */
         $parent = $repo->getResourceNodeRepository()->find($id);
@@ -76,35 +77,25 @@ class ResourceUploadController extends BlueimpController
             /** @var UploadedFile $file */
             foreach ($files as $file) {
                 try {
-                    //$title = $file->getClientOriginalName();
                     if (!($file instanceof FileInterface)) {
                         $file = new FilesystemFile($file);
                     }
 
                     $this->validate($file, $request, $response);
-
                     $this->dispatchPreUploadEvent($file, $response, $request);
-
+                    /** @var AbstractResource|ResourceInterface $resource */
                     $resource = $repo->saveUpload($file);
 
-                    // Uploading file.
-                    /*$document = new CDocument();
-                    $document
-                        ->setFiletype('file')
-                        ->setTitle($title)
-                        ->setSize($file->getSize())
-                    ;*/
-
-                    $em->persist($resource);
-                    $resourceNode = $repo->createNodeForResource($resource, $user, $parent, $file);
-
-                    $repo->addResourceNodeToCourse(
-                        $resourceNode,
-                        ResourceLink::VISIBILITY_PUBLISHED,
+                    // @todo fix correct $parent
+                    //$resource->setParent($parent);
+                    $resource->addCourseLink(
                         $course,
-                        $session,
-                        null
+                        $session
                     );
+                    $em->persist($resource);
+                    $em->flush();
+
+                    $repo->addFile($resource, $file);
                     $em->flush();
                     // Finish uploading.
 
@@ -112,8 +103,8 @@ class ResourceUploadController extends BlueimpController
                     /*$chunked ?
                         $this->handleChunkedUpload($file, $response, $request) :
                         $this->handleUpload($file, $response, $request);*/
-                } catch (UploadException $e) {
-                    $this->errorHandler->addException($response, $e);
+                } catch (UploadException $uploadException) {
+                    $this->errorHandler->addException($response, $uploadException);
                 }
             }
         } catch (UploadException $e) {

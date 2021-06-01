@@ -1,8 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
-/**
- * @package chamilo.admin
- */
+
 /**
  * Code
  * This tool allows platform admins to update class-user relations by uploading
@@ -25,14 +23,14 @@ function validate_data($user_classes)
         $mandatory_fields = ['UserName', 'ClassName'];
 
         foreach ($mandatory_fields as $field) {
-            if (!isset($user_class[$field]) || strlen($user_class[$field]) == 0) {
+            if (!isset($user_class[$field]) || 0 == strlen($user_class[$field])) {
                 $user_class['error'] = get_lang($field.'Mandatory');
                 $errors[] = $user_class;
             }
         }
 
         // 2. Check whether class code exists.
-        if (isset($user_class['ClassName']) && strlen($user_class['ClassName']) != 0) {
+        if (isset($user_class['ClassName']) && 0 != strlen($user_class['ClassName'])) {
             // 2.1 Check whether code has been already used in this CVS-file.
             if (!isset($classcodes[$user_class['ClassName']])) {
                 // 2.1.1 Check whether code exists in DB
@@ -41,7 +39,7 @@ function validate_data($user_classes)
                     $user_class['error'] = get_lang('This code does not exist').': '.$user_class['ClassName'];
                     $errors[] = $user_class;
                 } else {
-                    $classcodes[$user_class['CourseCode']] = 1;
+                    $classcodes[$user_class['ClassName']] = 1;
                 }
             }
         }
@@ -124,10 +122,9 @@ function save_data($users_classes, $deleteUsersNotInList = false)
  */
 function parse_csv_data($file)
 {
-    $courses = Import::csvToArray($file);
-
-    return $courses;
+    return Import::csvToArray($file);
 }
+
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -157,7 +154,7 @@ $errors = [];
 if ($form->validate()) {
     $users_classes = parse_csv_data($_FILES['import_file']['tmp_name']);
     $errors = validate_data($users_classes);
-    if (count($errors) == 0) {
+    if (0 == count($errors)) {
         $deleteUsersNotInList = isset($_REQUEST['unsubscribe']) && !empty($_REQUEST['unsubscribe']) ? true : false;
         $return = save_data($users_classes, $deleteUsersNotInList);
     }
@@ -169,7 +166,7 @@ if (isset($return) && $return) {
     echo $return;
 }
 
-if (count($errors) != 0) {
+if (0 != count($errors)) {
     $error_message = "\n";
     foreach ($errors as $index => $error_class_user) {
         $error_message .= get_lang('Line').' '.$error_class_user['line'].': '.$error_class_user['error'].'</b>';

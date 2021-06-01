@@ -1,9 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.admin
- */
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -30,9 +28,12 @@ set_time_limit(0);
 
 // Set this option to true to enforce strict purification for usenames.
 $purification_option_for_usernames = false;
-$inserted_in_course = [];
-
+$insertedInCourse = [];
+$error_message = '';
 $warn = null;
+$updatesession = null;
+$_user = api_get_user_info();
+
 if (isset($_POST['formSent']) && $_POST['formSent']) {
     if (isset($_FILES['import_file']['tmp_name']) &&
         !empty($_FILES['import_file']['tmp_name'])
@@ -45,10 +46,12 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
         $sessions = [];
         $session_counter = 0;
 
-        if ($file_type == 'xml') {
+        if ('xml' === $file_type) {
             // XML
-            // SimpleXML for PHP5 deals with various encodings, but how many they are, what are version issues, do we need to waste time with configuration options?
-            // For avoiding complications we go some sort of "PHP4 way" - we convert the input xml-file into UTF-8 before passing it to the parser.
+            // SimpleXML for PHP5 deals with various encodings, but how many they are, what are version issues,
+            // do we need to waste time with configuration options?
+            // For avoiding complications we go some sort of "PHP4 way" - we convert the input xml-file into UTF-8
+            // before passing it to the parser.
             // Instead of:
             // $root = @simplexml_load_file($_FILES['import_file']['tmp_name']);
             // we may use the following construct:
@@ -191,7 +194,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
 
                         if (!empty($coach)) {
                             $coach_id = UserManager::get_user_id_from_username($coach);
-                            if ($coach_id === false) {
+                            if (false === $coach_id) {
                                 $error_message .= get_lang('This user doesn\'t exist').' : '.$coach.'<br />';
                                 // Forcing the coach id if user does not exist.
                                 $coach_id = api_get_user_id();
@@ -266,7 +269,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
                         } else {
                             // Update the session if it is needed.
                             $my_session_result = SessionManager::get_session_by_name($session_name);
-                            if ($my_session_result === false) {
+                            if (false === $my_session_result) {
                                 // Creating the session.
                                 $sql_session = "INSERT IGNORE INTO $tbl_session SET
                                         name = '".Database::escape_string($session_name)."',
@@ -310,7 +313,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
                         foreach ($node_session->User as $node_user) {
                             $username = UserManager::purify_username(api_utf8_decode($node_user), $purification_option_for_usernames);
                             $user_id = UserManager::get_user_id_from_username($username);
-                            if ($user_id !== false) {
+                            if (false !== $user_id) {
                                 $sql = "INSERT IGNORE INTO $tbl_session_user SET
                                         user_id ='$user_id',
                                         session_id = '$session_id',
@@ -326,25 +329,28 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
                             // Verify that the course pointed by the course code node exists.
                             if (CourseManager::course_exists($course_code)) {
                                 // If the course exists we continue.
-                                $course_info = CourseManager::get_course_information($course_code);
+                                $course_info = api_get_course_info($course_code);
                                 $courseId = $course_info['real_id'];
 
-                                $session_course_relation = SessionManager::relation_session_course_exist($session_id, $courseId);
+                                $session_course_relation = SessionManager::relation_session_course_exist(
+                                    $session_id,
+                                    $courseId
+                                );
                                 if (!$session_course_relation) {
                                     $sql_course = "INSERT INTO $tbl_session_course SET
                                             c_id = $courseId,
                                             session_id = $session_id";
                                     $rs_course = Database::query($sql_course);
-                                    SessionManager::installCourse($id_session, $courseId);
+                                    SessionManager::installCourse($session_id, $courseId);
                                 }
 
                                 $course_coaches = explode(',', $node_course->Coach);
 
                                 // Adding coachs to session course user
                                 foreach ($course_coaches as $course_coach) {
-                                    $coach_id = UserManager::purify_username(api_utf8_decode($course_coach), $purification_option_for_usernames);
+                                    //$coach_id = UserManager::purify_username(api_utf8_decode($course_coach), $purification_option_for_usernames);
                                     $coach_id = UserManager::get_user_id_from_username($course_coach);
-                                    if ($coach_id !== false) {
+                                    if (false !== $coach_id) {
                                         $sql = "INSERT IGNORE INTO $tbl_session_course_user SET
                                                 user_id='$coach_id',
                                                 c_id = '$courseId',
@@ -352,7 +358,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
                                                 status = 2 ";
                                         $rs_coachs = Database::query($sql);
                                     } else {
-                                        $error_message .= get_lang('This user doesn\'t exist').' : '.$user.'<br />';
+                                        $error_message .= get_lang('This user doesn\'t exist').' : '.$coach_id.'<br />';
                                     }
                                 }
 
@@ -362,7 +368,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
                                 foreach ($node_course->User as $node_user) {
                                     $username = UserManager::purify_username(api_utf8_decode($node_user), $purification_option_for_usernames);
                                     $user_id = UserManager::get_user_id_from_username($username);
-                                    if ($user_id !== false) {
+                                    if (false !== $user_id) {
                                         // Adding to session_rel_user table.
                                         $sql = "INSERT IGNORE INTO $tbl_session_user SET
                                                 user_id ='$user_id',
@@ -383,7 +389,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
                                 }
                                 $sql = "UPDATE $tbl_session_course SET nbr_users='$users_in_course_counter' WHERE c_id='$courseId'";
                                 Database::query($sql);
-                                $inserted_in_course[$course_code] = $course_info['title'];
+                                $insertedInCourse[$course_code] = $course_info['title'];
                             }
                         }
                         Database::query("UPDATE $tbl_session SET nbr_users='$user_counter', nbr_courses='$course_counter' WHERE id='$session_id'");
@@ -426,15 +432,15 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
             $error_message = get_lang('but problems occured').' :<br />'.$error_message;
         }
 
-        if (count($inserted_in_course) > 1) {
+        if (!empty($insertedInCourse) && count($insertedInCourse) > 1) {
             $warn = get_lang('Several courses were subscribed to the session because of a duplicate course code').': ';
-            foreach ($inserted_in_course as $code => $title) {
+            foreach ($insertedInCourse as $code => $title) {
                 $warn .= ' '.$title.' ('.$code.'),';
             }
             $warn = substr($warn, 0, -1);
         }
-        if ($session_counter == 1) {
-            if ($file_type == 'csv') {
+        if (1 == $session_counter) {
+            if ('csv' === $file_type) {
                 $session_id = current($sessionList);
             }
             Display::addFlash(Display::return_message($warn));
@@ -450,22 +456,11 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
     }
 }
 
-// Display the header.
 Display::display_header($tool_name);
-
-if (count($inserted_in_course) > 1) {
-    $msg = get_lang('Several courses were subscribed to the session because of a duplicate course code').': ';
-    foreach ($inserted_in_course as $code => $title) {
-        $msg .= ' '.$title.' ('.$title.'),';
-    }
-    $msg = substr($msg, 0, -1);
-    echo Display::return_message($msg, 'warning');
-}
-
-echo '<div class="actions">';
-echo '<a href="../session/session_list.php">'.
-    Display::return_icon('back.png', get_lang('Back to').' '.get_lang('Administration'), '', ICON_SIZE_MEDIUM).'</a>';
-echo '</div>';
+$actions  = '<a href="../session/session_list.php">'.
+    Display::return_icon('back.png', get_lang('Back to').' '.get_lang('Administration'), '', ICON_SIZE_MEDIUM).
+    '</a>';
+echo Display::toolbarAction('session_import', [$actions]);
 
 if (!empty($error_message)) {
     echo Display::return_message($error_message, 'normal', false);
@@ -504,7 +499,12 @@ $form->addElement(
 );
 
 $form->addElement('checkbox', 'overwrite', null, get_lang('If a session exists, update it'));
-$form->addElement('checkbox', 'delete_users_not_in_list', null, get_lang('Unsubscribe students which are not in the imported list'));
+$form->addElement(
+    'checkbox',
+    'delete_users_not_in_list',
+    null,
+    get_lang('Unsubscribe students which are not in the imported list')
+);
 $form->addElement('checkbox', 'update_course_coaches', null, get_lang('Clean and update course coaches'));
 $form->addElement('checkbox', 'add_me_as_coach', null, get_lang('Add me as coach'));
 $form->addElement('checkbox', 'sendMail', null, get_lang('Send a mail to users'));
@@ -523,8 +523,11 @@ if (!empty($options) && isset($options['options'])) {
 }
 
 $form->setDefaults($defaults);
-
-Display::return_message(get_lang('The XML import lets you add more info and create resources (courses, users). The CSV import will only create sessions and let you assign existing resources to them.'));
+Display::return_message(
+    get_lang(
+        'The XML import lets you add more info and create resources (courses, users). The CSV import will only create sessions and let you assign existing resources to them.'
+    )
+);
 $form->display();
 
 ?>
@@ -591,7 +594,6 @@ $form->display();
     &lt;/Session&gt;
 &lt;/Sessions&gt;
 </pre>
-
 <?php
 
 Display::display_footer();

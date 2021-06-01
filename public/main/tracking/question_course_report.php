@@ -1,11 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * Report.
- *
- * @package chamilo.tracking
- */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -177,7 +173,7 @@ $course_average = [];
 $counter = 0;
 
 if (!empty($main_question_list) && is_array($main_question_list)) {
-    $html_result .= '<table  class="data_table">';
+    $html_result .= '<table  class="table table-hover table-striped data_table">';
     $html_result .= '<tr><th>'.get_lang('Question').
                     Display::return_icon('info3.gif', get_lang('These questions have been taken from the learning paths'), ['align' => 'absmiddle', 'hspace' => '3px']).'</th>';
     $html_result .= '<th>'.$course_info['visual_code'].' '.get_lang('Average score').Display::return_icon('info3.gif', get_lang('All learners attempts are considered'), ['align' => 'absmiddle', 'hspace' => '3px']).' </th>';
@@ -187,7 +183,7 @@ if (!empty($main_question_list) && is_array($main_question_list)) {
         $total_student = 0;
         $counter++;
         $s_css_class = 'row_even';
-        if ($counter % 2 == 0) {
+        if (0 == $counter % 2) {
             $s_css_class = 'row_odd';
         }
         $html_result .= "<tr class='$s_css_class'>

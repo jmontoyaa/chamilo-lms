@@ -3,8 +3,6 @@
 
 /**
  * Report on users followed (filtered by status given in URL).
- *
- * @package chamilo.reporting
  */
 $cidReset = true;
 
@@ -21,7 +19,7 @@ if (!$allowToTrack) {
 }
 
 $nameTools = get_lang('Users');
-$export_csv = isset($_GET['export']) && $_GET['export'] == 'csv' ? true : false;
+$export_csv = isset($_GET['export']) && 'csv' == $_GET['export'] ? true : false;
 $keyword = isset($_GET['keyword']) ? Security::remove_XSS($_GET['keyword']) : null;
 $active = isset($_GET['active']) ? intval($_GET['active']) : 1;
 $sleepingDays = isset($_GET['sleeping_days']) ? intval($_GET['sleeping_days']) : null;
@@ -36,14 +34,14 @@ $interbreadcrumb[] = [
     "name" => get_lang('Reporting'),
 ];
 
-if (isset($_GET["user_id"]) && $_GET["user_id"] != "" && !isset($_GET["type"])) {
+if (isset($_GET["user_id"]) && "" != $_GET["user_id"] && !isset($_GET["type"])) {
     $interbreadcrumb[] = [
         "url" => "teachers.php",
         "name" => get_lang('Trainers'),
     ];
 }
 
-if (isset($_GET["user_id"]) && $_GET["user_id"] != "" && isset($_GET["type"]) && $_GET["type"] == "coach") {
+if (isset($_GET["user_id"]) && "" != $_GET["user_id"] && isset($_GET["type"]) && "coach" == $_GET["type"]) {
     $interbreadcrumb[] = ["url" => "coaches.php", "name" => get_lang('Coaches')];
 }
 
@@ -106,7 +104,8 @@ function get_users($from, $limit, $column, $direction)
         }
     }
 
-    if ($drhLoaded === false) {
+    if (false === $drhLoaded) {
+        $checkSessionVisibility = api_get_configuration_value('show_users_in_active_sessions_in_tracking');
         $students = UserManager::getUsersFollowedByUser(
             api_get_user_id(),
             $status,
@@ -120,7 +119,8 @@ function get_users($from, $limit, $column, $direction)
             $active,
             $lastConnectionDate,
             COURSEMANAGER,
-            $keyword
+            $keyword,
+            $checkSessionVisibility
         );
     }
 
@@ -179,7 +179,7 @@ function get_users($from, $limit, $column, $direction)
         $row[] = $first_date;
         $row[] = $string_date;
 
-        if (isset($_GET['id_coach']) && intval($_GET['id_coach']) != 0) {
+        if (isset($_GET['id_coach']) && 0 != intval($_GET['id_coach'])) {
             $detailsLink = '<a href="myStudents.php?student='.$student_id.'&id_coach='.$coach_id.'&id_session='.$sessionId.'">
 				            '.Display::return_icon('2rightarrow.png', get_lang('Details')).'</a>';
         } else {
@@ -246,7 +246,7 @@ if (api_is_drh()) {
         Display::return_icon('user_na.png', get_lang('Learners'), [], ICON_SIZE_MEDIUM),
         '#'
     );
-    $actions .= Display::url(
+    $actionsLeft .= Display::url(
         Display::return_icon('skills.png', get_lang('Skills'), [], ICON_SIZE_MEDIUM),
         $webCodePath.'social/my_skills_report.php'
     );
@@ -277,12 +277,18 @@ $actionsRight .= Display::url(
 
 $toolbar = Display::toolbarAction('toolbar-user', [$actionsLeft, $actionsRight]);
 
+$itemPerPage = 10;
+$perPage = api_get_configuration_value('my_space_users_items_per_page');
+if ($perPage) {
+    $itemPerPage = (int) $perPage;
+}
+
 $table = new SortableTable(
     'tracking_student',
     'get_count_users',
     'get_users',
     ($is_western_name_order xor $sort_by_first_name) ? 1 : 0,
-    10
+    $itemPerPage
 );
 
 $params = [

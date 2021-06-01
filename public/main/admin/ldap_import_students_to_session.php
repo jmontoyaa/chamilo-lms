@@ -2,9 +2,6 @@
 /* For licensing terms, see /license.txt */
 /**
  * Edition script for sessions categories.
- *
- * @package chamilo.admin
- * Copyright (c) 2007 Mustapha Alouani (supervised by Michel Moreau-Belliard)
  */
 
 // resetting the course id
@@ -94,7 +91,7 @@ elseif (!empty($annee) && !empty($id_session) && empty($_POST['confirmed'])) {
     echo '<br />';
     echo '<h3>'.Display::return_icon('group.gif', get_lang('Select learners')).' '.get_lang('Select learners').'</h3>';
     //echo "Connection ...";
-    $ds = ldap_connect($ldap_host, $ldap_port) or die(get_lang('LDAP Connection Error'));
+    $ds = ldap_connect($ldap_host, $ldap_port) or exit(get_lang('LDAP Connection Error'));
     ldap_set_version($ds);
     if ($ds) {
         $r = false;
@@ -131,7 +128,7 @@ elseif (!empty($annee) && !empty($id_session) && empty($_POST['confirmed'])) {
     echo '<a href="ldap_import_students.php?annee=">'.get_lang('Back to start new search').'</a>';
     echo '<br /><br />';
     echo '</div>';
-} elseif (!empty($annee) && !empty($id_session) && ($_POST['confirmed'] == 'yes')) {
+} elseif (!empty($annee) && !empty($id_session) && ('yes' == $_POST['confirmed'])) {
     $id = $_POST['username_form'];
     $UserList = [];
     $userid_match_login = [];
@@ -155,7 +152,7 @@ elseif (!empty($annee) && !empty($id_session) && empty($_POST['confirmed'])) {
                     'registered_at' => api_get_utc_datetime(),
                 ]
             );
-            if ($res_user !== false) {
+            if (false !== $res_user) {
                 $num++;
             }
         }

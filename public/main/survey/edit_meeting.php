@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -107,7 +108,7 @@ for ($i = $currentQuestionsCount; $i <= $maxEvents; $i++) {
 $form->addHtml('<script>
 $(function() {
     '.$hideList.'
-    var number = "'.--$currentQuestionsCount.'";    
+    var number = "'.--$currentQuestionsCount.'";
     $("#add_button").on("click", function() {
         number++;
         $("#time_" + number + "_date_time_wrapper").show();
@@ -115,15 +116,15 @@ $(function() {
         $("#time_" + number + "_time_range_end").val("");
         $("#time_" + number + "_alt").val("");
     });
-    
+
     $("#remove_button").on("click", function() {
-        if (number > 1) {      
+        if (number > 1) {
             console.log("#time_" + number + "_time_range_start");
             $("#time_" + number + "_date_time_wrapper").hide();
             $("#time_" + number).val("delete");
-            
+
             $("#time_" + number + "_alt").val("delete");
-            $("#time_" + number + "_time_range_start").val("delete");                        
+            $("#time_" + number + "_time_range_start").val("delete");
             number--;
         }
     });
@@ -143,6 +144,8 @@ $form->addLabel(
 
 $form->addButtonUpdate(get_lang('Edit'), 'submit_survey');
 
+$surveyData['start_date'] = api_get_local_time($surveyData['start_date']);
+$surveyData['end_date'] = api_get_local_time($surveyData['end_date']);
 $form->setDefaults($surveyData);
 
 // The validation or display
@@ -169,7 +172,7 @@ if ($form->validate()) {
 
             $date = $values[$name];
 
-            if ($date === 'delete' && !empty($id)) {
+            if ('delete' === $date && !empty($id)) {
                 $deleteItems[] = $id;
             }
 
@@ -233,7 +236,7 @@ if ($form->validate()) {
         }
 
         foreach ($deleteItems as $deleteId) {
-            SurveyManager::delete_survey_question($surveyData['iid'], $deleteId);
+            SurveyManager::deleteQuestion($deleteId);
         }
     }
 

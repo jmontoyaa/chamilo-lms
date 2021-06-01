@@ -3,6 +3,7 @@
 
 use Chamilo\CoreBundle\Entity\Message;
 use Chamilo\CoreBundle\Entity\MessageFeedback;
+use Chamilo\CoreBundle\Framework\Container;
 use ChamiloSession as Session;
 
 /**
@@ -74,7 +75,7 @@ switch ($action) {
         $user_id = api_get_user_id();
         $name_search = Security::remove_XSS($_POST['search_name_q']);
 
-        if (isset($name_search) && $name_search != 'undefined') {
+        if (isset($name_search) && 'undefined' != $name_search) {
             $friends = SocialManager::get_friends($user_id, null, $name_search);
         } else {
             $friends = SocialManager::get_friends($user_id);
@@ -83,7 +84,7 @@ switch ($action) {
         $friend_html = '';
         $number_of_images = 8;
         $number_friends = count($friends);
-        if ($number_friends != 0) {
+        if (0 != $number_friends) {
             $number_loop = $number_friends / $number_of_images;
             $loop_friends = ceil($number_loop);
             $j = 0;
@@ -126,8 +127,6 @@ switch ($action) {
             echo '';
             break;
         }
-        require_once api_get_path(SYS_CODE_PATH).'forum/forumfunction.inc.php';
-
         $user_id = Session::read('social_user_id');
 
         if ($_POST['action']) {
@@ -136,19 +135,19 @@ switch ($action) {
 
         switch ($action) {
             case 'load_course':
-                $course_id = intval($_POST['course_code']); // the int course id
-                $course_info = api_get_course_info_by_id($course_id);
-                $course_code = $course_info['code'];
+                $courseId = intval($_POST['course_code']); // the int course id
+                $course = api_get_course_entity($courseId);
+                $course_code = $course->getCode();
+                $user = api_get_user_entity();
 
-                if (api_is_user_of_course($course_id, api_get_user_id())) {
+                if ($course->hasUser($user)) {
                     //------Forum messages
-                    $forum_result = get_all_post_from_user($user_id, $course_code);
+                    $forum_result = Container::getForumPostRepository()->countUserForumPosts($user, $course);
                     $all_result_data = 0;
-                    if ($forum_result != '') {
+                    if ('' != $forum_result) {
                         echo '<div id="social-forum-main-title">';
                         echo api_xml_http_response_encode(get_lang('Forum'));
                         echo '</div>';
-
                         echo '<div style="background:#FAF9F6; padding:0px;" >';
                         echo api_xml_http_response_encode($forum_result);
                         echo '</div>';
@@ -157,7 +156,7 @@ switch ($action) {
                     }
 
                     //------Blog posts
-                    $result = Blog::getBlogPostFromUser($course_id, $user_id, $course_code);
+                    $result = Blog::getBlogPostFromUser($courseId, $user_id, $courseCode);
 
                     if (!empty($result)) {
                         api_display_tool_title(api_xml_http_response_encode(get_lang('Blog')));
@@ -169,7 +168,7 @@ switch ($action) {
                     }
 
                     //------Blog comments
-                    $result = Blog::getBlogCommentsFromUser($course_id, $user_id, $course_code);
+                    $result = Blog::getBlogCommentsFromUser($courseId, $user_id, $course_code);
                     if (!empty($result)) {
                         echo '<div  style="background:#FAF9F6; padding-left:10px;">';
                         api_display_tool_title(api_xml_http_response_encode(get_lang('Blog comments')));
@@ -178,7 +177,7 @@ switch ($action) {
                         echo '<br />';
                         $all_result_data++;
                     }
-                    if ($all_result_data == 0) {
+                    if (0 == $all_result_data) {
                         echo api_xml_http_response_encode(get_lang('No data available'));
                     }
                 } else {
@@ -201,7 +200,7 @@ switch ($action) {
             exit;
         }
 
-        if (api_get_setting('allow_social_tool') !== 'true') {
+        if ('true' !== api_get_setting('allow_social_tool')) {
             exit;
         }
 
@@ -235,7 +234,7 @@ switch ($action) {
             exit;
         }
 
-        if (api_get_setting('allow_social_tool') !== 'true') {
+        if ('true' !== api_get_setting('allow_social_tool')) {
             exit;
         }
 
@@ -323,7 +322,7 @@ switch ($action) {
         $url = isset($_POST['social_wall_new_msg_main']) ? $_POST['social_wall_new_msg_main'] : '';
         $url = trim($url);
         $html = '';
-        if (SocialManager::verifyUrl($url) == true) {
+        if (true == SocialManager::verifyUrl($url)) {
             $html = Security::remove_XSS(
                 SocialManager::readContentWithOpenGraph($url)
             );
@@ -351,8 +350,8 @@ switch ($action) {
         }
 
         $em = Database::getManager();
-        $messageRepo = $em->getRepository('ChamiloCoreBundle:Message');
-        $messageLikesRepo = $em->getRepository('ChamiloCoreBundle:MessageFeedback');
+        $messageRepo = $em->getRepository(Message::class);
+        $messageLikesRepo = $em->getRepository(MessageFeedback::class);
 
         /** @var Message $message */
         $message = $messageRepo->find($messageId);

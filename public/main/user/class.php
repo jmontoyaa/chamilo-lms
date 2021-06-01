@@ -1,15 +1,13 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.user
- */
 require_once __DIR__.'/../inc/global.inc.php';
 $this_section = SECTION_COURSES;
 
 api_protect_course_script(true, false, 'user');
 
-if (api_get_setting('allow_user_course_subscription_by_course_admin') == 'false') {
+if ('false' === api_get_setting('allow_user_course_subscription_by_course_admin')) {
     if (!api_is_platform_admin()) {
         api_not_allowed(true);
     }
@@ -19,7 +17,6 @@ $tool_name = get_lang('Classes');
 
 $htmlHeadXtra[] = api_get_jqgrid_js();
 
-// Extra entries in breadcrumb
 $interbreadcrumb[] = [
     'url' => 'user.php?'.api_get_cidreq(),
     'name' => get_lang('Users'),
@@ -43,8 +40,9 @@ $actionsRight = '';
 $usergroup = new UserGroup();
 $actions = '';
 
+$sessionId = api_get_session_id();
 if (api_is_allowed_to_edit()) {
-    if ($type === 'registered') {
+    if ('registered' === $type) {
         $actionsLeft .= '<a href="class.php?'.api_get_cidreq().'&type=not_registered">'.
             Display::return_icon('add-class.png', get_lang('Add classes to a course'), [], ICON_SIZE_MEDIUM).'</a>';
     } else {
@@ -84,12 +82,18 @@ if (api_is_allowed_to_edit()) {
     switch ($action) {
         case 'add_class_to_course':
             $id = $_GET['id'];
-            if (!empty($id)) {
+            if (!empty($id) && 0 == $sessionId) {
                 $usergroup->subscribe_courses_to_usergroup(
                     $id,
                     [api_get_course_int_id()],
                     false
                 );
+                Display::addFlash(Display::return_message(get_lang('Added')));
+                header('Location: class.php?'.api_get_cidreq().'&type=registered');
+                exit;
+            } elseif (0 != $sessionId) {
+                /* To suscribe session*/
+                $usergroup->subscribe_sessions_to_usergroup($id, [$sessionId]);
                 Display::addFlash(Display::return_message(get_lang('Added')));
                 header('Location: class.php?'.api_get_cidreq().'&type=registered');
                 exit;
@@ -122,7 +126,8 @@ $columns = [
 
 // Column config
 $columnModel = [
-    ['name' => 'name',
+    [
+        'name' => 'name',
         'index' => 'name',
         'width' => '35',
         'align' => 'left',

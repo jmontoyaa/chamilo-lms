@@ -11,8 +11,6 @@
  * the PHP License and are unable to obtain it through the web, please
  * send a note to license@php.net so we can mail you a copy immediately.
  *
- * @category    HTML
- * @package     HTML_QuickForm
  * @author      Adam Daniel <adaniel1@eesus.jnj.com>
  * @author      Bertrand Mansion <bmansion@mamasam.com>
  * @author      Alexey Borzov <avb@php.net>
@@ -20,16 +18,6 @@
  * @license     http://www.php.net/license/3_01.txt PHP License 3.01
  * @version     CVS: $Id: file.php,v 1.25 2009/04/04 21:34:02 avb Exp $
  * @link        http://pear.php.net/package/HTML_QuickForm
- */
-
-/**
- * HTML class for a file upload field
- *
- * @category    HTML
- * @package     HTML_QuickForm
- * @author      Adam Daniel <adaniel1@eesus.jnj.com>
- * @author      Bertrand Mansion <bmansion@mamasam.com>
- * @author      Alexey Borzov <avb@php.net>
  * @version     Release: 3.2.11
  * @since       1.0
  */
@@ -257,7 +245,7 @@ class HTML_QuickForm_file extends HTML_QuickForm_input
             $ratio = 'aspectRatio: '.$param['ratio'].',';
         }
         $scalable = 'false';
-        if (!empty($param['scalable']) && $param['scalable'] != 'false') {
+        if (!empty($param['scalable']) && $param['scalable'] !== 'false') {
             $ratio = '';
             $scalable = $param['scalable'];
         }
@@ -267,13 +255,12 @@ class HTML_QuickForm_file extends HTML_QuickForm_input
             var $inputFile = $(\'#'.$id.'\'),
                 $image = $(\'#'.$id.'_preview_image\'),
                 $input = $(\'[name="'.$id.'_crop_result"]\'),
-                $inputForResource = $(\'[name="'.$id.'_crop_result_for_resource"]\'),
                 $cropButton = $(\'#'.$id.'_crop_button\'),
                 $formGroup = $(\'#'.$id.'-form-group\');
 
             function isValidType(file) {
                 var fileTypes = [\'image/jpg\', \'image/jpeg\', \'image/gif\', \'image/png\'];
-        
+
                 for(var i = 0; i < fileTypes.length; i++) {
                     if(file.type === fileTypes[i]) {
                         return true;
@@ -282,7 +269,7 @@ class HTML_QuickForm_file extends HTML_QuickForm_input
 
                 return false;
             }
-            
+
             function imageCropper() {
                 $formGroup.show();
                 $cropButton.show();
@@ -301,10 +288,10 @@ class HTML_QuickForm_file extends HTML_QuickForm_input
                         scalable: '.$scalable.',
                         crop: function(e) {
                             // Output the result data for cropping image.
-                            $input.val(event.detail.x + \',\' + event.detail.y + \',\' + event.detail.width + \',\' + event.detail.height);                            
-                            $inputForResource.val(
+                            //$input.val(event.detail.x + \',\' + event.detail.y + \',\' + event.detail.width + \',\' + event.detail.height);
+                            $input.val(
                                 parseInt(event.detail.width) + \',\' + parseInt(event.detail.height) + \',\' +  parseInt(event.detail.x) + \',\' + parseInt(event.detail.y)
-                            );                            
+                            );
                         }
                     });
             }
@@ -312,7 +299,7 @@ class HTML_QuickForm_file extends HTML_QuickForm_input
             $inputFile.on(\'change\', function () {
                 var inputFile = this,
                     file = inputFile.files[0],
-                    fileReader = new FileReader();                    
+                    fileReader = new FileReader();
                     $(".img-box").hide();
                     $(".img-preview").show();
                 if (!isValidType(file)) {
@@ -344,10 +331,10 @@ class HTML_QuickForm_file extends HTML_QuickForm_input
                 var $imageLarge = $("#image-cut-lg");
                 var canvas = $image.cropper(\'getCroppedCanvas\'),
                     dataUrl = canvas.toDataURL();
-                
+
                 $(".img-box").show();
                 $(".img-preview").hide();
-                
+
                 $image.attr(\'src\', dataUrl).cropper(\'destroy\').off(\'load\', imageCropper);
                 $imageLarge.attr(\'src\', dataUrl).cropper(\'destroy\').off(\'load\', imageCropper);
                 $(\'[name="'.$id.'_crop_image_base_64"]\').val(dataUrl);
@@ -378,7 +365,7 @@ class HTML_QuickForm_file extends HTML_QuickForm_input
         if ($this->isFrozen()) {
             return $this->getFrozenHtml();
         } else {
-            $class = '';
+            $class = 'mt-1';
             if (isset($this->_attributes['custom']) && $this->_attributes['custom']) {
                 $class = 'input-file';
         }
@@ -387,100 +374,4 @@ class HTML_QuickForm_file extends HTML_QuickForm_input
                 '<input class="'.$class.'" '.$this->_getAttrString($this->_attributes).' />';
         }
     }
-
-    /**
-     * @param string $layout
-     *
-     * @return string
-     */
-    public function getTemplate($layout)
-    {
-        $name = $this->getName();
-        $attributes = $this->getAttributes();
-        $size = $this->calculateSize();
-
-        switch ($layout) {
-            case FormValidator::LAYOUT_INLINE:
-                return '
-                <div class="form-group {error_class}">
-                    <label {label-for} >
-                        <!-- BEGIN required --><span class="form_required">*</span><!-- END required -->
-                        {label}
-                    </label>
-                    {element}
-                </div>';
-                break;
-            case FormValidator::LAYOUT_HORIZONTAL:
-                if (isset($attributes['custom']) && $attributes['custom']) {
-                    $template = '
-                        <div class="input-file-container">  
-                            {element}
-                            <label tabindex="0" {label-for} class="input-file-trigger">
-                                <i class="fa fa-picture-o fa-lg" aria-hidden="true"></i> {label}
-                            </label>
-                        </div>
-                        <p class="file-return"></p>                        
-                        <script>
-                            document.querySelector("html").classList.add(\'js\');
-                            var fileInput  = document.querySelector( ".input-file" ),  
-                                button     = document.querySelector( ".input-file-trigger" ),
-                                the_return = document.querySelector(".file-return");
-                                  
-                            button.addEventListener("keydown", function(event) {  
-                                if ( event.keyCode == 13 || event.keyCode == 32 ) {  
-                                    fileInput.focus();  
-                                }  
-                            });
-                            button.addEventListener("click", function(event) {
-                               fileInput.focus();
-                               return false;
-                            });  
-                            fileInput.addEventListener("change", function(event) {
-                                fileName = this.value;
-                                if (this.files[0]) {
-                                    fileName = this.files[0].name;
-                                }
-                                the_return.innerHTML = fileName;  
-                            });                            
-                        </script>
-                    ';
-                } else {
-                    $template = '
-                    <div id="file_'.$name.'" class="form-group row {error_class}">
-                        
-                        <label {label-for} class="col-sm-'.$size[0].' control-label" >
-                            <!-- BEGIN required --><span class="form_required">*</span><!-- END required -->
-                            {label}
-                        </label>
-                         <div class="col-sm-'.$size[1].'">
-                            {icon}
-                            {element}
-                            <!-- BEGIN label_2 -->
-                                <p class="help-block">{label_2}</p>
-                            <!-- END label_2 -->
-                            <!-- BEGIN error -->
-                                <span class="help-inline help-block">{error}</span>
-                            <!-- END error -->
-                        </div>
-                        <div class="col-sm-'.$size[2].'">
-                            <!-- BEGIN label_3 -->
-                                {label_3}
-                            <!-- END label_3 -->
-                        </div>
-                    </div>';
-                }
-                return $template;
-                break;
-            case FormValidator::LAYOUT_BOX_NO_LABEL:
-                return '
-                        <label {label-for}>{label}</label>
-                        <div class="input-group">
-                            
-                            {icon}
-                            {element}
-                        </div>';
-                break;
-        }
-    }
-
 }

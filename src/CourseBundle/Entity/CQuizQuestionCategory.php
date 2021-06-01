@@ -1,24 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
-use Chamilo\CoreBundle\Entity\Resource\AbstractResource;
-use Chamilo\CoreBundle\Entity\Resource\ResourceInterface;
-use Chamilo\CoreBundle\Entity\Session;
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
 use Chamilo\CourseBundle\Traits\ShowCourseResourcesInSessionTrait;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Event\LifecycleEventArgs;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * CQuizQuestionCategory.
  *
  * @ORM\Table(
- *  name="c_quiz_question_category",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_quiz_question_category",
+ *     indexes={
+ *     }
  * )
  * @ORM\Entity
  */
@@ -27,92 +30,79 @@ class CQuizQuestionCategory extends AbstractResource implements ResourceInterfac
     use ShowCourseResourcesInSessionTrait;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var string
+     * @Assert\NotBlank()
      *
      * @ORM\Column(name="title", type="string", length=255, nullable=false)
      */
-    protected $title;
+    protected string $title;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="description", type="text", nullable=true)
      */
-    protected $description;
+    protected ?string $description = null;
 
     /**
-     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course")
-     * @ORM\JoinColumn(name="c_id", referencedColumnName="id", nullable=false)
+     * @var Collection|CQuizQuestion[]
+     *
+     * @ORM\ManyToMany(targetEntity="Chamilo\CourseBundle\Entity\CQuizQuestion", mappedBy="categories")
      */
-    protected $course;
+    protected Collection $questions;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Session", cascade={"persist"})
-     * @ORM\JoinColumn(name="session_id", referencedColumnName="id", nullable=true)
-     */
-    protected $session;
+    public function __construct()
+    {
+        $this->questions = new ArrayCollection();
+    }
 
     public function __toString(): string
     {
         return $this->getTitle();
     }
 
-    /**
-     * @return int
-     */
-    public function getIid()
+    public function addQuestion(CQuizQuestion $question): void
+    {
+        if ($this->questions->contains($question)) {
+            return;
+        }
+
+        $this->questions->add($question);
+        $question->addCategory($this);
+    }
+
+    public function removeQuestion(CQuizQuestion $question): void
+    {
+        if (!$this->questions->contains($question)) {
+            return;
+        }
+
+        $this->questions->removeElement($question);
+        $question->removeCategory($this);
+    }
+
+    public function getIid(): int
     {
         return $this->iid;
     }
 
-    /**
-     * Set title.
-     *
-     * @param string $title
-     *
-     * @return CQuizQuestionCategory
-     */
-    public function setTitle($title)
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
         return $this;
     }
 
-    /**
-     * Get title.
-     *
-     * @return string
-     */
-    public function getTitle()
+    public function getTitle(): string
     {
-        return (string) $this->title;
+        return $this->title;
     }
 
-    /**
-     * Set description.
-     *
-     * @param string $description
-     *
-     * @return CQuizQuestionCategory
-     */
-    public function setDescription($description)
+    public function setDescription(string $description): self
     {
         $this->description = $description;
 
@@ -130,84 +120,34 @@ class CQuizQuestionCategory extends AbstractResource implements ResourceInterfac
     }
 
     /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CQuizQuestionCategory
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    public function getCourse()
-    {
-        return $this->course;
-    }
-
-    /**
-     * @return CQuizQuestionCategory
-     */
-    public function setCourse($course)
-    {
-        $this->course = $course;
-
-        return $this;
-    }
-
-    public function getSession()
-    {
-        return $this->session;
-    }
-
-    /**
-     * @param Session $session
-     *
-     * @return CQuizQuestionCategory
-     */
-    public function setSession($session)
-    {
-        $this->session = $session;
-
-        return $this;
-    }
-
-    /**
-     * @return bool
-     */
-    public function hasSession()
-    {
-        return null !== $this->session;
-    }
-
-    /**
      * @ORM\PostPersist()
      */
-    public function postPersist(LifecycleEventArgs $args)
+    public function postPersist(LifecycleEventArgs $args): void
     {
         // Update id with iid value
-        $em = $args->getEntityManager();
-        $this->setId($this->iid);
+        /*$em = $args->getEntityManager();
         $em->persist($this);
-        $em->flush();
+        $em->flush();*/
     }
 
     /**
-     * Resource identifier.
+     * @return Collection|CQuizQuestion[]
      */
+    public function getQuestions()
+    {
+        return $this->questions;
+    }
+
+    /**
+     * @param Collection|CQuizQuestion[] $questions
+     */
+    public function setQuestions(Collection $questions): self
+    {
+        $this->questions = $questions;
+
+        return $this;
+    }
+
     public function getResourceIdentifier(): int
     {
         return $this->getIid();
@@ -216,5 +156,10 @@ class CQuizQuestionCategory extends AbstractResource implements ResourceInterfac
     public function getResourceName(): string
     {
         return $this->getTitle();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setTitle($name);
     }
 }

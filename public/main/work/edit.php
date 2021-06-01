@@ -1,5 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CStudentPublication;
 
 require_once __DIR__.'/../inc/global.inc.php';
 $current_course_tool = TOOL_STUDENTPUBLICATION;
@@ -12,13 +16,10 @@ if ($blockEdition && !api_is_platform_admin()) {
     api_not_allowed(true);
 }
 
-// Including files
-require_once 'work.lib.php';
-
 $this_section = SECTION_COURSES;
 
-$work_id = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : null;
-$item_id = isset($_REQUEST['item_id']) ? intval($_REQUEST['item_id']) : null;
+$work_id = isset($_REQUEST['id']) ? (int) ($_REQUEST['id']) : null;
+$item_id = isset($_REQUEST['item_id']) ? (int) ($_REQUEST['item_id']) : null;
 $work_table = Database::get_course_table(TABLE_STUDENT_PUBLICATION);
 
 $is_allowed_to_edit = api_is_allowed_to_edit();
@@ -38,15 +39,14 @@ if (empty($parent_data)) {
     api_not_allowed(true);
 }
 
-$is_course_member = CourseManager::is_user_subscribed_in_real_or_linked_course(
-    $user_id,
-    $course_id,
-    $session_id
-);
-
+if (empty($session_id)) {
+    $is_course_member = CourseManager::is_user_subscribed_in_course($user_id, $course_code);
+} else {
+    $is_course_member = CourseManager::is_user_subscribed_in_course($user_id, $course_code, true, $session_id);
+}
 $is_course_member = $is_course_member || api_is_platform_admin();
 
-if ($is_course_member == false) {
+if (false == $is_course_member) {
     api_not_allowed(true);
 }
 
@@ -56,7 +56,13 @@ $token = Security::get_token();
 $student_can_edit_in_session = api_is_allowed_to_session_edit(false, true);
 $has_ended = false;
 $is_author = false;
-$work_item = get_work_data_by_id($item_id);
+
+$repo = Container::getStudentPublicationRepository();
+/** @var CStudentPublication $studentPublication */
+$studentPublication = $repo->find($item_id);
+if (null === $studentPublication) {
+    api_not_allowed(true);
+}
 
 // Get the author ID for that document from the item_property table
 $is_author = user_is_author($item_id);
@@ -67,17 +73,16 @@ if (!$is_author) {
 
 // Student's can't edit work only if he can delete his docs.
 if (!api_is_allowed_to_edit()) {
-    if (api_get_course_setting('student_delete_own_publication') != 1) {
+    if (1 != api_get_course_setting('student_delete_own_publication')) {
         api_not_allowed(true);
     }
 }
 
 if (!empty($my_folder_data)) {
-    $homework = get_work_assignment_by_id($my_folder_data['id']);
+    $homework = get_work_assignment_by_id($my_folder_data['iid']);
 
     if (!empty($homework['expires_on']) || !empty($homework['ends_on'])) {
         $time_now = time();
-
         if (!empty($homework['expires_on']) &&
             !empty($homework['expires_on'])
         ) {
@@ -105,6 +110,7 @@ if (!empty($my_folder_data)) {
     }
 }
 
+
 $interbreadcrumb[] = [
     'url' => api_get_path(WEB_CODE_PATH).'work/work.php?'.api_get_cidreq(),
     'name' => get_lang('Assignments'),
@@ -122,38 +128,29 @@ if (api_is_allowed_to_edit()) {
     ];
 }
 
-// form title
 $form_title = get_lang('Edit');
-
 $interbreadcrumb[] = ['url' => '#', 'name' => $form_title];
 
 $form = new FormValidator(
     'form',
     'POST',
-    api_get_self()."?".api_get_cidreq()."&id=".$work_id,
+    api_get_self().'?'.api_get_cidreq().'&id='.$work_id,
     '',
-    ['enctype' => "multipart/form-data"]
+    ['enctype' => 'multipart/form-data']
 );
 $form->addElement('header', $form_title);
 $show_progress_bar = false;
 $form->addElement('hidden', 'id', $work_id);
 $form->addElement('hidden', 'item_id', $item_id);
 $form->addText('title', get_lang('Title'), true, ['id' => 'file_upload']);
-if ($is_allowed_to_edit && !empty($item_id)) {
-    $sql = "SELECT contains_file, url
-            FROM $work_table
-            WHERE c_id = $course_id AND id ='$item_id' ";
-    $result = Database::query($sql);
-    if ($result !== false && Database::num_rows($result) > 0) {
-        $row = Database::fetch_array($result);
-        if ($row['contains_file'] || !empty($row['url'])) {
-            $form->addLabel(
-                get_lang('Download'),
-                '<a href="'.api_get_path(WEB_CODE_PATH).'work/download.php?id='.$item_id.'&'.api_get_cidreq().'">'.
-                    Display::return_icon('save.png', get_lang('Save'), [], ICON_SIZE_MEDIUM).'
-                </a>'
-            );
-        }
+if ($is_allowed_to_edit) {
+    if ($studentPublication->getContainsFile()) {
+        $form->addLabel(
+            get_lang('Download'),
+            '<a href="'.api_get_path(WEB_CODE_PATH).'work/download.php?id='.$item_id.'&'.api_get_cidreq().'">'.
+                Display::return_icon('save.png', get_lang('Save'), [], ICON_SIZE_MEDIUM).'
+            </a>'
+        );
     }
 }
 $form->addHtmlEditor(
@@ -164,9 +161,9 @@ $form->addHtmlEditor(
     getWorkDescriptionToolbar()
 );
 
-$defaults['title'] = $work_item['title'];
-$defaults["description"] = $work_item['description'];
-$defaults['qualification'] = $work_item['qualification'];
+$defaults['title'] = $studentPublication->getTitle();
+$defaults['description'] = $studentPublication->getDescription();
+$defaults['qualification'] = $studentPublication->getQualification();
 
 if ($is_allowed_to_edit && !empty($item_id)) {
     // Get qualification from parent_id that will allow the validation qualification over
@@ -187,7 +184,7 @@ if ($is_allowed_to_edit && !empty($item_id)) {
     );
 
     // Check if user to qualify has some DRHs
-    $drhList = UserManager::getDrhListFromUser($work_item['user_id']);
+    $drhList = UserManager::getDrhListFromUser($studentPublication->getUser()->getId());
     if (!empty($drhList)) {
         $form->addCheckBox(
             'send_to_drh_users',
@@ -210,8 +207,6 @@ $form->addButtonUpdate($text);
 
 $form->setDefaults($defaults);
 $_course = api_get_course_info();
-$currentCourseRepositorySys = api_get_path(SYS_COURSE_PATH).$_course['path'].'/';
-
 $succeed = false;
 if ($form->validate()) {
     if ($student_can_edit_in_session && $check) {
@@ -219,7 +214,7 @@ if ($form->validate()) {
          * SPECIAL CASE ! For a work edited
         */
         //Get the author ID for that document from the item_property table
-        $item_to_edit_id = intval($_POST['item_to_edit']);
+        $item_to_edit_id = (int) ($_POST['item_to_edit']);
         $is_author = user_is_author($item_to_edit_id);
 
         if ($is_author) {
@@ -231,18 +226,25 @@ if ($form->validate()) {
             $description = isset($_POST['description']) ? $_POST['description'] : $work_data['description'];
 
             $add_to_update = null;
-            if ($is_allowed_to_edit && ($_POST['qualification'] != '')) {
+            if ($is_allowed_to_edit && isset($_POST['qualification'])) {
                 /*$add_to_update = ', qualificator_id ='."'".api_get_user_id()."', ";
                 $add_to_update .= ' qualification = '."'".api_float_val($_POST['qualification'])."',";
                 $add_to_update .= ' date_of_qualification = '."'".api_get_utc_datetime()."'";*/
 
                 if (isset($_POST['send_email'])) {
                     $url = api_get_path(WEB_CODE_PATH).'work/view.php?'.api_get_cidreq().'&id='.$item_to_edit_id;
-                    $subject = sprintf(get_lang('There\'s a new feedback in work: %s'), $work_item['title']);
-                    $message = sprintf(get_lang('There\'s a new feedback in work: %sInWorkXHere'), $work_item['title'], $url);
+                    $subject = sprintf(
+                        get_lang('There\'s a new feedback in work: %s'),
+                        $studentPublication->getTitle()
+                    );
+                    $message = sprintf(
+                        get_lang('There\'s a new feedback in work: %sInWorkXHere'),
+                        $studentPublication->getTitle(),
+                        $url
+                    );
 
                     MessageManager::send_message_simple(
-                        $work_item['user_id'],
+                        $studentPublication->getUser()->getId(),
                         $subject,
                         $message,
                         api_get_user_id(),
@@ -251,27 +253,27 @@ if ($form->validate()) {
                 }
             }
 
-            if ($_POST['qualification'] > $_POST['qualification_over']) {
+            if (isset($_POST['qualification']) && $_POST['qualification'] > $_POST['qualification_over']) {
                 Display::addFlash(Display::return_message(
                     get_lang('ScoreMustNotBeMoreThanScoreOver'),
                     'error'
                 ));
             } else {
-                $sql = "UPDATE  ".$work_table."
-                        SET	title = '".Database::escape_string($title)."',
-                            description = '".Database::escape_string($description)."'
-                            ".$add_to_update."
-                        WHERE c_id = $course_id AND id = $item_to_edit_id";
-                Database::query($sql);
+                $studentPublication
+                    ->setTitle($title)
+                    ->setDescription($description)
+                    ->setTitle($title)
+                ;
+                $repo->update($studentPublication);
             }
 
-            api_item_property_update(
+            /*api_item_property_update(
                 $_course,
                 'work',
                 $item_to_edit_id,
                 'DocumentUpdated',
                 $user_id
-            );
+            );*/
 
             $succeed = true;
             Display::addFlash(Display::return_message(get_lang('Item updated')));
@@ -302,12 +304,12 @@ if (!empty($work_id)) {
             $content .= $form->returnForm();
         }
     } elseif ($is_author) {
-        if (empty($work_item['qualificator_id']) || $work_item['qualificator_id'] == 0) {
+        if (empty($studentPublication->getQualificatorId()) || 0 === $studentPublication->getQualificatorId()) {
             $content .= $form->returnForm();
         } else {
             $content .= Display::return_message(get_lang('Action not allowed'), 'error');
         }
-    } elseif ($student_can_edit_in_session && $has_ended == false) {
+    } elseif ($student_can_edit_in_session && false == $has_ended) {
         $content .= $form->returnForm();
     } else {
         $content .= Display::return_message(get_lang('Action not allowed'), 'error');

@@ -1,10 +1,6 @@
 <?php
 
 /**
- * Class to dynamically create an HTML SELECT
- *
- * PHP versions 4 and 5
- *
  * LICENSE: This source file is subject to version 3.01 of the PHP license
  * that is available through the world-wide-web at the following URI:
  * http://www.php.net/license/3_01.txt If you did not receive a copy of
@@ -20,16 +16,6 @@
  * @license     http://www.php.net/license/3_01.txt PHP License 3.01
  * @version     CVS: $Id: select.php,v 1.34 2009/04/04 21:34:04 avb Exp $
  * @link        http://pear.php.net/package/HTML_QuickForm
- */
-
-/**
- * Class to dynamically create an HTML SELECT
- *
- * @category    HTML
- * @package     HTML_QuickForm
- * @author      Adam Daniel <adaniel1@eesus.jnj.com>
- * @author      Bertrand Mansion <bmansion@mamasam.com>
- * @author      Alexey Borzov <avb@php.net>
  * @version     Release: 3.2.11
  * @since       1.0
  */
@@ -42,8 +28,8 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @since     1.0
      * @access    private
      */
-    protected $_options = array();
-    private $_optgroups = array();
+    protected $_options = [];
+    private $_optgroups = [];
 
     /**
      * Default values of the SELECT
@@ -72,15 +58,15 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
     ) {
         $addBlank = '';
         if (is_array($attributes) || empty($attributes)) {
-            $oldClass = '';
-            if (!empty($attributes['class'])) {
-                $oldClass = $attributes['class'];
-            }
             if (empty($attributes)) {
-                $attributes = []; // Initialize variable to avoid warning in PHP 7.1
+                $attributes = [];
             }
-            $attributes['class'] = $oldClass . 'form-control selectpicker show-tick ';
-            $attributes['data-style'] = 'custom-select';
+            //selectpicker
+
+            $layout = $this->getLayout();
+            if (FormValidator::LAYOUT_HORIZONTAL === $layout) {
+                $attributes['class'] = 'form-control mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-indigo-500 sm:text-sm';
+            }
             $attributes['data-live-search'] = 'true';
 
             if (isset($attributes['disable_js']) && $attributes['disable_js']) {
@@ -99,11 +85,6 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
         }
         $columnsSize = isset($attributes['cols-size']) ? $attributes['cols-size'] : null;
         $this->setColumnsSize($columnsSize);
-        $icon = isset($attributes['icon']) ? $attributes['icon'] : null;
-        $this->setIcon($icon);
-        if (!empty($icon)) {
-            unset($attributes['icon']);
-        }
         parent::__construct($elementName, $elementLabel, $attributes);
         $this->_persistantFreeze = true;
         $this->_type = 'select';
@@ -176,6 +157,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
             // Warning: new API since release 2.3
             $this->addOption($val, $key);
         }
+
         return true;
     }
 
@@ -199,7 +181,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    void
      */
-    function setSelected($values)
+    public function setSelected($values)
     {
         if (is_string($values) && $this->getMultiple()) {
             $values = explode('[ ]?,[ ]?', $values);
@@ -219,7 +201,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    void
      */
-    function setName($name)
+    public function setName($name)
     {
         $this->updateAttributes(array('name' => $name));
     }
@@ -231,7 +213,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    string
      */
-    function getName()
+    public function getName()
     {
         return $this->getAttribute('name');
     }
@@ -243,13 +225,13 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    string
      */
-    function getPrivateName()
+    public function getPrivateName()
     {
         if ($this->getAttribute('multiple')) {
-            return $this->getName() . '[]';
-        } else {
-            return $this->getName();
+            return $this->getName().'[]';
         }
+
+        return $this->getName();
     }
 
     /**
@@ -260,7 +242,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    void
      */
-    function setValue($value)
+    public function setValue($value)
     {
         $this->setSelected($value);
     }
@@ -272,7 +254,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    array of selected values
      */
-    function getValue()
+    public function getValue()
     {
         return $this->_values;
     }
@@ -285,7 +267,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    void
      */
-    function setSize($size)
+    public function setSize($size)
     {
         $this->updateAttributes(array('size' => $size));
     }
@@ -297,7 +279,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    int
      */
-    function getSize()
+    public function getSize()
     {
         return $this->getAttribute('size');
     }
@@ -310,7 +292,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    void
      */
-    function setMultiple($multiple)
+    public function setMultiple($multiple)
     {
         if ($multiple) {
             $this->updateAttributes(array('multiple' => 'multiple'));
@@ -326,9 +308,9 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    bool    true if multiple select, false otherwise
      */
-    function getMultiple()
+    public function getMultiple()
     {
-        return (bool)$this->getAttribute('multiple');
+        return (bool) $this->getAttribute('multiple');
     }
 
     /**
@@ -342,7 +324,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    void
      */
-    function addOption($text, $value, $attributes = null, $return_array = false)
+    public function addOption($text, $value, $attributes = null, $return_array = false)
     {
         if (null === $attributes) {
             $attributes = array('value' => (string)$value);
@@ -377,7 +359,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    void
      */
-    function addOptGroup($options, $label)
+    public function addOptGroup($options, $label)
     {
         foreach ($options as $option) {
             $this->addOption($option['text'], $option['value'], $option, true);
@@ -387,20 +369,14 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
 
     /**
      * Returns the SELECT in HTML
-     *
-     * @since     1.0
-     * @access    public
-     * @return    string
      */
     public function toHtml()
     {
         if ($this->_flagFrozen) {
             return $this->getFrozenHtml();
         } else {
-            $tabs    = $this->_getTabs();
-
+            $tabs = $this->_getTabs();
             $strHtml = '';
-
             if ($this->getComment() != '') {
                 $strHtml .= $tabs . '<!-- ' . $this->getComment() . " //-->\n";
             }
@@ -438,7 +414,8 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
                 }
                 $strHtml .= "</optgroup>";
             }
-            return $strHtml . $tabs . '</select>';
+
+            return $strHtml.$tabs.'</select>';
         }
     }
 
@@ -449,7 +426,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @access    public
      * @return    string
      */
-    function getFrozenHtml()
+    public function getFrozenHtml()
     {
         $value = array();
         if (is_array($this->_values)) {
@@ -462,7 +439,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
                 }
             }
         }
-        $html = empty($value)? '&nbsp;': join('<br />', $value);
+        $html = empty($value) ? '&nbsp;': implode('<br />', $value);
         if ($this->_persistantFreeze) {
             $name = $this->getPrivateName();
             // Only use id attribute if doing single hidden input
@@ -480,6 +457,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
                          ) + $idAttr) . ' />';
             }
         }
+
         return $html;
     }
 
@@ -487,7 +465,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
     * We check the options and return only the values that _could_ have been
     * selected. We also return a scalar value if select is not "multiple"
     */
-    function exportValue(&$submitValues, $assoc = false)
+    public function exportValue(&$submitValues, $assoc = false)
     {
         $value = $this->_findValue($submitValues);
         if (is_null($value)) {
@@ -509,15 +487,19 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
             $cleanValue = $value;
         }
         if (is_array($cleanValue) && !$this->getMultiple()) {
+            if (empty($cleanValue)) {
+                return $this->_prepareValue(null, $assoc);
+            }
+
             return $this->_prepareValue($cleanValue[0], $assoc);
         } else {
             return $this->_prepareValue($cleanValue, $assoc);
         }
     }
 
-    function onQuickFormEvent($event, $arg, &$caller)
+    public function onQuickFormEvent($event, $arg, &$caller)
     {
-        if ('updateValue' == $event) {
+        if ('updateValue' === $event) {
             $value = $this->_findValue($caller->_constantValues);
             if (null === $value) {
                 $value = $this->_findValue($caller->_submitValues);
@@ -531,9 +513,9 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
                 $this->setValue($value);
             }
             return true;
-        } else {
-            return parent::onQuickFormEvent($event, $arg, $caller);
         }
+
+        return parent::onQuickFormEvent($event, $arg, $caller);
     }
 
     /**
@@ -542,107 +524,17 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
     public function updateSelectWithSelectedOption(FormValidator $form)
     {
         $id = $this->getAttribute('id');
-        $form->addHtml('<script>
+        $form->addHtml(
+            '<script>
                 $(function(){
-                    var optionClass = $("#'.$id.'").find("option:checked").attr("class"); 
-                    $("#'.$id.'").attr("class", "form-control " + optionClass);                    
+                    var optionClass = $("#'.$id.'").find("option:checked").attr("class");
+                    $("#'.$id.'").attr("class", "form-control " + optionClass);
                     $("#'.$id.'").on("change", function() {
-                        var optionClass = ($(this).find("option:checked").attr("class")); 
+                        var optionClass = ($(this).find("option:checked").attr("class"));
                         $(this).attr("class", "form-control " + optionClass);
                     });
                 });
-            </script>');
-    }
-
-    /**
-     * Show an icon at the left side of an input
-     * @return string
-     */
-    public function getIconToHtml()
-    {
-        $icon = $this->getIcon();
-        $isButton = $this->getButton();
-
-        if (empty($icon)) {
-            return '';
-        }
-        $element = '<span class="input-group-text"><em class="fa fa-' . $icon . '"></em></span>';
-
-        if ($isButton) {
-            $element = '<button class="btn btn-outline-secondary" type="reset">
-                            <em class="fa fa-' . $icon . '"></em>
-                        </button>';
-        }
-
-        return '<div class="input-group-append">
-                    ' . $element . '
-                </div>';
-    }
-
-    /**
-     * @param string $layout
-     *
-     * @return string
-     */
-    public function getTemplate($layout)
-    {
-        $size = $this->calculateSize();
-
-        switch ($layout) {
-            case FormValidator::LAYOUT_INLINE:
-                return '
-                    <label class="sr-only" {label-for} >
-                        <!-- BEGIN required --><span class="form_required">*</span><!-- END required -->
-                        {label}
-                    </label>                            
-                    {element}
-                ';
-                break;
-            case FormValidator::LAYOUT_HORIZONTAL:
-                return '
-                <div class="form-group row {error_class}">
-                    <label {label-for}  class="col-sm-'.$size[0].' col-form-label {extra_label_class}" >
-                        <!-- BEGIN required --><span class="form_required">*</span><!-- END required -->
-                        {label}
-                    </label>
-                    <div class="col-sm-'.$size[1].'">
-                        {icon}
-                        {element}
-
-                        <!-- BEGIN label_2 -->
-                            <p class="help-block">{label_2}</p>
-                        <!-- END label_2 -->
-
-                        <!-- BEGIN error -->
-                            <span class="help-inline help-block">{error}</span>
-                        <!-- END error -->
-                    </div>
-                    <div class="col-sm-'.$size[2].'">
-                        <!-- BEGIN label_3 -->
-                            {label_3}
-                        <!-- END label_3 -->
-                    </div>
-                </div>';
-                break;
-            case FormValidator::LAYOUT_BOX_NO_LABEL:
-                return '
-                        <div class="input-group">
-                            {icon}
-                            {element}
-                        </div>';
-            case FormValidator::LAYOUT_BOX_SEARCH:
-                return '
-                        <div class="form-group row">
-                            <label class="col-sm-2 col-form-label" {label-for}>{label}</label>
-                            <div class="col-sm-8">
-                                <div class="input-group">
-                                    {element}
-                                    {icon}
-                                </div>
-                            </div>
-                            <div class="col-sm-2"></div>
-                        </div>';
-                break;
-        }
+            </script>'
+        );
     }
 }

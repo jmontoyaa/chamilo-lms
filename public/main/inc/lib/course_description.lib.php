@@ -1,5 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CCourseDescription;
 
 /**
  * This file contains a class used like library provides functions for
@@ -7,14 +11,6 @@
  * course_description_controller (MVC pattern).
  *
  * @author Christian Fasanando <christian1827@gmail.com>
- *
- * @package chamilo.course_description
- */
-
-/**
- * Class CourseDescription course descriptions.
- *
- * @package chamilo.course_description
  */
 class CourseDescription
 {
@@ -26,9 +22,6 @@ class CourseDescription
     private $description_type;
     private $progress;
 
-    /**
-     * Constructor.
-     */
     public function __construct()
     {
     }
@@ -52,13 +45,12 @@ class CourseDescription
             return [];
         }
         $table = Database::get_course_table(TABLE_COURSE_DESCRIPTION);
-        $sql = "SELECT * FROM $table
-                WHERE c_id = $course_id AND session_id = '0'";
+        $sql = "SELECT * FROM $table";
         $sql_result = Database::query($sql);
         $results = [];
         while ($row = Database::fetch_array($sql_result)) {
             $desc_tmp = new CourseDescription();
-            $desc_tmp->set_id($row['id']);
+            $desc_tmp->set_id($row['iid']);
             $desc_tmp->set_title($row['title']);
             $desc_tmp->set_content($row['content']);
             $desc_tmp->set_session_id($row['session_id']);
@@ -74,41 +66,50 @@ class CourseDescription
      * Get all data of course description by session id,
      * first you must set session_id property with the object CourseDescription.
      *
-     * @return array
+     * @return CCourseDescription[]
      */
     public function get_description_data()
     {
-        $table = Database::get_course_table(TABLE_COURSE_DESCRIPTION);
+        $repo = Container::getCourseDescriptionRepository();
+        $course_id = $this->course_id ?: api_get_course_int_id();
+
+        $course = api_get_course_entity($course_id);
+        $session = api_get_session_entity($this->session_id);
+
+        $qb = $repo->getResourcesByCourse($course, $session);
+
+        return $qb->getQuery()->getResult();
+
+        /*$table = Database::get_course_table(TABLE_COURSE_DESCRIPTION);
         $condition_session = api_get_session_condition(
             $this->session_id,
             true,
             true
         );
-        $course_id = $this->course_id ?: api_get_course_int_id();
+
 
         if (empty($course_id)) {
             return [];
         }
 
         $sql = "SELECT * FROM $table
-		        WHERE c_id = $course_id $condition_session
-		        ORDER BY id ";
+                ORDER BY iid ";
         $rs = Database::query($sql);
         $data = [];
         while ($description = Database::fetch_array($rs)) {
-            $data['descriptions'][$description['id']] = $description;
+            $data['descriptions'][$description['iid']] = $description;
         }
 
-        return $data;
+        return $data;*/
     }
 
     /**
      * Get all data by description and session id,
      * first you must set session_id property with the object CourseDescription.
      *
-     * @param int    $description_type Description type
-     * @param string $courseId         Course code (optional)
-     * @param int    $session_id       Session id (optional)
+     * @param int $description_type Description type
+     * @param int $courseId         Course code (optional)
+     * @param int $session_id       Session id (optional)
      *
      * @return array List of fields from the descriptions found of the given type
      */
@@ -131,17 +132,16 @@ class CourseDescription
         $description_type = (int) $description_type;
 
         $sql = "SELECT * FROM $table
-		        WHERE 
-		            c_id = $courseId AND 
-		            description_type = '$description_type' 
-		            $condition_session ";
+		        WHERE
+		            description_type = '$description_type'
+		             ";
         $rs = Database::query($sql);
         $data = [];
         if ($description = Database::fetch_array($rs)) {
             $data['description_title'] = $description['title'];
             $data['description_content'] = $description['content'];
             $data['progress'] = $description['progress'];
-            $data['id'] = $description['id'];
+            $data['iid'] = $description['iid'];
         }
 
         return $data;
@@ -170,7 +170,7 @@ class CourseDescription
         }
 
         $sql = "SELECT * FROM $table
-		        WHERE c_id = $course_id AND id='$id' $condition_session ";
+		        WHERE  iid='$id'  ";
         $rs = Database::query($sql);
         $data = [];
         if ($description = Database::fetch_array($rs)) {
@@ -196,7 +196,7 @@ class CourseDescription
 
         $sql = "SELECT MAX(description_type) as MAX
                 FROM $table
-		        WHERE c_id = $course_id AND session_id='".$this->session_id."'";
+		        ";
         $rs = Database::query($sql);
         $max = Database::fetch_array($rs);
 
@@ -227,34 +227,24 @@ class CourseDescription
         } else {
             $course_id = $this->course_id;
         }
-        $table = Database::get_course_table(TABLE_COURSE_DESCRIPTION);
 
-        $params = [
-            'c_id' => $course_id,
-            'description_type' => $this->description_type,
-            'title' => $this->title,
-            'content' => $this->content,
-            'progress' => intval($this->progress),
-            'session_id' => $this->session_id,
-        ];
+        $courseDescription = new CCourseDescription();
+        $courseDescription
+            ->setTitle($this->title)
+            ->setContent($this->content)
+            ->setProgress((int) $this->progress)
+            ->setDescriptionType((int) $this->description_type)
+        ;
 
-        $last_id = Database::insert($table, $params);
+        $course = api_get_course_entity($course_id);
+        $session = api_get_session_entity($this->session_id);
+        $courseDescription->setParent($course);
+        $courseDescription->addCourseLink($course, $session);
 
-        if ($last_id > 0) {
-            $sql = "UPDATE $table SET id = iid WHERE iid = $last_id";
-            Database::query($sql);
+        $repo = Container::getCourseDescriptionRepository();
+        $repo->create($courseDescription);
 
-            // insert into item_property
-            api_item_property_update(
-                api_get_course_info(),
-                TOOL_COURSE_DESCRIPTION,
-                $last_id,
-                'CourseDescriptionAdded',
-                api_get_user_id()
-            );
-        }
-
-        return $last_id > 0 ? 1 : 0;
+        return true;
     }
 
     /**
@@ -304,29 +294,19 @@ class CourseDescription
      *
      * @return int affected rows
      */
-    public function delete()
+    public function delete($id)
     {
-        $table = Database::get_course_table(TABLE_COURSE_DESCRIPTION);
-        $course_id = api_get_course_int_id();
-        $sql = "DELETE FROM $table
-			 	WHERE
-			 	    c_id = $course_id AND
-			 	    id = '".intval($this->id)."' AND
-			 	    session_id = '".intval($this->session_id)."'";
-        $result = Database::query($sql);
-        $affected_rows = Database::affected_rows($result);
-        if ($this->id > 0) {
-            //insert into item_property
-            api_item_property_update(
-                api_get_course_info(),
-                TOOL_COURSE_DESCRIPTION,
-                $this->id,
-                'CourseDescriptionDeleted',
-                api_get_user_id()
-            );
+        $repo = Container::getCourseDescriptionRepository();
+
+        /** @var CCourseDescription $courseDescription */
+        $courseDescription = $repo->find($id);
+        if ($courseDescription) {
+            $repo->delete($courseDescription);
+
+            return true;
         }
 
-        return $affected_rows;
+        return false;
     }
 
     /**

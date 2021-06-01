@@ -1,8 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
-/**
- * @package chamilo.dropbox
- */
+
 require_once __DIR__.'/../inc/global.inc.php';
 
 $_course = api_get_course_info();
@@ -16,16 +15,13 @@ $user_id = api_get_user_id();
 
 if (isset($_GET['cat_id']) &&
     is_numeric($_GET['cat_id']) &&
-    $_GET['action'] == 'downloadcategory' &&
+    'downloadcategory' == $_GET['action'] &&
     isset($_GET['sent_received'])
 ) {
     /** step 1: constructing the sql statement.
-    Due to the nature off the classes of the dropbox the categories for sent files are stored in the table
-    dropbox_file while the categories for the received files are stored in dropbox_post.
-    It would have been more elegant if these could be stored in dropbox_person (which stores the link file-person)
     Therefore we have to create to separate sql statements to find which files are in the category
     (depending if we zip-download a sent category or a received category)*/
-    if ($_GET['sent_received'] == 'sent') {
+    if ('sent' == $_GET['sent_received']) {
         // here we also incorporate the person table to make sure that deleted sent documents are not included.
         $sql = "SELECT DISTINCT file.id, file.filename, file.title
                 FROM ".Database::get_course_table(TABLE_DROPBOX_FILE)." file
@@ -37,7 +33,7 @@ if (isset($_GET['cat_id']) &&
                     person.user_id = $user_id";
     }
 
-    if ($_GET['sent_received'] == 'received') {
+    if ('received' == $_GET['sent_received']) {
         $sql = "SELECT DISTINCT file.id, file.filename, file.title
                 FROM ".Database::get_course_table(TABLE_DROPBOX_FILE)." file
                 INNER JOIN ".Database::get_course_table(TABLE_DROPBOX_PERSON)." person
@@ -102,7 +98,7 @@ if (!$allowed_to_download) {
     }
     $file = $work->title;
     $result = DocumentManager::file_send_for_download($path, true, $file);
-    if ($result === false) {
+    if (false === $result) {
         api_not_allowed(true);
     }
     exit;

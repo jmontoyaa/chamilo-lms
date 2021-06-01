@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
@@ -10,101 +12,31 @@ use Doctrine\ORM\Mapping as ORM;
  * CCalendarEventRepeatNot.
  *
  * @ORM\Table(
- *  name="c_calendar_event_repeat_not",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_calendar_event_repeat_not"
  * )
  * @ORM\Entity
  */
 class CCalendarEventRepeatNot
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
+     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CCalendarEvent", inversedBy="repeatEvents")
+     * @ORM\JoinColumn(name="cal_id", referencedColumnName="iid")
      */
-    protected $cId;
+    protected CCalendarEvent $event;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="cal_id", type="integer")
-     */
-    protected $calId;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="cal_date", type="integer")
      */
-    protected $calDate;
+    protected int $calDate;
 
-    /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CCalendarEventRepeatNot
-     */
-    public function setCId($cId)
-    {
-        $this->cId = $cId;
-
-        return $this;
-    }
-
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
-    {
-        return $this->cId;
-    }
-
-    /**
-     * Set calId.
-     *
-     * @param int $calId
-     *
-     * @return CCalendarEventRepeatNot
-     */
-    public function setCalId($calId)
-    {
-        $this->calId = $calId;
-
-        return $this;
-    }
-
-    /**
-     * Get calId.
-     *
-     * @return int
-     */
-    public function getCalId()
-    {
-        return $this->calId;
-    }
-
-    /**
-     * Set calDate.
-     *
-     * @param int $calDate
-     *
-     * @return CCalendarEventRepeatNot
-     */
-    public function setCalDate($calDate)
+    public function setCalDate(int $calDate): self
     {
         $this->calDate = $calDate;
 

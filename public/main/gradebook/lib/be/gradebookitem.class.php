@@ -5,8 +5,6 @@
  * Interface for all displayable items in the gradebook.
  *
  * @author Bert Steppé
- *
- * @package chamilo.gradebook
  */
 interface GradebookItem
 {
@@ -32,5 +30,5 @@ interface GradebookItem
 
     public function setStudentList($list);
 
-    public function calc_score($stud_id = null, $type = null);
+    public function calc_score($studentId = null, $type = null);
 }

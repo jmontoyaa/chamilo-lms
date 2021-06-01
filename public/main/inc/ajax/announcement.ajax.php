@@ -1,23 +1,26 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * Responses to AJAX calls.
- */
+use Chamilo\CoreBundle\Framework\Container;
+
 require_once __DIR__.'/../global.inc.php';
 
-$action = isset($_REQUEST['a']) ? $_REQUEST['a'] : null;
+$action = $_REQUEST['a'] ?? null;
 
 $isAllowedToEdit = api_is_allowed_to_edit();
 $courseInfo = api_get_course_info();
+$course = api_get_course_entity();
 $courseId = api_get_course_int_id();
+$courseCode = api_get_course_id();
 $groupId = api_get_group_id();
 $sessionId = api_get_session_id();
 
 $isTutor = false;
 if (!empty($groupId)) {
     $groupInfo = GroupManager::get_group_properties($groupId);
-    $isTutor = GroupManager::is_tutor_of_group(api_get_user_id(), $groupInfo);
+    $groupEntity = api_get_group_entity($groupId);
+    $isTutor = GroupManager::isTutorOfGroup(api_get_user_id(), $groupEntity);
     if ($isTutor) {
         $isAllowedToEdit = true;
     }
@@ -27,7 +30,7 @@ switch ($action) {
     case 'preview':
         $allowToEdit = (
             api_is_allowed_to_edit(false, true) ||
-            (api_get_course_setting('allow_user_edit_announcement') && !api_is_anonymous())
+            (1 === (int) api_get_course_setting('allow_user_edit_announcement') && !api_is_anonymous())
         );
 
         $drhHasAccessToSessionContent = api_drh_can_access_all_session_content();
@@ -35,21 +38,21 @@ switch ($action) {
             $allowToEdit = $allowToEdit || api_is_drh();
         }
 
-        if ($allowToEdit === false && !empty($groupId)) {
-            $groupProperties = GroupManager::get_group_properties($groupId);
+        if (false === $allowToEdit && !empty($groupId)) {
+            $groupEntity = api_get_group_entity($groupId);
             // Check if user is tutor group
-            $isTutor = GroupManager::is_tutor_of_group(api_get_user_id(), $groupProperties, $courseId);
+            $isTutor = GroupManager::isTutorOfGroup(api_get_user_id(), $groupEntity);
             if ($isTutor) {
                 $allowToEdit = true;
             }
 
             // Last chance ... students can send announcements.
-            if ($groupProperties['announcements_state'] == GroupManager::TOOL_PRIVATE_BETWEEN_USERS) {
+            if (GroupManager::TOOL_PRIVATE_BETWEEN_USERS == $groupEntity->getAnnouncementsState()) {
                 $allowToEdit = true;
             }
         }
 
-        if ($allowToEdit === false) {
+        if (false === $allowToEdit) {
             exit;
         }
 
@@ -64,7 +67,7 @@ switch ($action) {
         $previewTotal = [];
         if (empty($groupId)) {
             if (empty($users) ||
-                (!empty($users) && isset($users[0]) && $users[0] == 'everyone')
+                (!empty($users) && isset($users[0]) && 'everyone' == $users[0])
             ) {
                 // All users in course session
                 if (empty($sessionId)) {
@@ -76,7 +79,7 @@ switch ($action) {
                     $previewUsers[] = $student['user_id'];
                 }
 
-                $groupList = GroupManager::get_group_list(null, $courseInfo, null, $sessionId);
+                $groupList = GroupManager::get_group_list(null, $course, null, $sessionId);
                 foreach ($groupList as $group) {
                     $previewGroups[] = $group['iid'];
                 }
@@ -108,7 +111,7 @@ switch ($action) {
                 $sentToAllGroup = true;
             }
 
-            if ($sentToAllGroup === false) {
+            if (false === $sentToAllGroup) {
                 if (!empty($send_to_users['groups'])) {
                     foreach ($send_to_users['groups'] as $group) {
                         $previewGroups[] = $group;
@@ -123,7 +126,7 @@ switch ($action) {
             }
         }
 
-        if (isset($formParams['send_to_users_in_session']) && $formParams['send_to_users_in_session'] == 1) {
+        if (isset($formParams['send_to_users_in_session']) && 1 == $formParams['send_to_users_in_session']) {
             $sessionList = SessionManager::get_session_by_course(api_get_course_int_id());
 
             if (!empty($sessionList)) {
@@ -143,7 +146,7 @@ switch ($action) {
             }
         }
 
-        if (isset($formParams['send_to_hrm_users']) && $formParams['send_to_hrm_users'] == 1) {
+        if (isset($formParams['send_to_hrm_users']) && 1 == $formParams['send_to_hrm_users']) {
             foreach ($previewUsers as $userId) {
                 $userInfo = api_get_user_info($userId);
                 $drhList = UserManager::getDrhListFromUser($userId);
@@ -155,7 +158,7 @@ switch ($action) {
             }
         }
 
-        if (isset($formParams['send_me_a_copy_by_email']) && $formParams['send_me_a_copy_by_email'] == 1) {
+        if (isset($formParams['send_me_a_copy_by_email']) && 1 == $formParams['send_me_a_copy_by_email']) {
             $previewUsers[] = api_get_user_id();
         }
 
@@ -189,23 +192,23 @@ switch ($action) {
             if (empty($_REQUEST['id'])) {
                 return false;
             }
-            if (!empty($sessionId) && api_is_allowed_to_session_edit(false, true) == false && empty($groupId)) {
+            if (!empty($sessionId) && false == api_is_allowed_to_session_edit(false, true) && empty($groupId)) {
                 return false;
             }
 
             $list = explode(',', $_REQUEST['id']);
+
+            $repo = Container::getAnnouncementRepository();
             foreach ($list as $itemId) {
                 if (!api_is_session_general_coach() || api_is_element_in_the_session(TOOL_ANNOUNCEMENT, $itemId)) {
-                    $result = AnnouncementManager::get_by_id(
-                        api_get_course_int_id(),
-                        $itemId
-                    );
-                    if (!empty($result)) {
+                    $announcement = $repo->find($itemId);
+
+                    if (!empty($announcement)) {
                         $delete = true;
                         if (!empty($groupId) && $isTutor) {
-                            if ($groupId != $result['to_group_id']) {
+                            /*if ($groupId != $result['to_group_id']) {
                                 $delete = false;
-                            }
+                            }*/
                         }
                         if ($delete) {
                             AnnouncementManager::delete_announcement($courseInfo, $itemId);

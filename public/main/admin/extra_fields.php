@@ -1,9 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- *  @package chamilo.admin
- */
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -22,7 +20,7 @@ $interbreadcrumb[] = ['url' => 'index.php', 'name' => get_lang('Administration')
 
 $tool_name = null;
 
-$action = isset($_GET['action']) ? $_GET['action'] : null;
+$action = $_GET['action'] ?? null;
 if (!in_array($extraFieldType, ExtraField::getValidExtraFieldTypes())) {
     api_not_allowed(true);
 }
@@ -42,10 +40,7 @@ $columns = $obj->getJqgridColumnNames();
 
 //Column config
 $column_model = $obj->getJqgridColumnModel();
-
-//Autowidth
 $extra_params['autowidth'] = 'true';
-//height auto
 $extra_params['height'] = 'auto';
 $extra_params['sortname'] = 'field_order';
 
@@ -106,13 +101,11 @@ $(function() {
 });
 </script>';
 
-// The header.
 Display::display_header($tool_name);
 
-// Action handling: Add
 switch ($action) {
     case 'add':
-        if (api_get_session_id() != 0 &&
+        if (0 != api_get_session_id() &&
             !api_is_allowed_to_session_edit(false, true)
         ) {
             api_not_allowed();
@@ -130,10 +123,9 @@ switch ($action) {
             }
             $obj->display();
         } else {
-            echo '<div class="actions">';
-            echo '<a href="'.api_get_self().'?type='.$obj->type.'">'.
+            $actions = '<a href="'.api_get_self().'?type='.$obj->type.'">'.
             Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM).'</a>';
-            echo '</div>';
+            echo Display::toolbarAction('toolbar', [$actions]);
             $form->addElement('hidden', 'sec_token');
             $form->setConstants(['sec_token' => $token]);
             $form->display();
@@ -155,10 +147,9 @@ switch ($action) {
             );
             $obj->display();
         } else {
-            echo '<div class="actions">';
-            echo '<a href="'.api_get_self().'?type='.$obj->type.'">'.
+            $actions = '<a href="'.api_get_self().'?type='.$obj->type.'">'.
             Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM).'</a>';
-            echo '</div>';
+            echo Display::toolbarAction('toolbar', [$actions]);
             $form->addElement('hidden', 'sec_token');
             $form->setConstants(['sec_token' => $token]);
             $form->display();

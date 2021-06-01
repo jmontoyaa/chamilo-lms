@@ -1,18 +1,17 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
  * Extends FormValidator with import and export forms.
  *
  * @author Stijn Konings
- *
- * @package chamilo.gradebook
  */
 class DataForm extends FormValidator
 {
-    const TYPE_IMPORT = 1;
-    const TYPE_EXPORT = 2;
-    const TYPE_EXPORT_PDF = 3;
+    public const TYPE_IMPORT = 1;
+    public const TYPE_EXPORT = 2;
+    public const TYPE_EXPORT_PDF = 3;
 
     /**
      * Builds a form containing form items based on a given parameter.
@@ -34,15 +33,15 @@ class DataForm extends FormValidator
     ) {
         parent:: __construct($form_name, $method, $action, $target);
         $this->form_type = $form_type;
-        if ($this->form_type == self::TYPE_IMPORT) {
+        if (self::TYPE_IMPORT == $this->form_type) {
             $this->build_import_form();
-        } elseif ($this->form_type == self::TYPE_EXPORT) {
-            if ($locked_status == 0) {
+        } elseif (self::TYPE_EXPORT == $this->form_type) {
+            if (0 == $locked_status) {
                 $this->build_export_form_option(false);
             } else {
                 $this->build_export_form();
             }
-        } elseif ($this->form_type == self::TYPE_EXPORT_PDF) {
+        } elseif (self::TYPE_EXPORT_PDF == $this->form_type) {
             $this->build_pdf_export_form();
         }
         $this->setDefaults();
@@ -53,9 +52,9 @@ class DataForm extends FormValidator
         parent::display();
     }
 
-    public function setDefaults($defaults = [], $filter = null)
+    public function setDefaults($defaultValues = [], $filter = null)
     {
-        parent::setDefaults($defaults, $filter);
+        parent::setDefaults($defaultValues, $filter);
     }
 
     protected function build_pdf_export_form()

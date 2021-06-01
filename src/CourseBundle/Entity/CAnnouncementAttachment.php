@@ -1,90 +1,62 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * CAnnouncementAttachment.
  *
- * @ORM\Table(
- *  name="c_announcement_attachment",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
- * )
+ * @ORM\Table(name="c_announcement_attachment")
  * @ORM\Entity
  */
-class CAnnouncementAttachment
+class CAnnouncementAttachment extends AbstractResource implements ResourceInterface
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
-     */
-    protected $cId;
-
-    /**
-     * @var string
-     *
      * @ORM\Column(name="path", type="string", length=255, nullable=false)
      */
-    protected $path;
+    protected string $path;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="comment", type="text", nullable=true)
      */
-    protected $comment;
+    protected ?string $comment = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="size", type="integer", nullable=false)
      */
-    protected $size;
+    protected int $size;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="announcement_id", type="integer", nullable=false)
+     * @ORM\ManyToOne(targetEntity="CAnnouncement", inversedBy="attachments", cascade={"persist"})
+     * @ORM\JoinColumn(name="announcement_id", referencedColumnName="iid", onDelete="CASCADE")
      */
-    protected $announcementId;
+    protected CAnnouncement $announcement;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="filename", type="string", length=255, nullable=false)
      */
-    protected $filename;
+    protected string $filename;
 
-    /**
-     * Set path.
-     *
-     * @param string $path
-     *
-     * @return CAnnouncementAttachment
-     */
-    public function setPath($path)
+    public function __toString(): string
+    {
+        return $this->getFilename();
+    }
+
+    public function setPath(string $path): self
     {
         $this->path = $path;
 
@@ -101,14 +73,7 @@ class CAnnouncementAttachment
         return $this->path;
     }
 
-    /**
-     * Set comment.
-     *
-     * @param string $comment
-     *
-     * @return CAnnouncementAttachment
-     */
-    public function setComment($comment)
+    public function setComment(string $comment): self
     {
         $this->comment = $comment;
 
@@ -125,14 +90,7 @@ class CAnnouncementAttachment
         return $this->comment;
     }
 
-    /**
-     * Set size.
-     *
-     * @param int $size
-     *
-     * @return CAnnouncementAttachment
-     */
-    public function setSize($size)
+    public function setSize(int $size): self
     {
         $this->size = $size;
 
@@ -149,38 +107,12 @@ class CAnnouncementAttachment
         return $this->size;
     }
 
-    /**
-     * Set announcementId.
-     *
-     * @param int $announcementId
-     *
-     * @return CAnnouncementAttachment
-     */
-    public function setAnnouncementId($announcementId)
+    public function getIid(): int
     {
-        $this->announcementId = $announcementId;
-
-        return $this;
+        return $this->iid;
     }
 
-    /**
-     * Get announcementId.
-     *
-     * @return int
-     */
-    public function getAnnouncementId()
-    {
-        return $this->announcementId;
-    }
-
-    /**
-     * Set filename.
-     *
-     * @param string $filename
-     *
-     * @return CAnnouncementAttachment
-     */
-    public function setFilename($filename)
+    public function setFilename(string $filename): self
     {
         $this->filename = $filename;
 
@@ -197,51 +129,30 @@ class CAnnouncementAttachment
         return $this->filename;
     }
 
-    /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CAnnouncementAttachment
-     */
-    public function setId($id)
+    public function getAnnouncement(): CAnnouncement
     {
-        $this->id = $id;
+        return $this->announcement;
+    }
+
+    public function setAnnouncement(CAnnouncement $announcement): self
+    {
+        $this->announcement = $announcement;
 
         return $this;
     }
 
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
+    public function getResourceIdentifier(): int
     {
-        return $this->id;
+        return $this->getIid();
     }
 
-    /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CAnnouncementAttachment
-     */
-    public function setCId($cId)
+    public function getResourceName(): string
     {
-        $this->cId = $cId;
-
-        return $this;
+        return $this->getFilename();
     }
 
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
+    public function setResourceName(string $name): self
     {
-        return $this->cId;
+        return $this->setFilename($name);
     }
 }

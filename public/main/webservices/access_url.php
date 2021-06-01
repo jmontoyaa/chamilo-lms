@@ -1,8 +1,6 @@
 <?php
-/* For licensing terms, see /license.txt */
 
-use Chamilo\CoreBundle\Framework\Container;
-use Chamilo\CoreBundle\Hook\HookWSRegistration;
+/* For licensing terms, see /license.txt */
 
 require_once __DIR__.'/../inc/global.inc.php';
 $debug = true;
@@ -116,16 +114,6 @@ function WSHelperVerifyKey($params)
 
 // Create the server instance
 $server = new soap_server();
-
-/** @var HookWSRegistration $hook */
-$hook = Container::instantiateHook(HookWSRegistration::class);
-if (!empty($hook)) {
-    $hook->setEventData(['server' => $server]);
-    $res = $hook->notifyWSRegistration(HOOK_EVENT_TYPE_PRE);
-    if (!empty($res['server'])) {
-        $server = $res['server'];
-    }
-}
 
 $server->soap_defencoding = 'UTF-8';
 
@@ -479,7 +467,7 @@ $HTTP_RAW_POST_DATA = isset($HTTP_RAW_POST_DATA) ? $HTTP_RAW_POST_DATA : '';
 
 // If you send your data in utf8 then this value must be false.
 $decodeUTF8 = api_get_setting('registration.soap.php.decode_utf8');
-if ($decodeUTF8 === 'true') {
+if ('true' === $decodeUTF8) {
     $server->decode_utf8 = true;
 } else {
     $server->decode_utf8 = false;

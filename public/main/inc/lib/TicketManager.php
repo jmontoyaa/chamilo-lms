@@ -1,37 +1,34 @@
 <?php
 /* For licensing terms, see /license.txt */
 
-use Chamilo\TicketBundle\Entity\MessageAttachment;
-use Chamilo\TicketBundle\Entity\Priority;
-use Chamilo\TicketBundle\Entity\Project;
-use Chamilo\TicketBundle\Entity\Status;
-use Chamilo\TicketBundle\Entity\Ticket;
+use Chamilo\CoreBundle\Entity\Ticket;
+use Chamilo\CoreBundle\Entity\TicketMessageAttachment;
+use Chamilo\CoreBundle\Entity\TicketPriority;
+use Chamilo\CoreBundle\Entity\TicketProject;
+use Chamilo\CoreBundle\Entity\TicketStatus;
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CLp;
 
 /**
  * Class TicketManager.
- *
- * @package chamilo.plugin.ticket
  */
 class TicketManager
 {
-    const PRIORITY_NORMAL = 'NRM';
-    const PRIORITY_HIGH = 'HGH';
-    const PRIORITY_LOW = 'LOW';
+    public const PRIORITY_NORMAL = 'NRM';
+    public const PRIORITY_HIGH = 'HGH';
+    public const PRIORITY_LOW = 'LOW';
 
-    const SOURCE_EMAIL = 'MAI';
-    const SOURCE_PHONE = 'TEL';
-    const SOURCE_PLATFORM = 'PLA';
-    const SOURCE_PRESENTIAL = 'PRE';
+    public const SOURCE_EMAIL = 'MAI';
+    public const SOURCE_PHONE = 'TEL';
+    public const SOURCE_PLATFORM = 'PLA';
+    public const SOURCE_PRESENTIAL = 'PRE';
 
-    const STATUS_NEW = 'NAT';
-    const STATUS_PENDING = 'PND';
-    const STATUS_UNCONFIRMED = 'XCF';
-    const STATUS_CLOSE = 'CLS';
-    const STATUS_FORWARDED = 'REE';
+    public const STATUS_NEW = 'NAT';
+    public const STATUS_PENDING = 'PND';
+    public const STATUS_UNCONFIRMED = 'XCF';
+    public const STATUS_CLOSE = 'CLS';
+    public const STATUS_FORWARDED = 'REE';
 
-    /**
-     * Constructor.
-     */
     public function __construct()
     {
     }
@@ -53,13 +50,13 @@ class TicketManager
         $order = Database::escape_string($order);
         $projectId = (int) $projectId;
 
-        $sql = "SELECT 
-                    category.*, 
+        $sql = "SELECT
+                    category.*,
                     category.id category_id,
-                    project.other_area, 
+                    project.other_area,
                     project.email
-                FROM 
-                $table_support_category category 
+                FROM
+                $table_support_category category
                 INNER JOIN $table_support_project project
                 ON project.id = category.project_id
                 WHERE project.id  = $projectId
@@ -197,7 +194,7 @@ class TicketManager
 
         $table = Database::get_main_table(TABLE_TICKET_CATEGORY_REL_USER);
         foreach ($users as $userId) {
-            if (self::userIsAssignedToCategory($userId, $categoryId) === false) {
+            if (false === self::userIsAssignedToCategory($userId, $categoryId)) {
                 $params = [
                     'category_id' => $categoryId,
                     'user_id' => $userId,
@@ -220,7 +217,7 @@ class TicketManager
         $table = Database::get_main_table(TABLE_TICKET_CATEGORY_REL_USER);
         $userId = (int) $userId;
         $categoryId = (int) $categoryId;
-        $sql = "SELECT * FROM $table 
+        $sql = "SELECT * FROM $table
                 WHERE category_id = $categoryId AND user_id = $userId";
         $result = Database::query($sql);
 
@@ -287,6 +284,8 @@ class TicketManager
      * @param string $priority
      * @param string $status
      * @param int    $assignedUserId
+     * @param int    $exerciseId
+     * @param int    $lpId
      *
      * @return bool
      */
@@ -303,7 +302,9 @@ class TicketManager
         $source = '',
         $priority = '',
         $status = '',
-        $assignedUserId = 0
+        $assignedUserId = 0,
+        $exerciseId = null,
+        $lpId = null
     ) {
         $table_support_tickets = Database::get_main_table(TABLE_TICKET_TICKET);
         $table_support_category = Database::get_main_table(TABLE_TICKET_CATEGORY);
@@ -320,7 +321,7 @@ class TicketManager
         $project_id = (int) $project_id;
         $priority = empty($priority) ? self::PRIORITY_NORMAL : (int) $priority;
 
-        if ($status === '') {
+        if ('' === $status) {
             $status = self::STATUS_NEW;
             if ($other_area > 0) {
                 $status = self::STATUS_FORWARDED;
@@ -367,6 +368,13 @@ class TicketManager
             'total_messages' => 0,
         ];
 
+        if (!empty($exerciseId)) {
+            $params['exercise_id'] = $exerciseId;
+        }
+
+        if (!empty($lpId)) {
+            $params['lp_id'] = $lpId;
+        }
         if (!empty($course_id)) {
             $params['course_id'] = $course_id;
         }
@@ -389,7 +397,7 @@ class TicketManager
                 false
             ));
 
-            if ($assignedUserId != 0) {
+            if (0 != $assignedUserId) {
                 self::assignTicketToUser(
                     $ticketId,
                     $assignedUserId
@@ -468,7 +476,7 @@ class TicketManager
                         </tr>
                     </table>';
 
-            if ($assignedUserId != 0) {
+            if (0 != $assignedUserId) {
                 $href = api_get_path(WEB_CODE_PATH).'/ticket/ticket_details.php?ticket_id='.$ticketId;
                 $helpDeskMessage .= sprintf(
                     get_lang('TicketAssignedToXCheckZAtLinkY'),
@@ -479,7 +487,7 @@ class TicketManager
             }
 
             if (empty($category_id)) {
-                if (api_get_setting('ticket_send_warning_to_all_admins') === 'true') {
+                if ('true' === api_get_setting('ticket_send_warning_to_all_admins')) {
                     $warningSubject = sprintf(
                         get_lang('Ticket %s createdWithNoCategory'),
                         $ticket_code
@@ -503,7 +511,7 @@ class TicketManager
 
                 $message = '<h2>'.get_lang('Ticket info').'</h2><br />'.$helpDeskMessage;
 
-                if (api_get_setting('ticket_warn_admin_no_user_in_category') === 'true') {
+                if ('true' === api_get_setting('ticket_warn_admin_no_user_in_category')) {
                     $usersInCategory = self::getUsersInCategory($category_id);
                     if (empty($usersInCategory)) {
                         $subject = sprintf(
@@ -511,7 +519,7 @@ class TicketManager
                             $categoryInfo['name']
                         );
 
-                        if (api_get_setting('ticket_send_warning_to_all_admins') === 'true') {
+                        if ('true' === api_get_setting('ticket_send_warning_to_all_admins')) {
                             Display::addFlash(Display::return_message(
                                 sprintf(
                                     get_lang('A notification was sent to the administrators to report this category has no user assigned'),
@@ -672,7 +680,7 @@ class TicketManager
         if ($messageId) {
             // update_total_message
             $sql = "UPDATE $table_support_tickets
-                    SET 
+                    SET
                         sys_lastedit_user_id = $userId,
                         sys_lastedit_datetime = '$now',
                         total_messages = (
@@ -685,14 +693,14 @@ class TicketManager
 
             if (is_array($fileAttachments)) {
                 foreach ($fileAttachments as $file_attach) {
-                    if ($file_attach['error'] == 0) {
+                    if (0 == $file_attach['error']) {
                         self::saveMessageAttachmentFile(
                             $file_attach,
                             $ticketId,
                             $messageId
                         );
                     } else {
-                        if ($file_attach['error'] != UPLOAD_ERR_NO_FILE) {
+                        if (UPLOAD_ERR_NO_FILE != $file_attach['error']) {
                             return false;
                         }
                     }
@@ -717,6 +725,7 @@ class TicketManager
         $ticketId,
         $message_id
     ) {
+        throw new Exception('Implement saveMessageAttachmentFile');
         $now = api_get_utc_datetime();
         $userId = api_get_user_id();
         $ticketId = (int) $ticketId;
@@ -732,7 +741,9 @@ class TicketManager
                 'error'
             );
         } else {
-            $result = api_upload_file('ticket_attachment', $file_attach, $ticketId);
+            throw new Exception('@todo file upload ticket_attachment');
+
+            //$result = api_upload_file('ticket_attachment', $file_attach, $ticketId);
             if ($result) {
                 $safe_file_name = Database::escape_string($new_file_name);
                 $safe_new_file_name = Database::escape_string($result['path_to_save']);
@@ -829,38 +840,38 @@ class TicketManager
                 $column = 'ticket_id';
         }
 
-        $sql = "SELECT DISTINCT 
+        $sql = "SELECT DISTINCT
                 ticket.*,
                 ticket.id ticket_id,
                 status.name AS status_name,
                 ticket.start_date,
                 ticket.sys_lastedit_datetime,
                 cat.name AS category_name,
-                priority.name AS priority_name,                           
+                priority.name AS priority_name,
                 ticket.total_messages AS total_messages,
                 ticket.message AS message,
                 ticket.subject AS subject,
                 ticket.assigned_last_user
-            FROM $table_support_tickets ticket 
+            FROM $table_support_tickets ticket
             INNER JOIN $table_support_category cat
             ON (cat.id = ticket.category_id)
             INNER JOIN $table_support_priority priority
             ON (ticket.priority_id = priority.id)
             INNER JOIN $table_support_status status
             ON (ticket.status_id = status.id)
-            WHERE 1=1                                
+            WHERE 1=1
         ";
 
         $projectId = (int) $_GET['project_id'];
         $userIsAllowInProject = self::userIsAllowInProject($userInfo, $projectId);
 
         // Check if a role was set to the project
-        if ($userIsAllowInProject == false) {
+        if (false == $userIsAllowInProject) {
             $sql .= " AND (ticket.assigned_last_user = $userId OR ticket.sys_insert_user_id = $userId )";
         }
 
         // Search simple
-        if (isset($_GET['submit_simple']) && $_GET['keyword'] != '') {
+        if (isset($_GET['submit_simple']) && '' != $_GET['keyword']) {
             $keyword = Database::escape_string(trim($_GET['keyword']));
             $sql .= " AND (
                       ticket.id LIKE '%$keyword%' OR
@@ -872,7 +883,7 @@ class TicketManager
                       cat.name LIKE '%$keyword%' OR
                       status.name LIKE '%$keyword%' OR
                       priority.name LIKE '%$keyword%' OR
-                      ticket.personal_email LIKE '%$keyword%'                          
+                      ticket.personal_email LIKE '%$keyword%'
             )";
         }
 
@@ -900,26 +911,26 @@ class TicketManager
         $keyword_course = isset($_GET['keyword_course']) ? Database::escape_string(trim($_GET['keyword_course'])) : '';
         $keyword_range = !empty($keyword_start_date_start) && !empty($keyword_start_date_end);
 
-        if ($keyword_range == false && $keyword_start_date_start != '') {
+        if (false == $keyword_range && '' != $keyword_start_date_start) {
             $sql .= " AND DATE_FORMAT(ticket.start_date,'%d/%m/%Y') >= '$keyword_start_date_start' ";
         }
-        if ($keyword_range && $keyword_start_date_start != '' && $keyword_start_date_end != '') {
+        if ($keyword_range && '' != $keyword_start_date_start && '' != $keyword_start_date_end) {
             $sql .= " AND DATE_FORMAT(ticket.start_date,'%d/%m/%Y') >= '$keyword_start_date_start'
                       AND DATE_FORMAT(ticket.start_date,'%d/%m/%Y') <= '$keyword_start_date_end'";
         }
 
-        if ($keyword_course != '') {
+        if ('' != $keyword_course) {
             $course_table = Database::get_main_table(TABLE_MAIN_COURSE);
-            $sql .= " AND ticket.course_id IN ( 
+            $sql .= " AND ticket.course_id IN (
                      SELECT id FROM $course_table
                      WHERE (
-                        title LIKE '%$keyword_course%' OR 
-                        code LIKE '%$keyword_course%' OR 
+                        title LIKE '%$keyword_course%' OR
+                        code LIKE '%$keyword_course%' OR
                         visual_code LIKE '%$keyword_course%'
                      )
             )";
         }
-        $sql .= " ORDER BY $column $direction";
+        $sql .= " ORDER BY `$column` $direction";
         $sql .= " LIMIT $from, $number_of_items";
 
         $result = Database::query($sql);
@@ -929,7 +940,7 @@ class TicketManager
             $userInfo = api_get_user_info($row['sys_insert_user_id']);
             $hrefUser = $webPath.'main/admin/user_information.php?user_id='.$userInfo['user_id'];
             $name = "<a href='$hrefUser'> {$userInfo['complete_name_with_username']} </a>";
-            if ($row['assigned_last_user'] != 0) {
+            if (0 != $row['assigned_last_user']) {
                 $assignedUserInfo = api_get_user_info($row['assigned_last_user']);
                 if (!empty($assignedUserInfo)) {
                     $hrefResp = $webPath.'main/admin/user_information.php?user_id='.$assignedUserInfo['user_id'];
@@ -938,7 +949,7 @@ class TicketManager
                     $row['assigned_last_user'] = get_lang('Unknown user');
                 }
             } else {
-                if ($row['status_id'] !== self::STATUS_FORWARDED) {
+                if (self::STATUS_FORWARDED !== $row['status_id']) {
                     $row['assigned_last_user'] = '<span style="color:#ff0000;">'.get_lang('To be assigned').'</span>';
                 } else {
                     $row['assigned_last_user'] = '<span style="color:#00ff00;">'.get_lang('Message resent').'</span>';
@@ -1049,7 +1060,7 @@ class TicketManager
 
         // Search simple
         if (isset($_GET['submit_simple'])) {
-            if ($_GET['keyword'] != '') {
+            if ('' != $_GET['keyword']) {
                 $keyword = Database::escape_string(trim($_GET['keyword']));
                 $sql .= " AND (
                           ticket.code LIKE '%$keyword%' OR
@@ -1084,21 +1095,21 @@ class TicketManager
         $keyword_range = isset($_GET['keyword_dates']) ? Database::escape_string(trim($_GET['keyword_dates'])) : '';
         $keyword_course = isset($_GET['keyword_course']) ? Database::escape_string(trim($_GET['keyword_course'])) : '';
 
-        if ($keyword_range == false && $keyword_start_date_start != '') {
+        if (false == $keyword_range && '' != $keyword_start_date_start) {
             $sql .= " AND DATE_FORMAT( ticket.start_date,'%d/%m/%Y') = '$keyword_start_date_start' ";
         }
-        if ($keyword_range && $keyword_start_date_start != '' && $keyword_start_date_end != '') {
+        if ($keyword_range && '' != $keyword_start_date_start && '' != $keyword_start_date_end) {
             $sql .= " AND DATE_FORMAT( ticket.start_date,'%d/%m/%Y') >= '$keyword_start_date_start'
                       AND DATE_FORMAT( ticket.start_date,'%d/%m/%Y') <= '$keyword_start_date_end'";
         }
-        if ($keyword_course != '') {
+        if ('' != $keyword_course) {
             $course_table = Database::get_main_table(TABLE_MAIN_COURSE);
-            $sql .= " AND ticket.course_id IN (  
+            $sql .= " AND ticket.course_id IN (
                         SELECT id
                         FROM $course_table
                         WHERE (
-                            title LIKE '%$keyword_course%' OR 
-                            code LIKE '%$keyword_course%' OR 
+                            title LIKE '%$keyword_course%' OR
+                            code LIKE '%$keyword_course%' OR
                             visual_code LIKE '%$keyword_course%'
                         )
                    ) ";
@@ -1113,13 +1124,13 @@ class TicketManager
     /**
      * @param int $id
      *
-     * @return false|MessageAttachment
+     * @return false|TicketMessageAttachment
      */
     public static function getTicketMessageAttachment($id)
     {
         $id = (int) $id;
         $em = Database::getManager();
-        $item = $em->getRepository('ChamiloTicketBundle:MessageAttachment')->find($id);
+        $item = $em->getRepository(TicketMessageAttachment::class)->find($id);
         if ($item) {
             return $item;
         }
@@ -1136,7 +1147,7 @@ class TicketManager
     {
         $id = (int) $id;
         $em = Database::getManager();
-        $items = $em->getRepository('ChamiloTicketBundle:MessageAttachment')->findBy(['ticket' => $id]);
+        $items = $em->getRepository(TicketMessageAttachment::class)->findBy(['ticket' => $id]);
         if ($items) {
             return $items;
         }
@@ -1161,9 +1172,9 @@ class TicketManager
         $table_main_user = Database::get_main_table(TABLE_MAIN_USER);
 
         $sql = "SELECT
-                    ticket.*, 
+                    ticket.*,
                     cat.name,
-                    status.name as status, 
+                    status.name as status,
                     priority.name priority
                 FROM $table_support_tickets ticket
                 INNER JOIN $table_support_category cat
@@ -1176,6 +1187,8 @@ class TicketManager
                     ticket.id = $ticketId ";
         $result = Database::query($sql);
         $ticket = [];
+
+        $repo = Container::getLpRepository();
         if (Database::num_rows($result) > 0) {
             while ($row = Database::fetch_assoc($result)) {
                 $row['course'] = null;
@@ -1198,7 +1211,7 @@ class TicketManager
                     api_get_timezone()
                 );
                 $row['course_url'] = null;
-                if ($row['course_id'] != 0) {
+                if (0 != $row['course_id']) {
                     $course = api_get_course_info_by_id($row['course_id']);
                     $sessionId = 0;
                     if ($row['session_id']) {
@@ -1206,6 +1219,38 @@ class TicketManager
                     }
                     if ($course) {
                         $row['course_url'] = '<a href="'.$course['course_public_url'].'?id_session='.$sessionId.'">'.$course['name'].'</a>';
+                    }
+                    $row['exercise_url'] = null;
+
+                    if (!empty($row['exercise_id'])) {
+                        $exerciseTitle = ExerciseLib::getExerciseTitleById($row['exercise_id']);
+                        $dataExercise = [
+                            'cidReq' => $course['code'],
+                            'id_session' => $sessionId,
+                            'exerciseId' => $row['exercise_id'],
+                        ];
+                        $urlParamsExercise = http_build_query($dataExercise);
+
+                        $row['exercise_url'] = '<a href="'.api_get_path(WEB_CODE_PATH).'exercise/overview.php?'.$urlParamsExercise.'">'.$exerciseTitle.'</a>';
+                    }
+
+                    $row['lp_url'] = null;
+
+                    if (!empty($row['lp_id'])) {
+                        /** @var CLp $lp */
+                        $lp = $repo->find($row['lp_id']);
+                        $dataLp = [
+                            'cidReq' => $course['code'],
+                            'id_session' => $sessionId,
+                            'lp_id' => $row['lp_id'],
+                            'action' => 'view',
+                        ];
+                        $urlParamsLp = http_build_query($dataLp);
+
+                        $row['lp_url'] = '<a
+                            href="'.api_get_path(WEB_CODE_PATH).'lp/lp_controller.php?'.$urlParamsLp.'">'.
+                            $lp->getName().
+                        '</a>';
                     }
                 }
 
@@ -1216,10 +1261,10 @@ class TicketManager
                 $ticket['ticket'] = $row;
             }
 
-            $sql = "SELECT *, message.id as message_id 
-                    FROM $table_support_messages message 
+            $sql = "SELECT *, message.id as message_id
+                    FROM $table_support_messages message
                     INNER JOIN $table_main_user user
-                    ON (message.sys_insert_user_id = user.user_id)
+                    ON (message.sys_insert_user_id = user.id)
                     WHERE
                         message.ticket_id = '$ticketId' ";
             $result = Database::query($sql);
@@ -1328,7 +1373,7 @@ class TicketManager
         $attachmentList = [];
         $attachments = self::getTicketMessageAttachmentsByTicketId($ticketId);
         if (!empty($attachments)) {
-            /** @var MessageAttachment $attachment */
+            /** @var TicketMessageAttachment $attachment */
             foreach ($attachments as $attachment) {
                 $file = api_get_uploaded_file(
                     'ticket_attachment',
@@ -1583,7 +1628,7 @@ class TicketManager
         $history = [];
         $webpath = api_get_path(WEB_PATH);
         while ($row = Database::fetch_assoc($result)) {
-            if ($row['user_id'] != 0) {
+            if (0 != $row['user_id']) {
                 $assignuser = api_get_user_info($row['user_id']);
                 $row['assignuser'] = '<a href="'.$webpath.'main/admin/user_information.php?user_id='.$row['user_id'].'"  target="_blank">'.
                 $assignuser['username'].'</a>';
@@ -1630,7 +1675,7 @@ class TicketManager
         if (is_null($direction)) {
             $direction = 'DESC';
         }
-        if (is_null($userId) || $userId == 0) {
+        if (is_null($userId) || 0 == $userId) {
             $userId = api_get_user_id();
         }
 
@@ -1655,7 +1700,7 @@ class TicketManager
                     AND user.user_id = ticket.request_user ";
         // Search simple
         if (isset($_GET['submit_simple'])) {
-            if ($_GET['keyword'] !== '') {
+            if ('' !== $_GET['keyword']) {
                 $keyword = Database::escape_string(trim($_GET['keyword']));
                 $sql .= " AND (ticket.code = '$keyword'
                           OR user.firstname LIKE '%$keyword%'
@@ -1699,10 +1744,10 @@ class TicketManager
                 trim($_GET['keyword_course'])
             );
 
-            if ($keyword_category != '') {
+            if ('' != $keyword_category) {
                 $sql .= " AND ticket.category_id = '$keyword_category'  ";
             }
-            if ($keyword_request_user != '') {
+            if ('' != $keyword_request_user) {
                 $sql .= " AND (ticket.request_user = '$keyword_request_user'
                           OR user.firstname LIKE '%$keyword_request_user%'
                           OR user.official_code LIKE '%$keyword_request_user%'
@@ -1714,26 +1759,26 @@ class TicketManager
             if (!empty($keywordAssignedTo)) {
                 $sql .= " AND ticket.assigned_last_user = $keywordAssignedTo ";
             }
-            if ($keyword_status != '') {
+            if ('' != $keyword_status) {
                 $sql .= " AND ticket.status_id = '$keyword_status'  ";
             }
-            if ($keyword_range == '' && $keyword_start_date_start != '') {
+            if ('' == $keyword_range && '' != $keyword_start_date_start) {
                 $sql .= " AND DATE_FORMAT( ticket.start_date,'%d/%m/%Y') = '$keyword_start_date_start' ";
             }
-            if ($keyword_range == '1' && $keyword_start_date_start != '' && $keyword_start_date_end != '') {
+            if ('1' == $keyword_range && '' != $keyword_start_date_start && '' != $keyword_start_date_end) {
                 $sql .= " AND DATE_FORMAT( ticket.start_date,'%d/%m/%Y') >= '$keyword_start_date_start'
                           AND DATE_FORMAT( ticket.start_date,'%d/%m/%Y') <= '$keyword_start_date_end'";
             }
-            if ($keyword_priority != '') {
+            if ('' != $keyword_priority) {
                 $sql .= " AND ticket.priority_id = '$keyword_priority'  ";
             }
-            if ($keyword_source != '') {
+            if ('' != $keyword_source) {
                 $sql .= " AND ticket.source = '$keyword_source' ";
             }
-            if ($keyword_priority != '') {
+            if ('' != $keyword_priority) {
                 $sql .= " AND ticket.priority_id = '$keyword_priority' ";
             }
-            if ($keyword_course != '') {
+            if ('' != $keyword_course) {
                 $course_table = Database::get_main_table(TABLE_MAIN_COURSE);
                 $sql .= " AND ticket.course_id IN ( ";
                 $sql .= "SELECT id
@@ -1742,7 +1787,7 @@ class TicketManager
                          OR code LIKE '%$keyword_course%'
                          OR visual_code LIKE '%$keyword_course%' )) ";
             }
-            if ($keyword_unread == 'yes') {
+            if ('yes' == $keyword_unread) {
                 $sql .= " AND ticket.id IN (
                           SELECT ticket.id
                           FROM $table_support_tickets ticket,
@@ -1754,7 +1799,7 @@ class TicketManager
                           AND user.status != 1   AND ticket.status_id != '".self::STATUS_FORWARDED."'
                           GROUP BY ticket.id)";
             } else {
-                if ($keyword_unread == 'no') {
+                if ('no' == $keyword_unread) {
                     $sql .= " AND ticket.id NOT IN (
                               SELECT ticket.id
                               FROM  $table_support_tickets ticket,
@@ -1786,7 +1831,7 @@ class TicketManager
         ];
 
         while ($row = Database::fetch_assoc($result)) {
-            if ($row['responsable'] != 0) {
+            if (0 != $row['responsable']) {
                 $row['responsable'] = api_get_user_info($row['responsable']);
                 $row['responsable'] = $row['responsable']['firstname'].' '.$row['responsable']['lastname'];
             }
@@ -1830,10 +1875,10 @@ class TicketManager
      */
     public static function getStatusList()
     {
-        $items = Database::getManager()->getRepository('ChamiloTicketBundle:Status')->findAll();
+        $items = Database::getManager()->getRepository(TicketStatus::class)->findAll();
 
         $list = [];
-        /** @var Status $row */
+        /** @var TicketStatus $row */
         foreach ($items as $row) {
             $list[$row->getId()] = $row->getName();
         }
@@ -1848,8 +1893,7 @@ class TicketManager
      */
     public static function getTicketsFromCriteria($criteria)
     {
-        $items = Database::getManager()->getRepository('ChamiloTicketBundle:Ticket')->findBy($criteria);
-
+        $items = Database::getManager()->getRepository(Ticket::class)->findBy($criteria);
         $list = [];
         /** @var Ticket $row */
         foreach ($items as $row) {
@@ -1867,7 +1911,7 @@ class TicketManager
     public static function getStatusIdFromCode($code)
     {
         $item = Database::getManager()
-            ->getRepository('ChamiloTicketBundle:Status')
+            ->getRepository(TicketStatus::class)
             ->findOneBy(['code' => $code])
         ;
 
@@ -1883,10 +1927,9 @@ class TicketManager
      */
     public static function getPriorityList()
     {
-        $projects = Database::getManager()->getRepository('ChamiloTicketBundle:Priority')->findAll();
-
+        $projects = Database::getManager()->getRepository(TicketPriority::class)->findAll();
         $list = [];
-        /** @var Priority $row */
+        /** @var TicketPriority $row */
         foreach ($projects as $row) {
             $list[$row->getId()] = $row->getName();
         }
@@ -1899,10 +1942,10 @@ class TicketManager
      */
     public static function getProjects()
     {
-        $projects = Database::getManager()->getRepository('ChamiloTicketBundle:Project')->findAll();
+        $projects = Database::getManager()->getRepository(TicketProject::class)->findAll();
 
         $list = [];
-        /** @var Project $row */
+        /** @var TicketProject $row */
         foreach ($projects as $row) {
             $list[] = [
                 'id' => $row->getId(),
@@ -1921,10 +1964,9 @@ class TicketManager
      */
     public static function getProjectsSimple()
     {
-        $projects = Database::getManager()->getRepository('ChamiloTicketBundle:Project')->findAll();
-
+        $projects = Database::getManager()->getRepository(TicketProject::class)->findAll();
         $list = [];
-        /** @var Project $row */
+        /** @var TicketProject $row */
         foreach ($projects as $row) {
             $list[] = [
                 'id' => $row->getId(),
@@ -1945,12 +1987,10 @@ class TicketManager
      */
     public static function getProjectsCount()
     {
-        $count = Database::getManager()->getRepository('ChamiloTicketBundle:Project')->createQueryBuilder('p')
+        return Database::getManager()->getRepository(TicketProject::class)->createQueryBuilder('p')
             ->select('COUNT(p.id)')
             ->getQuery()
             ->getSingleScalarResult();
-
-        return $count;
     }
 
     /**
@@ -1958,7 +1998,7 @@ class TicketManager
      */
     public static function addProject($params)
     {
-        $project = new Project();
+        $project = new TicketProject();
         $project->setName($params['name']);
         $project->setDescription($params['description']);
         $project->setInsertUserId(api_get_user_id());
@@ -1970,11 +2010,11 @@ class TicketManager
     /**
      * @param int $id
      *
-     * @return Project
+     * @return TicketProject
      */
     public static function getProject($id)
     {
-        return Database::getManager()->getRepository('ChamiloTicketBundle:Project')->find($id);
+        return Database::getManager()->getRepository(TicketProject::class)->find($id);
     }
 
     /**
@@ -1989,7 +2029,7 @@ class TicketManager
         $project->setLastEditDateTime(new DateTime($params['sys_lastedit_datetime']));
         $project->setLastEditUserId($params['sys_lastedit_user_id']);
 
-        Database::getManager()->merge($project);
+        Database::getManager()->persist($project);
         Database::getManager()->flush();
     }
 
@@ -2025,10 +2065,9 @@ class TicketManager
      */
     public static function getStatusAdminList()
     {
-        $items = Database::getManager()->getRepository('ChamiloTicketBundle:Status')->findAll();
-
+        $items = Database::getManager()->getRepository(TicketStatus::class)->findAll();
         $list = [];
-        /** @var Status $row */
+        /** @var TicketStatus $row */
         foreach ($items as $row) {
             $list[] = [
                 'id' => $row->getId(),
@@ -2048,10 +2087,9 @@ class TicketManager
      */
     public static function getStatusSimple()
     {
-        $projects = Database::getManager()->getRepository('ChamiloTicketBundle:Status')->findAll();
-
+        $projects = Database::getManager()->getRepository(TicketStatus::class)->findAll();
         $list = [];
-        /** @var Project $row */
+        /** @var TicketProject $row */
         foreach ($projects as $row) {
             $list[] = [
                 'id' => $row->getId(),
@@ -2069,12 +2107,10 @@ class TicketManager
      */
     public static function getStatusCount()
     {
-        $count = Database::getManager()->getRepository('ChamiloTicketBundle:Status')->createQueryBuilder('p')
+        return Database::getManager()->getRepository(TicketStatus::class)->createQueryBuilder('p')
             ->select('COUNT(p.id)')
             ->getQuery()
             ->getSingleScalarResult();
-
-        return $count;
     }
 
     /**
@@ -2082,7 +2118,7 @@ class TicketManager
      */
     public static function addStatus($params)
     {
-        $item = new Status();
+        $item = new TicketStatus();
         $item->setCode(URLify::filter($params['name']));
         $item->setName($params['name']);
         $item->setDescription($params['description']);
@@ -2094,11 +2130,11 @@ class TicketManager
     /**
      * @param $id
      *
-     * @return Project
+     * @return TicketProject
      */
     public static function getStatus($id)
     {
-        return Database::getManager()->getRepository('ChamiloTicketBundle:Status')->find($id);
+        return Database::getManager()->getRepository(TicketStatus::class)->find($id);
     }
 
     /**
@@ -2111,7 +2147,7 @@ class TicketManager
         $item->setName($params['name']);
         $item->setDescription($params['description']);
 
-        Database::getManager()->merge($item);
+        Database::getManager()->persist($item);
         Database::getManager()->flush();
     }
 
@@ -2147,10 +2183,10 @@ class TicketManager
      */
     public static function getPriorityAdminList()
     {
-        $items = Database::getManager()->getRepository('ChamiloTicketBundle:Priority')->findAll();
+        $items = Database::getManager()->getRepository(TicketPriority::class)->findAll();
 
         $list = [];
-        /** @var Status $row */
+        /** @var TicketStatus $row */
         foreach ($items as $row) {
             $list[] = [
                 'id' => $row->getId(),
@@ -2170,10 +2206,10 @@ class TicketManager
      */
     public static function getPrioritySimple()
     {
-        $projects = Database::getManager()->getRepository('ChamiloTicketBundle:Priority')->findAll();
+        $projects = Database::getManager()->getRepository(TicketPriority::class)->findAll();
 
         $list = [];
-        /** @var Priority $row */
+        /** @var TicketPriority $row */
         foreach ($projects as $row) {
             $list[] = [
                 'id' => $row->getId(),
@@ -2191,12 +2227,10 @@ class TicketManager
      */
     public static function getPriorityCount()
     {
-        $count = Database::getManager()->getRepository('ChamiloTicketBundle:Priority')->createQueryBuilder('p')
+        return Database::getManager()->getRepository(TicketPriority::class)->createQueryBuilder('p')
             ->select('COUNT(p.id)')
             ->getQuery()
             ->getSingleScalarResult();
-
-        return $count;
     }
 
     /**
@@ -2204,7 +2238,7 @@ class TicketManager
      */
     public static function addPriority($params)
     {
-        $item = new Priority();
+        $item = new TicketPriority();
         $item
             ->setCode(URLify::filter($params['name']))
             ->setName($params['name'])
@@ -2221,11 +2255,11 @@ class TicketManager
     /**
      * @param $id
      *
-     * @return Priority
+     * @return TicketPriority
      */
     public static function getPriority($id)
     {
-        return Database::getManager()->getRepository('ChamiloTicketBundle:Priority')->find($id);
+        return Database::getManager()->getRepository(TicketPriority::class)->find($id);
     }
 
     /**
@@ -2238,7 +2272,7 @@ class TicketManager
         $item->setName($params['name']);
         $item->setDescription($params['description']);
 
-        Database::getManager()->merge($item);
+        Database::getManager()->persist($item);
         Database::getManager()->flush();
     }
 

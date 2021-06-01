@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -6,20 +7,16 @@
  *
  * This class allows to instantiate an object of type READING_COMPREHENSION
  * extending the class question
- *
- * @package chamilo.exercise
  */
 class ReadingComprehension extends UniqueAnswer
 {
     public $typePicture = 'reading-comprehension.png';
-    public $explanationLangVar = 'ReadingComprehension';
+    public $explanationLangVar = 'Reading comprehension';
 
     /**
      * Defines the different speeds of scrolling for the reading window,
      * in words per minute. If 300 words text in 50w/m, then the moving
      * window will progress from top to bottom in 6 minutes.
-     *
-     * @var array
      */
     public static $speeds = [
         1 => 50,
@@ -59,9 +56,6 @@ class ReadingComprehension extends UniqueAnswer
      */
     private $exerciseType = 2;
 
-    /**
-     * Constructor.
-     */
     public function __construct()
     {
         parent::__construct();
@@ -73,7 +67,7 @@ class ReadingComprehension extends UniqueAnswer
     {
         // Refresh is set to 5s, but speed is in words per minute
         $wordsPerSecond = self::$speeds[$this->level] / 60;
-        $this->expectedWordsPerRefresh = intval($wordsPerSecond * $this->refreshTime);
+        $this->expectedWordsPerRefresh = (int) ($wordsPerSecond * $this->refreshTime);
 
         if (empty($text)) {
             // We have an issue here... how do we treat this case?
@@ -126,14 +120,11 @@ class ReadingComprehension extends UniqueAnswer
         return $this->wordsCount;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function createForm(&$form, $exercise)
     {
         // Categories
-        $categories = TestCategory::getCategoriesForSelect();
-        $form->addSelect('questionCategory', get_lang('Category'), $categories);
+        $tabCat = TestCategory::getCategoriesIdAndName();
+        $form->addSelect('questionCategory', get_lang('Category'), $tabCat);
         // Advanced parameters
         $levels = self::get_default_levels();
         $form->addSelect('questionLevel', get_lang('Difficulty'), $levels);
@@ -145,10 +136,9 @@ class ReadingComprehension extends UniqueAnswer
             $form->addHtmlEditor(
                 'questionName',
                 get_lang('Question'),
-                false,
+                true,
                 false,
                 $editorConfig,
-                true
             );
         } else {
             $form->addText('questionName', get_lang('Question'), false);
@@ -175,20 +165,15 @@ class ReadingComprehension extends UniqueAnswer
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public static function get_default_levels()
     {
-        $select_level = [
+        return [
             1 => sprintf(get_lang('%s words per minute'), self::$speeds[1]),
             2 => sprintf(get_lang('%s words per minute'), self::$speeds[2]),
             3 => sprintf(get_lang('%s words per minute'), self::$speeds[3]),
             4 => sprintf(get_lang('%s words per minute'), self::$speeds[4]),
             5 => sprintf(get_lang('%s words per minute'), self::$speeds[5]),
         ];
-
-        return $select_level;
     }
 
     /**

@@ -1,70 +1,52 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\User;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * CGroupRelTutor.
  *
  * @ORM\Table(
- *  name="c_group_rel_tutor",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_group_rel_tutor",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CGroupRelTutor
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var User
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\UserBundle\Entity\User", inversedBy="courseGroupsAsTutor")
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="courseGroupsAsTutor")
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
      */
-    protected $user;
+    protected User $user;
 
     /**
-     * @var CGroupInfo
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CGroupInfo", inversedBy="tutors")
+     * @ORM\ManyToOne(targetEntity="CGroup", inversedBy="tutors")
      * @ORM\JoinColumn(name="group_id", referencedColumnName="iid", nullable=false)
      */
-    protected $group;
+    protected CGroup $group;
 
-    /**
-     * Set userId.
-     *
-     * @return CGroupRelTutor
-     */
-    public function setUser(User $user)
+    public function setUser(User $user): self
     {
         $this->user = $user;
 
@@ -81,12 +63,7 @@ class CGroupRelTutor
         return $this->user;
     }
 
-    /**
-     * Set group.
-     *
-     * @return CGroupRelTutor
-     */
-    public function setGroup(CGroupInfo $group)
+    public function setGroup(CGroup $group): self
     {
         $this->group = $group;
 
@@ -96,7 +73,7 @@ class CGroupRelTutor
     /**
      * Get group.
      *
-     * @return CGroupInfo
+     * @return CGroup
      */
     public function getGroup()
     {
@@ -104,37 +81,11 @@ class CGroupRelTutor
     }
 
     /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CGroupRelTutor
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CGroupRelTutor
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 

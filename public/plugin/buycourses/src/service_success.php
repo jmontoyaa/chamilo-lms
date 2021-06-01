@@ -3,13 +3,11 @@
 
 /**
  * Success page for the purchase of a service in the Buy Courses plugin.
- *
- * @package chamilo.plugin.buycourses
  */
 require_once '../config.php';
 
 $plugin = BuyCoursesPlugin::create();
-$paypalEnabled = $plugin->get('paypal_enable') === 'true';
+$paypalEnabled = 'true' === $plugin->get('paypal_enable');
 
 if (!$paypalEnabled) {
     api_not_allowed(true);
@@ -25,7 +23,7 @@ if (empty($serviceSale)) {
 
 $paypalParams = $plugin->getPaypalParams();
 
-$pruebas = $paypalParams['sandbox'] == 1;
+$pruebas = 1 == $paypalParams['sandbox'];
 $paypalUsername = $paypalParams['username'];
 $paypalPassword = $paypalParams['password'];
 $paypalSignature = $paypalParams['signature'];
@@ -66,9 +64,9 @@ if ($form->validate()) {
     }
 
     $confirmPayments = ConfirmPayment($itemPrice);
-    if ($confirmPayments['ACK'] !== 'Success') {
+    if ('Success' !== $confirmPayments['ACK']) {
         $erroMessage = vsprintf(
-            $plugin->get_lang('An error occurred.'),
+            $plugin->get_lang('ErrorOccurred'),
             [$expressCheckout['L_ERRORCODE0'], $confirmPayments['L_LONGMESSAGE0']]
         );
         Display::addFlash(
@@ -95,7 +93,7 @@ if ($form->validate()) {
             }
 
             Display::addFlash(
-                Display::return_message($plugin->get_lang('There happened an unknown error. Please contact the platform administrator.'), 'error')
+                Display::return_message($plugin->get_lang('ErrorContactPlatformAdmin'), 'error')
             );
             break;
         case 'Pending':
@@ -151,7 +149,7 @@ if ($form->validate()) {
             $plugin->cancelServiceSale(intval($serviceSale['id']));
 
             Display::addFlash(
-                Display::return_message($plugin->get_lang('There happened an unknown error. Please contact the platform administrator.'), 'error')
+                Display::return_message($plugin->get_lang('ErrorContactPlatformAdmin'), 'error')
             );
             break;
     }

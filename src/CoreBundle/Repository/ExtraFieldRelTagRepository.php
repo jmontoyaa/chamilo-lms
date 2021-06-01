@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Repository;
@@ -7,20 +9,16 @@ namespace Chamilo\CoreBundle\Repository;
 use Chamilo\CoreBundle\Entity\ExtraField;
 use Chamilo\CoreBundle\Entity\ExtraFieldRelTag;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\ORM\Query\Expr\Join;
+use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * ExtraFieldRelTagRepository.
- *
  *
  * @author Angel Fernando Quiroz Campos <angel.quiroz@beeznest.com>
  */
 class ExtraFieldRelTagRepository extends ServiceEntityRepository
 {
-    /**
-     * ExtraFieldRelTagRepository constructor.
-     */
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, ExtraFieldRelTag::class);
@@ -34,7 +32,7 @@ class ExtraFieldRelTagRepository extends ServiceEntityRepository
      *
      * @return array
      */
-    public function getTags(ExtraField $extraField, $itemId)
+    public function getTags(ExtraField $extraField, int $itemId)
     {
         $queryBuilder = $this->createQueryBuilder('ft');
 
@@ -47,10 +45,11 @@ class ExtraFieldRelTagRepository extends ServiceEntityRepository
             )
             ->where(
                 $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->eq('ft.itemId', (int) $itemId),
+                    $queryBuilder->expr()->eq('ft.itemId', $itemId),
                     $queryBuilder->expr()->eq('ft.fieldId', $extraField->getId())
                 )
-            );
+            )
+        ;
 
         return $queryBuilder->getQuery()->getResult();
     }

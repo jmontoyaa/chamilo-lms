@@ -1,9 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
 /**
  * Teacher report.
- *
- * @package chamilo.reporting
  */
 $cidReset = true;
 
@@ -17,21 +17,21 @@ if (!$allowToTrack) {
     api_not_allowed(true);
 }
 
-$export_csv = isset($_GET['export']) && $_GET['export'] == 'csv' ? true : false;
+$export_csv = isset($_GET['export']) && 'csv' === $_GET['export'] ? true : false;
 $keyword = isset($_GET['keyword']) ? Security::remove_XSS($_GET['keyword']) : null;
-$active = isset($_GET['active']) ? intval($_GET['active']) : 1;
-$sleepingDays = isset($_GET['sleeping_days']) ? intval($_GET['sleeping_days']) : null;
+$active = isset($_GET['active']) ? (int) $_GET['active'] : 1;
+$sleepingDays = isset($_GET['sleeping_days']) ? (int) $_GET['sleeping_days'] : null;
 $nameTools = get_lang('Trainers');
 $this_section = SECTION_TRACKING;
 
-$interbreadcrumb[] = ["url" => "index.php", "name" => get_lang('Reporting')];
+$interbreadcrumb[] = ['url' => 'index.php', 'name' => get_lang('Reporting')];
 
-if (isset($_GET["user_id"]) && $_GET["user_id"] != "" && !isset($_GET["type"])) {
-    $interbreadcrumb[] = ["url" => "teachers.php", "name" => get_lang('Trainers')];
+if (isset($_GET['user_id']) && '' != $_GET['user_id'] && !isset($_GET['type'])) {
+    $interbreadcrumb[] = ['url' => 'teachers.php', 'name' => get_lang('Trainers')];
 }
 
-if (isset($_GET["user_id"]) && $_GET["user_id"] != "" && isset($_GET["type"]) && $_GET["type"] == "coach") {
-    $interbreadcrumb[] = ["url" => "coaches.php", "name" => get_lang('Coaches')];
+if (isset($_GET['user_id']) && '' != $_GET['user_id'] && isset($_GET['type']) && 'coach' == $_GET['type']) {
+    $interbreadcrumb[] = ['url' => 'coaches.php', 'name' => get_lang('Coaches')];
 }
 
 function get_count_users()
@@ -61,7 +61,7 @@ function get_users($from, $limit, $column, $direction)
 {
     $active = isset($_GET['active']) ? $_GET['active'] : 1;
     $keyword = isset($_GET['keyword']) ? Security::remove_XSS($_GET['keyword']) : null;
-    $sleepingDays = isset($_GET['sleeping_days']) ? intval($_GET['sleeping_days']) : null;
+    $sleepingDays = isset($_GET['sleeping_days']) ? (int) $_GET['sleeping_days'] : null;
     $sessionId = isset($_GET['id_session']) ? (int) $_GET['id_session'] : 0;
 
     $lastConnectionDate = null;
@@ -73,28 +73,27 @@ function get_users($from, $limit, $column, $direction)
     $coach_id = api_get_user_id();
 
     $drhLoaded = false;
-    if (api_is_drh()) {
-        if (api_drh_can_access_all_session_content()) {
-            $students = SessionManager::getAllUsersFromCoursesFromAllSessionFromStatus(
-                'drh_all',
-                api_get_user_id(),
-                false,
-                $from,
-                $limit,
-                $column,
-                $direction,
-                $keyword,
-                $active,
-                $lastConnectionDate,
-                null,
-                null,
-                COURSEMANAGER
-            );
-            $drhLoaded = true;
-        }
+    if (api_is_drh() && api_drh_can_access_all_session_content()) {
+        $students = SessionManager::getAllUsersFromCoursesFromAllSessionFromStatus(
+            'drh_all',
+            api_get_user_id(),
+            false,
+            $from,
+            $limit,
+            $column,
+            $direction,
+            $keyword,
+            $active,
+            $lastConnectionDate,
+            null,
+            null,
+            COURSEMANAGER
+        );
+        $drhLoaded = true;
     }
 
-    if ($drhLoaded == false) {
+    $checkSessionVisibility = api_get_configuration_value('show_users_in_active_sessions_in_tracking');
+    if (false == $drhLoaded) {
         $students = UserManager::getUsersFollowedByUser(
             api_get_user_id(),
             COURSEMANAGER,
@@ -108,10 +107,10 @@ function get_users($from, $limit, $column, $direction)
             $active,
             $lastConnectionDate,
             COURSEMANAGER,
-            $keyword
+            $keyword,
+            $checkSessionVisibility
         );
     }
-
     $all_datas = [];
     $url = api_get_path(WEB_CODE_PATH).'mySpace/myStudents.php';
     foreach ($students as $student_data) {
@@ -154,7 +153,7 @@ function get_users($from, $limit, $column, $direction)
         }
 
         $urlDetails = $url."?student=$student_id&origin=teacher_details";
-        if (isset($_GET['id_coach']) && intval($_GET['id_coach']) != 0) {
+        if (isset($_GET['id_coach']) && 0 != intval($_GET['id_coach'])) {
             $urlDetails = $url."?student=$student_id&id_coach=$coach_id&id_session=$sessionId";
         }
 
@@ -195,7 +194,7 @@ if (api_is_drh()) {
     $menu_items = [
         Display::url(
             Display::return_icon('statistics.png', get_lang('View my progress'), '', ICON_SIZE_MEDIUM),
-            api_get_path(WEB_CODE_PATH)."auth/my_progress.php"
+            api_get_path(WEB_CODE_PATH).'auth/my_progress.php'
         ),
         Display::url(Display::return_icon('user.png', get_lang('Learners'), [], ICON_SIZE_MEDIUM), 'student.php'),
         Display::url(

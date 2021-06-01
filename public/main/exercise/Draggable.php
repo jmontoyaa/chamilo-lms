@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -9,11 +10,8 @@
 class Draggable extends Question
 {
     public $typePicture = 'ordering.png';
-    public $explanationLangVar = 'Draggable';
+    public $explanationLangVar = 'Sequence ordering';
 
-    /**
-     * Class constructor.
-     */
     public function __construct()
     {
         parent::__construct();
@@ -21,9 +19,6 @@ class Draggable extends Question
         $this->isContent = $this->getIsContent();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function createAnswersForm($form)
     {
         $defaults = [];
@@ -158,7 +153,7 @@ class Draggable extends Question
         } else {
             $form->setDefaults(['orientation' => 'h']);
 
-            if ($this->isContent == 1) {
+            if (1 == $this->isContent) {
                 $form->setDefaults($defaults);
             }
         }
@@ -171,9 +166,6 @@ class Draggable extends Question
         );
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function processAnswersCreation($form, $exercise)
     {
         $this->extra = $form->exportValue('orientation');
@@ -207,9 +199,6 @@ class Draggable extends Question
         $this->save($exercise);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function return_header(Exercise $exercise, $counter = null, $score = [])
     {
         $header = parent::return_header($exercise, $counter, $score);

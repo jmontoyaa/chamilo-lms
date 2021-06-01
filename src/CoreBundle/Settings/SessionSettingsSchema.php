@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Settings;
@@ -9,12 +11,9 @@ use Sylius\Bundle\SettingsBundle\Schema\AbstractSettingsBuilder;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 
-/**
- * Class SessionSettingsSchema.
- */
 class SessionSettingsSchema extends AbstractSettingsSchema
 {
-    public function buildSettings(AbstractSettingsBuilder $builder)
+    public function buildSettings(AbstractSettingsBuilder $builder): void
     {
         $builder
             ->setDefaults(
@@ -55,7 +54,7 @@ class SessionSettingsSchema extends AbstractSettingsSchema
         $this->setMultipleAllowedTypes($allowedTypes, $builder);
     }
 
-    public function buildForm(FormBuilderInterface $builder)
+    public function buildForm(FormBuilderInterface $builder): void
     {
         $builder
             ->add(
@@ -63,7 +62,7 @@ class SessionSettingsSchema extends AbstractSettingsSchema
                 YesNoType::class,
                 [
                     'label' => 'AddUsersByCoachTitle',
-                    'help_block' => 'AddUsersByCoachComment',
+                    'help' => 'AddUsersByCoachComment',
                 ]
             )
             ->add('extend_rights_for_coach', YesNoType::class)
@@ -82,7 +81,8 @@ class SessionSettingsSchema extends AbstractSettingsSchema
                 TextType::class,
                 [
                     'label' => 'SessionCourseOrderingTitle',
-                    'help_block' => 'SessionCourseOrderingComment', ]
+                    'help' => 'SessionCourseOrderingComment',
+                ]
             )
             ->add('limit_session_admin_role', YesNoType::class)
             ->add('allow_tutors_to_assign_students_to_session', YesNoType::class)

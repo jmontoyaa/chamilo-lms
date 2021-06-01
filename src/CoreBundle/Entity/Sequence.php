@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
@@ -12,41 +14,32 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
  * Class Sequence.
  *
  * @ORM\Table(name="sequence")
- * @ORM\Entity
+ * @ORM\Entity(repositoryClass="Chamilo\CoreBundle\Repository\SequenceRepository")
  */
 class Sequence
 {
     use TimestampableEntity;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue()
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="name", type="string")
      */
-    protected $name;
+    protected string $name;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="graph", type="text", nullable=true)
      */
-    protected $graph;
+    protected ?string $graph = null;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return (string) $this->name;
+        return $this->name;
     }
 
     /**
@@ -58,18 +51,6 @@ class Sequence
     }
 
     /**
-     * @param int $id
-     *
-     * @return Sequence
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
      * @return string
      */
     public function getName()
@@ -78,11 +59,9 @@ class Sequence
     }
 
     /**
-     * @param string $name
-     *
      * @return Sequence
      */
-    public function setName($name)
+    public function setName(string $name)
     {
         $this->name = $name;
 
@@ -98,11 +77,9 @@ class Sequence
     }
 
     /**
-     * @param string $graph
-     *
      * @return Sequence
      */
-    public function setGraph($graph)
+    public function setGraph(string $graph)
     {
         $this->graph = $graph;
 
@@ -114,7 +91,7 @@ class Sequence
      */
     public function hasGraph()
     {
-        return !empty($this->graph) ? true : false;
+        return !empty($this->graph);
     }
 
     /**
@@ -125,12 +102,7 @@ class Sequence
         return unserialize($this->graph);
     }
 
-    /**
-     * @param string $graph
-     *
-     * @return Sequence
-     */
-    public function setGraphAndSerialize($graph)
+    public function setGraphAndSerialize($graph): self
     {
         $this->setGraph(serialize($graph));
 

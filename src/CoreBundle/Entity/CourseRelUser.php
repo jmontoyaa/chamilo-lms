@@ -1,148 +1,225 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
-use Chamilo\UserBundle\Entity\User;
+use ApiPlatform\Core\Annotation\ApiFilter;
+use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\SearchFilter;
+use Chamilo\CoreBundle\Traits\UserTrait;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * CourseRelUser.
+ * User subscriptions to a course.
+ *
+ * @ApiResource(
+ *     attributes={"security"="is_granted('ROLE_USER')"},
+ *     normalizationContext={"groups"={"course_rel_user:read", "user:read"}},
+ *     collectionOperations={
+ *         "get"={"security"="is_granted('ROLE_ADMIN')"},
+ *         "post"={"security"="is_granted('ROLE_ADMIN')"}
+ *     },
+ *     itemOperations={
+ *         "get"={"security"="is_granted('ROLE_ADMIN') or object.user == user"},
+ *     },
+ *     subresourceOperations={
+ *         "api_users_courses_get_subresource"={"security"="is_granted('ROLE_USER')"},
+ *     },
+ * )
+ * @ApiFilter(SearchFilter::class, properties={"status":"exact", "user":"exact"})
  *
  * @ORM\Table(
- *      name="course_rel_user",
- *      indexes={
- *          @ORM\Index(name="course_rel_user_user_id", columns={"id", "user_id"}),
- *          @ORM\Index(name="course_rel_user_c_id_user_id", columns={"id", "c_id", "user_id"})
- *      }
+ *     name="course_rel_user",
+ *     indexes={
+ *         @ORM\Index(name="course_rel_user_user_id", columns={"id", "user_id"}),
+ *         @ORM\Index(name="course_rel_user_c_id_user_id", columns={"id", "c_id", "user_id"})
+ *     }
  * )
  * @ORM\Entity
- * @ORM\Table(name="course_rel_user")
  */
 class CourseRelUser
 {
+    use UserTrait;
+
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=false, unique=false)
+     * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @ORM\ManyToOne(targetEntity="Chamilo\UserBundle\Entity\User", inversedBy="courses", cascade={"persist"})
+     * @Groups({"course:read", "user:read"})
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="courses", cascade={"persist"})
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id")
      */
-    protected $user;
+    protected User $user;
 
     /**
+     * @Groups({"user:read"})
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course", inversedBy="users", cascade={"persist"})
      * @ORM\JoinColumn(name="c_id", referencedColumnName="id")
      */
-    protected $course;
+    protected Course $course;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="relation_type", type="integer", nullable=false, unique=false)
+     * @Groups({"course:read", "user:read"})
+     * @ORM\Column(name="relation_type", type="integer")
      */
-    protected $relationType;
+    protected int $relationType;
 
     /**
-     * @var bool
-     *
-     * @ORM\Column(name="status", type="integer", nullable=false, unique=false)
+     * @Groups({"user:read"})
+     * @ORM\Column(name="status", type="integer")
      */
-    protected $status;
+    protected int $status;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="is_tutor", type="boolean", nullable=true, unique=false)
      */
-    protected $tutor;
+    protected ?bool $tutor;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="sort", type="integer", nullable=true, unique=false)
      */
-    protected $sort;
+    protected ?int $sort;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="user_course_cat", type="integer", nullable=true, unique=false)
      */
-    protected $userCourseCat;
+    protected ?int $userCourseCat;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="legal_agreement", type="integer", nullable=true, unique=false)
      */
-    protected $legalAgreement;
+    protected ?int $legalAgreement = null;
 
     /**
-     * Constructor.
+     * @Groups({"course:read", "user:read"})
+     * @Assert\Range(
+     *      min = 0,
+     *      max = 100,
+     *      notInRangeMessage = "Progress from {{ min }} to {{ max }} only",
+     * )
+     * @ORM\Column(name="progress", type="integer")
      */
+    protected int $progress;
+
     public function __construct()
     {
+        $this->progress = 0;
         $this->userCourseCat = 0;
+        $this->sort = 0;
+        $this->tutor = false;
+        $this->status = User::STUDENT;
+        $this->relationType = 0;
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return (string) $this->getCourse()->getCode();
+        return $this->getCourse()->getCode();
     }
 
-    /**
-     * @return int
-     */
-    public function getId()
+    public function getId(): int
     {
         return $this->id;
     }
 
-    /**
-     * @param int $id
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-    }
-
-    /**
-     * @return $this
-     */
-    public function setCourse(Course $course)
+    public function setCourse(Course $course): self
     {
         $this->course = $course;
 
         return $this;
     }
 
-    /**
-     * Get Course.
-     *
-     * @return Course
-     */
-    public function getCourse()
+    public function getCourse(): Course
     {
         return $this->course;
     }
 
-    /**
-     * @param User $user
-     *
-     * @return $this
-     */
-    public function setUser($user)
+    public function setRelationType(int $relationType): self
+    {
+        $this->relationType = $relationType;
+
+        return $this;
+    }
+
+    public function getRelationType(): int
+    {
+        return $this->relationType;
+    }
+
+    public function setStatus(int $status): self
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getStatus(): int
+    {
+        return $this->status;
+    }
+
+    public function setSort(int $sort): self
+    {
+        $this->sort = $sort;
+
+        return $this;
+    }
+
+    public function getSort(): ?int
+    {
+        return $this->sort;
+    }
+
+    public function isTutor(): ?bool
+    {
+        return $this->tutor;
+    }
+
+    public function setTutor(bool $tutor): self
+    {
+        $this->tutor = $tutor;
+
+        return $this;
+    }
+
+    public function setUserCourseCat(int $userCourseCat): self
+    {
+        $this->userCourseCat = $userCourseCat;
+
+        return $this;
+    }
+
+    public function getUserCourseCat(): ?int
+    {
+        return $this->userCourseCat;
+    }
+
+    public function setLegalAgreement(int $legalAgreement): self
+    {
+        $this->legalAgreement = $legalAgreement;
+
+        return $this;
+    }
+
+    public function getLegalAgreement(): ?int
+    {
+        return $this->legalAgreement;
+    }
+
+    public function getUser(): User
+    {
+        return $this->user;
+    }
+
+    public function setUser(User $user): self
     {
         $this->user = $user;
 
@@ -150,157 +227,9 @@ class CourseRelUser
     }
 
     /**
-     * Get User.
-     *
-     * @return User
-     */
-    public function getUser()
-    {
-        return $this->user;
-    }
-
-    /**
-     * Set relationType.
-     *
-     * @param int $relationType
-     *
-     * @return CourseRelUser
-     */
-    public function setRelationType($relationType)
-    {
-        $this->relationType = $relationType;
-
-        return $this;
-    }
-
-    /**
-     * Get relationType.
-     *
-     * @return int
-     */
-    public function getRelationType()
-    {
-        return $this->relationType;
-    }
-
-    /**
-     * Set status.
-     *
-     * @param bool $status
-     *
-     * @return CourseRelUser
-     */
-    public function setStatus($status)
-    {
-        $this->status = $status;
-
-        return $this;
-    }
-
-    /**
-     * Get status.
-     *
-     * @return bool
-     */
-    public function getStatus()
-    {
-        return $this->status;
-    }
-
-    /**
-     * Set sort.
-     *
-     * @param int $sort
-     *
-     * @return CourseRelUser
-     */
-    public function setSort($sort)
-    {
-        $this->sort = $sort;
-
-        return $this;
-    }
-
-    /**
-     * Get sort.
-     *
-     * @return int
-     */
-    public function getSort()
-    {
-        return $this->sort;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isTutor()
-    {
-        return $this->tutor;
-    }
-
-    /**
-     * @param bool $tutor
-     */
-    public function setTutor($tutor)
-    {
-        $this->tutor = $tutor;
-    }
-
-    /**
-     * Set userCourseCat.
-     *
-     * @param int $userCourseCat
-     *
-     * @return CourseRelUser
-     */
-    public function setUserCourseCat($userCourseCat)
-    {
-        $this->userCourseCat = $userCourseCat;
-
-        return $this;
-    }
-
-    /**
-     * Get userCourseCat.
-     *
-     * @return int
-     */
-    public function getUserCourseCat()
-    {
-        return $this->userCourseCat;
-    }
-
-    /**
-     * Set legalAgreement.
-     *
-     * @param int $legalAgreement
-     *
-     * @return CourseRelUser
-     */
-    public function setLegalAgreement($legalAgreement)
-    {
-        $this->legalAgreement = $legalAgreement;
-
-        return $this;
-    }
-
-    /**
-     * Get legalAgreement.
-     *
-     * @return int
-     */
-    public function getLegalAgreement()
-    {
-        return $this->legalAgreement;
-    }
-
-    /**
      * Get relation_type list.
-     *
-     * @return array
      */
-    public static function getRelationTypeList()
+    public static function getRelationTypeList(): array
     {
         return [
             '0' => '',
@@ -310,15 +239,25 @@ class CourseRelUser
 
     /**
      * Get status list.
-     *
-     * @return array
      */
-    public static function getStatusList()
+    public static function getStatusList(): array
     {
         return [
             User::COURSE_MANAGER => 'Teacher',
             User::STUDENT => 'Student',
             //User::DRH => 'DRH'
         ];
+    }
+
+    public function getProgress(): int
+    {
+        return $this->progress;
+    }
+
+    public function setProgress(int $progress): self
+    {
+        $this->progress = $progress;
+
+        return $this;
     }
 }

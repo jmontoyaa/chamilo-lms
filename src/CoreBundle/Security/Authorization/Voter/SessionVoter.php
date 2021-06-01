@@ -1,21 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Security\Authorization\Voter;
 
 use Chamilo\CoreBundle\Entity\Session;
-use Chamilo\CoreBundle\Repository\CourseRepository;
-use Chamilo\UserBundle\Entity\User;
-use Doctrine\ORM\EntityManager;
+use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Repository\Node\CourseRepository;
+use Chamilo\CoreBundle\Settings\SettingsManager;
+use CourseManager;
 use Doctrine\ORM\EntityManagerInterface;
+use SessionManager;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+use Symfony\Component\Security\Core\Security;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * Class SessionVoter.
+ *
+ * @todo remove legacy code.
  */
 class SessionVoter extends Voter
 {
@@ -23,45 +29,23 @@ class SessionVoter extends Voter
     public const EDIT = 'EDIT';
     public const DELETE = 'DELETE';
 
-    private $entityManager;
-    private $courseManager;
-    private $authorizationChecker;
+    private EntityManagerInterface $entityManager;
+    private Security $security;
+    private SettingsManager $settingsManager;
 
     public function __construct(
         EntityManagerInterface $entityManager,
-        CourseRepository $courseManager,
-        AuthorizationCheckerInterface $authorizationChecker
+        //CourseRepository $courseManager,
+        Security $security,
+        SettingsManager $settingsManager
     ) {
         $this->entityManager = $entityManager;
-        $this->courseManager = $courseManager;
-        $this->authorizationChecker = $authorizationChecker;
+        //$this->courseManager = $courseManager;
+        $this->security = $security;
+        $this->settingsManager = $settingsManager;
     }
 
-    /**
-     * @return AuthorizationCheckerInterface
-     */
-    public function getAuthorizationChecker()
-    {
-        return $this->authorizationChecker;
-    }
-
-    /**
-     * @return EntityManager
-     */
-    public function getEntityManager()
-    {
-        return $this->entityManager;
-    }
-
-    /**
-     * @return CourseRepository
-     */
-    public function getCourseManager()
-    {
-        return $this->courseManager;
-    }
-
-    public function supports($attribute, $subject): bool
+    protected function supports(string $attribute, $subject): bool
     {
         $options = [
             self::VIEW,
@@ -69,7 +53,7 @@ class SessionVoter extends Voter
             self::DELETE,
         ];
 
-        return $subject instanceof Session && in_array($attribute, $options);
+        return $subject instanceof Session && \in_array($attribute, $options, true);
     }
 
     /**
@@ -77,7 +61,7 @@ class SessionVoter extends Voter
      *
      * {@inheritdoc}
      */
-    protected function voteOnAttribute($attribute, $session, TokenInterface $token): bool
+    protected function voteOnAttribute(string $attribute, $subject, TokenInterface $token): bool
     {
         /** @var User $user */
         $user = $token->getUser();
@@ -87,16 +71,15 @@ class SessionVoter extends Voter
             return false;
         }
 
-        $authChecker = $this->getAuthorizationChecker();
-
         // Admins have access to everything
-        if ($authChecker->isGranted('ROLE_ADMIN')) {
+        if ($this->security->isGranted('ROLE_ADMIN')) {
             return true;
         }
 
         // Checks if the current course was set up
         // $session->getCurrentCourse() is set in the class CourseListener
         /** @var Session $session */
+        $session = $subject;
         $currentCourse = $session->getCurrentCourse();
 
         switch ($attribute) {
@@ -108,23 +91,21 @@ class SessionVoter extends Voter
                 if (empty($session->getDuration())) {
                     // General coach.
                     if ($userIsGeneralCoach && $session->isActiveForCoach()) {
-                        $user->addRole(ResourceNodeVoter::ROLE_CURRENT_SESSION_COURSE_TEACHER);
+                        $user->addRole(ResourceNodeVoter::ROLE_CURRENT_COURSE_SESSION_TEACHER);
 
                         return true;
                     }
 
                     // Course-Coach access.
                     if ($userIsCourseCoach && $session->isActiveForCoach()) {
-                        $user->addRole(ResourceNodeVoter::ROLE_CURRENT_SESSION_COURSE_TEACHER);
+                        $user->addRole(ResourceNodeVoter::ROLE_CURRENT_COURSE_SESSION_TEACHER);
 
                         return true;
                     }
 
                     // Student access
                     if ($userIsStudent && $session->isActiveForStudent()) {
-                        $user->addRole(ResourceNodeVoter::ROLE_CURRENT_SESSION_COURSE_STUDENT);
-
-                        //$token->setUser($user);
+                        $user->addRole(ResourceNodeVoter::ROLE_CURRENT_COURSE_SESSION_STUDENT);
 
                         return true;
                     }
@@ -132,19 +113,19 @@ class SessionVoter extends Voter
 
                 if ($this->sessionIsAvailableByDuration($session, $user)) {
                     if ($userIsGeneralCoach) {
-                        $user->addRole(ResourceNodeVoter::ROLE_CURRENT_SESSION_COURSE_TEACHER);
+                        $user->addRole(ResourceNodeVoter::ROLE_CURRENT_COURSE_SESSION_TEACHER);
 
                         return true;
                     }
 
                     if ($userIsCourseCoach) {
-                        $user->addRole(ResourceNodeVoter::ROLE_CURRENT_SESSION_COURSE_TEACHER);
+                        $user->addRole(ResourceNodeVoter::ROLE_CURRENT_COURSE_SESSION_TEACHER);
 
                         return true;
                     }
 
                     if ($userIsStudent) {
-                        $user->addRole(ResourceNodeVoter::ROLE_CURRENT_SESSION_COURSE_STUDENT);
+                        $user->addRole(ResourceNodeVoter::ROLE_CURRENT_COURSE_SESSION_STUDENT);
 
                         return true;
                     }
@@ -156,7 +137,7 @@ class SessionVoter extends Voter
                 $canEdit = $this->canEditSession($user, $session, false);
 
                 if ($canEdit) {
-                    $user->addRole(ResourceNodeVoter::ROLE_CURRENT_SESSION_COURSE_TEACHER);
+                    $user->addRole(ResourceNodeVoter::ROLE_CURRENT_COURSE_SESSION_TEACHER);
 
                     return true;
                 }
@@ -168,20 +149,17 @@ class SessionVoter extends Voter
         return false;
     }
 
-    /**
-     * @return bool
-     */
-    private function sessionIsAvailableByDuration(Session $session, User $user)
+    private function sessionIsAvailableByDuration(Session $session, User $user): bool
     {
         $duration = $session->getDuration() * 24 * 60 * 60;
-        $courseAccess = \CourseManager::getFirstCourseAccessPerSessionAndUser(
+        $courseAccess = CourseManager::getFirstCourseAccessPerSessionAndUser(
             $session->getId(),
             $user->getId()
         );
 
         // If there is a session duration but there is no previous
         // access by the user, then the session is still available
-        if (0 == count($courseAccess)) {
+        if (0 === \count($courseAccess)) {
             return true;
         }
 
@@ -195,7 +173,7 @@ class SessionVoter extends Voter
             );
         }
 
-        $userDurationData = \SessionManager::getUserSession(
+        $userDurationData = SessionManager::getUserSession(
             $user->getId(),
             $session->getId()
         );
@@ -210,27 +188,18 @@ class SessionVoter extends Voter
         return $totalDuration > $currentTime;
     }
 
-    /**
-     * @param bool $checkSession
-     */
-    private function canEditSession(User $user, Session $session, $checkSession = true): bool
+    private function canEditSession(User $user, Session $session, bool $checkSession = true): bool
     {
         if (!$this->allowToManageSessions()) {
             return false;
         }
 
-        $authChecker = $this->getAuthorizationChecker();
-
-        if ($authChecker->isGranted('ROLE_ADMIN') && $this->allowed($user, $session)) {
+        if ($this->security->isGranted('ROLE_ADMIN') && $this->allowed($user, $session)) {
             return true;
         }
 
         if ($checkSession) {
-            if ($this->allowed($user, $session)) {
-                return true;
-            }
-
-            return false;
+            return $this->allowed($user, $session);
         }
 
         return true;
@@ -242,55 +211,34 @@ class SessionVoter extends Voter
             return true;
         }
 
-        $authChecker = $this->getAuthorizationChecker();
-        $settingsManager = $this->container->get('chamilo.settings.manager');
-        $setting = $settingsManager->getSetting('session.allow_teachers_to_create_sessions');
+        $setting = $this->settingsManager->getSetting('session.allow_teachers_to_create_sessions');
 
-        if ($authChecker->isGranted('ROLE_TEACHER') && 'true' === $setting) {
-            return true;
-        }
-
-        return false;
+        return 'true' === $setting && $this->security->isGranted('ROLE_TEACHER');
     }
 
     private function allowManageAllSessions(): bool
     {
-        $authChecker = $this->getAuthorizationChecker();
-
-        if ($authChecker->isGranted('ROLE_ADMIN') || $authChecker->isGranted('ROLE_SESSION_MANAGER')) {
-            return true;
-        }
-
-        return false;
+        return $this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SESSION_MANAGER');
     }
 
-    /**
-     * @return bool
-     */
-    private function allowed(User $user, Session $session)
+    private function allowed(User $user, Session $session): bool
     {
-        $authChecker = $this->getAuthorizationChecker();
-
-        if ($authChecker->isGranted('ROLE_ADMIN')) {
+        if ($this->security->isGranted('ROLE_ADMIN')) {
             return true;
         }
 
-        $settingsManager = $this->container->get('chamilo.settings.manager');
-
-        if ($authChecker->isGranted('ROLE_SESSION_MANAGER') &&
-            'true' !== $settingsManager->getSetting('session.allow_session_admins_to_manage_all_sessions')
+        if ($this->security->isGranted('ROLE_SESSION_MANAGER') &&
+            'true' !== $this->settingsManager->getSetting('session.allow_session_admins_to_manage_all_sessions') &&
+            $session->getSessionAdmin()->getId() !== $user->getId()
         ) {
-            if ($session->getSessionAdminId() !== $user->getId()) {
-                return false;
-            }
+            return false;
         }
 
-        if ($authChecker->isGranted('ROLE_ADMIN') &&
-            'true' === $settingsManager->getSetting('session.allow_teachers_to_create_sessions')
+        if ($this->security->isGranted('ROLE_ADMIN') &&
+            'true' === $this->settingsManager->getSetting('session.allow_teachers_to_create_sessions') &&
+            $session->getGeneralCoach()->getId() !== $user->getId()
         ) {
-            if ($session->getGeneralCoach()->getId() !== $user->getId()) {
-                return false;
-            }
+            return false;
         }
 
         return true;

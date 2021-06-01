@@ -1,11 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
 
-/**
- * Script.
- *
- * @package chamilo.gradebook
- */
 require_once __DIR__.'/../inc/global.inc.php';
 $_in_course = true;
 $course_code = api_get_course_id();
@@ -17,7 +12,7 @@ api_block_anonymous_users();
 GradebookUtils::block_students();
 
 $edit_cat = isset($_REQUEST['editcat']) ? intval($_REQUEST['editcat']) : '';
-$get_select_cat = intval($_GET['selectcat']);
+$get_select_cat = (int) $_GET['selectcat'];
 
 $catadd = new Category();
 $my_user_id = api_get_user_id();
@@ -44,8 +39,8 @@ if ($form->validate()) {
     $values = $form->exportValues();
     $select_course = isset($values['select_course']) ? $values['select_course'] : [];
     $cat = new Category();
-    if ($values['hid_parent_id'] == '0') {
-        if ($select_course == 'COURSEINDEPENDENT') {
+    if ('0' == $values['hid_parent_id']) {
+        if ('COURSEINDEPENDENT' == $select_course) {
             $cat->set_name($values['name']);
             $cat->set_course_code(null);
         } else {
@@ -105,8 +100,6 @@ if ($form->validate()) {
 
 $logInfo = [
     'tool' => TOOL_GRADEBOOK,
-    'tool_id' => 0,
-    'tool_id_detail' => 0,
     'action' => 'add-cat',
     'action_details' => Category::getUrl().'selectcat='.$get_select_cat,
 ];
@@ -118,12 +111,12 @@ if (!$_in_course) {
         'name' => get_lang('Assessments'),
     ];
 }
-$interbreadcrumb[] = ['url' => 'index.php?'.api_get_cidreq(), 'name' => get_lang('ToolAssessments')];
-Display :: display_header(get_lang('New category'));
+$interbreadcrumb[] = ['url' => 'index.php?'.api_get_cidreq(), 'name' => get_lang('Assessments')];
+Display::display_header(get_lang('New category'));
 
 $display_form = true;
 if ($display_form) {
     $form->display();
 }
 
-Display :: display_footer();
+Display::display_footer();

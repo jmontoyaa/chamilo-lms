@@ -1,102 +1,66 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * CAttendanceCalendar.
- *
  * @ORM\Table(
- *  name="c_attendance_calendar",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="attendance_id", columns={"attendance_id"}),
- *      @ORM\Index(name="done_attendance", columns={"done_attendance"})
- *  }
+ *     name="c_attendance_calendar",
+ *     indexes={
+ *         @ORM\Index(name="done_attendance", columns={"done_attendance"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CAttendanceCalendar
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
+     * @ORM\ManyToOne(targetEntity="CAttendance", inversedBy="calendars", cascade={"remove"})
+     * @ORM\JoinColumn(name="attendance_id", referencedColumnName="iid", onDelete="CASCADE")
      */
-    protected $id;
+    protected CAttendance $attendance;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
-     */
-    protected $cId;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="attendance_id", type="integer", nullable=false)
-     */
-    protected $attendanceId;
-
-    /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="date_time", type="datetime", nullable=false)
      */
-    protected $dateTime;
+    protected DateTime $dateTime;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="done_attendance", type="boolean", nullable=false)
      */
-    protected $doneAttendance;
+    protected bool $doneAttendance;
 
-    /**
-     * Set attendanceId.
-     *
-     * @param int $attendanceId
-     *
-     * @return CAttendanceCalendar
-     */
-    public function setAttendanceId($attendanceId)
+    public function getIid(): int
     {
-        $this->attendanceId = $attendanceId;
+        return $this->iid;
+    }
+
+    public function getAttendance(): CAttendance
+    {
+        return $this->attendance;
+    }
+
+    public function setAttendance(CAttendance $attendance): self
+    {
+        $this->attendance = $attendance;
 
         return $this;
     }
 
-    /**
-     * Get attendanceId.
-     *
-     * @return int
-     */
-    public function getAttendanceId()
-    {
-        return $this->attendanceId;
-    }
-
-    /**
-     * Set dateTime.
-     *
-     * @param \DateTime $dateTime
-     *
-     * @return CAttendanceCalendar
-     */
-    public function setDateTime($dateTime)
+    public function setDateTime(DateTime $dateTime): self
     {
         $this->dateTime = $dateTime;
 
@@ -106,82 +70,22 @@ class CAttendanceCalendar
     /**
      * Get dateTime.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getDateTime()
     {
         return $this->dateTime;
     }
 
-    /**
-     * Set doneAttendance.
-     *
-     * @param bool $doneAttendance
-     *
-     * @return CAttendanceCalendar
-     */
-    public function setDoneAttendance($doneAttendance)
+    public function setDoneAttendance(bool $doneAttendance): self
     {
         $this->doneAttendance = $doneAttendance;
 
         return $this;
     }
 
-    /**
-     * Get doneAttendance.
-     *
-     * @return bool
-     */
-    public function getDoneAttendance()
+    public function getDoneAttendance(): bool
     {
         return $this->doneAttendance;
-    }
-
-    /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CAttendanceCalendar
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CAttendanceCalendar
-     */
-    public function setCId($cId)
-    {
-        $this->cId = $cId;
-
-        return $this;
-    }
-
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
-    {
-        return $this->cId;
     }
 }

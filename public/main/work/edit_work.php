@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -6,9 +7,6 @@ require_once __DIR__.'/../inc/global.inc.php';
 api_protect_course_script(true);
 
 $lib_path = api_get_path(LIBRARY_PATH);
-
-/* Libraries */
-require_once 'work.lib.php';
 
 // Section (for the tabs)
 $this_section = SECTION_COURSES;
@@ -26,12 +24,12 @@ if ($blockEdition && !api_is_platform_admin()) {
 $courseInfo = api_get_course_info();
 $sessionId = api_get_session_id();
 $groupId = api_get_group_id();
-$workId = isset($_GET['id']) ? intval($_GET['id']) : null;
+$workId = isset($_GET['id']) ? (int) ($_GET['id']) : null;
 $workData = get_work_data_by_id($workId);
 $homework = get_work_assignment_by_id($workId);
 $locked = api_resource_is_locked_by_gradebook($workId, LINK_STUDENTPUBLICATION);
 
-if (api_is_platform_admin() == false && $locked == true) {
+if (false == api_is_platform_admin() && true == $locked) {
     api_not_allowed(true);
 }
 
@@ -128,12 +126,17 @@ if ($form->validate()) {
         updateWork($workData['iid'], $params, $courseInfo, $sessionId);
         updatePublicationAssignment($workId, $params, $courseInfo, $groupId);
         updateDirName($workData, $params['new_dir']);
-        Skill::saveSkills($form, ITEM_TYPE_STUDENT_PUBLICATION, $workData['iid']);
+        SkillModel::saveSkills($form, ITEM_TYPE_STUDENT_PUBLICATION, $workData['iid']);
         Display::addFlash(Display::return_message(get_lang('Update successful'), 'success'));
         header('Location: '.$currentUrl);
         exit;
     } else {
-        Display::addFlash(Display::return_message(get_lang('The operation is impossible, a file with this name already exists.'), 'warning'));
+        Display::addFlash(
+            Display::return_message(
+                get_lang('The operation is impossible, a file with this name already exists.'),
+                'warning'
+            )
+        );
     }
 }
 

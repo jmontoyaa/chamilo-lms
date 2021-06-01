@@ -86,7 +86,7 @@ class MailTemplateManager extends Model
         $form = new FormValidator('template', 'post', $url);
         // Setting the form elements
         $header = get_lang('Add');
-        if ($action === 'edit') {
+        if ('edit' === $action) {
             $header = get_lang('Edit');
         }
         $id = isset($_GET['id']) ? (int) $_GET['id'] : '';
@@ -140,7 +140,7 @@ class MailTemplateManager extends Model
 
         $defaults = $this->get($id);
 
-        if ($action === 'edit') {
+        if ('edit' === $action) {
             $form->addLabel(get_lang('Created at'), Display::dateToStringAgoAndLongDate($defaults['created_at']));
             $form->addLabel(get_lang('Updated at'), Display::dateToStringAgoAndLongDate($defaults['updated_at']));
             $form->addButtonSave(get_lang('Edit'), 'submit');
@@ -173,7 +173,7 @@ class MailTemplateManager extends Model
         }
         $type = $template['type'];
         $urlId = api_get_current_access_url_id();
-        $sql = "UPDATE {$this->table} SET default_template = 0 
+        $sql = "UPDATE {$this->table} SET default_template = 0
                 WHERE type = '$type' AND url_id = $urlId";
         Database::query($sql);
 
@@ -201,12 +201,37 @@ class MailTemplateManager extends Model
                 $emailTemplate = str_replace("{{user.$key}}", $userInfo[$key], $emailTemplate);
             }
             $template = new Template();
-            $template->twig->setLoader(new \Twig_Loader_String());
+            //$template->twig->setLoader(new \Twig_Loader_String());
             $emailBody = $template->twig->render($emailTemplate);
 
             return $emailBody;
         }
 
         return false;
+    }
+
+    /**
+     * Gets a custom mail template by the name of the template it replaces.
+     *
+     * @param string $templateType Name of the template file it replaces
+     *
+     * @return string
+     */
+    public function getTemplateByType($templateType)
+    {
+        if (empty($templateType)) {
+            return '';
+        }
+        $result = Database::select(
+            'template',
+            $this->table,
+            ['where' => ['type = ? ' => $templateType, ' AND url_id = ? ' => api_get_current_access_url_id()]],
+            'first'
+        );
+        if (empty($result)) {
+            return '';
+        }
+
+        return $result['template'];
     }
 }

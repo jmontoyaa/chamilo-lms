@@ -1,208 +1,159 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * CGroupCategory.
+ * Group categories inside a course.
  *
  * @ORM\Table(
- *  name="c_group_category",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_group_category",
+ *     indexes={
+ *     }
  * )
  * @ORM\Entity
  */
-class CGroupCategory
+class CGroupCategory extends AbstractResource implements ResourceInterface
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
-     */
-    protected $cId;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var string
+     * @Assert\NotBlank()
      *
      * @ORM\Column(name="title", type="string", length=255, nullable=false)
      */
-    protected $title;
+    protected string $title;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="description", type="text", nullable=false)
      */
-    protected $description;
+    protected ?string $description;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="doc_state", type="boolean", nullable=false)
      */
-    protected $docState;
+    protected bool $docState;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="calendar_state", type="boolean", nullable=false)
      */
-    protected $calendarState;
+    protected bool $calendarState;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="work_state", type="boolean", nullable=false)
      */
-    protected $workState;
+    protected bool $workState;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="announcements_state", type="boolean", nullable=false)
      */
-    protected $announcementsState;
+    protected bool $announcementsState;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="forum_state", type="boolean", nullable=false)
      */
-    protected $forumState;
+    protected bool $forumState;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="wiki_state", type="boolean", nullable=false)
      */
-    protected $wikiState;
+    protected bool $wikiState;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="chat_state", type="boolean", nullable=false)
      */
-    protected $chatState;
+    protected bool $chatState;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="max_student", type="integer", nullable=false)
      */
-    protected $maxStudent;
+    protected int $maxStudent;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="self_reg_allowed", type="boolean", nullable=false)
      */
-    protected $selfRegAllowed;
+    protected bool $selfRegAllowed;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="self_unreg_allowed", type="boolean", nullable=false)
      */
-    protected $selfUnregAllowed;
+    protected bool $selfUnregAllowed;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="groups_per_user", type="integer", nullable=false)
      */
-    protected $groupsPerUser;
+    protected int $groupsPerUser;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="display_order", type="integer", nullable=false)
-     */
-    protected $displayOrder;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="document_access", type="integer", nullable=false, options={"default":0})
      */
-    protected $documentAccess;
+    protected int $documentAccess;
 
-    /**
-     * Set title.
-     *
-     * @param string $title
-     *
-     * @return CGroupCategory
-     */
-    public function setTitle($title)
+    public function __construct()
+    {
+        $this->maxStudent = 0;
+        $this->description = '';
+        $this->selfRegAllowed = false;
+        $this->selfUnregAllowed = false;
+        $this->groupsPerUser = 0;
+        $this->announcementsState = true;
+        $this->calendarState = true;
+        $this->documentAccess = 0;
+        $this->chatState = true;
+        $this->docState = true;
+        $this->forumState = true;
+        $this->wikiState = true;
+        $this->workState = true;
+    }
+
+    public function __toString(): string
+    {
+        return $this->getTitle();
+    }
+
+    public function getIid(): int
+    {
+        return $this->iid;
+    }
+
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
         return $this;
     }
 
-    /**
-     * Get title.
-     *
-     * @return string
-     */
-    public function getTitle()
+    public function getTitle(): string
     {
         return $this->title;
     }
 
-    /**
-     * Set description.
-     *
-     * @param string $description
-     *
-     * @return CGroupCategory
-     */
-    public function setDescription($description)
+    public function setDescription(string $description): self
     {
         $this->description = $description;
 
         return $this;
     }
 
-    /**
-     * Get description.
-     *
-     * @return string
-     */
-    public function getDescription()
+    public function getDescription(): ?string
     {
         return $this->description;
     }
 
-    /**
-     * Set docState.
-     *
-     * @param bool $docState
-     *
-     * @return CGroupCategory
-     */
-    public function setDocState($docState)
+    public function setDocState(bool $docState): self
     {
         $this->docState = $docState;
 
@@ -219,14 +170,7 @@ class CGroupCategory
         return $this->docState;
     }
 
-    /**
-     * Set calendarState.
-     *
-     * @param bool $calendarState
-     *
-     * @return CGroupCategory
-     */
-    public function setCalendarState($calendarState)
+    public function setCalendarState(bool $calendarState): self
     {
         $this->calendarState = $calendarState;
 
@@ -243,14 +187,7 @@ class CGroupCategory
         return $this->calendarState;
     }
 
-    /**
-     * Set workState.
-     *
-     * @param bool $workState
-     *
-     * @return CGroupCategory
-     */
-    public function setWorkState($workState)
+    public function setWorkState(bool $workState): self
     {
         $this->workState = $workState;
 
@@ -267,14 +204,7 @@ class CGroupCategory
         return $this->workState;
     }
 
-    /**
-     * Set announcementsState.
-     *
-     * @param bool $announcementsState
-     *
-     * @return CGroupCategory
-     */
-    public function setAnnouncementsState($announcementsState)
+    public function setAnnouncementsState(bool $announcementsState): self
     {
         $this->announcementsState = $announcementsState;
 
@@ -291,14 +221,7 @@ class CGroupCategory
         return $this->announcementsState;
     }
 
-    /**
-     * Set forumState.
-     *
-     * @param bool $forumState
-     *
-     * @return CGroupCategory
-     */
-    public function setForumState($forumState)
+    public function setForumState(bool $forumState): self
     {
         $this->forumState = $forumState;
 
@@ -315,14 +238,7 @@ class CGroupCategory
         return $this->forumState;
     }
 
-    /**
-     * Set wikiState.
-     *
-     * @param bool $wikiState
-     *
-     * @return CGroupCategory
-     */
-    public function setWikiState($wikiState)
+    public function setWikiState(bool $wikiState): self
     {
         $this->wikiState = $wikiState;
 
@@ -339,14 +255,7 @@ class CGroupCategory
         return $this->wikiState;
     }
 
-    /**
-     * Set chatState.
-     *
-     * @param bool $chatState
-     *
-     * @return CGroupCategory
-     */
-    public function setChatState($chatState)
+    public function setChatState(bool $chatState): self
     {
         $this->chatState = $chatState;
 
@@ -363,14 +272,7 @@ class CGroupCategory
         return $this->chatState;
     }
 
-    /**
-     * Set maxStudent.
-     *
-     * @param int $maxStudent
-     *
-     * @return CGroupCategory
-     */
-    public function setMaxStudent($maxStudent)
+    public function setMaxStudent(int $maxStudent): self
     {
         $this->maxStudent = $maxStudent;
 
@@ -387,14 +289,7 @@ class CGroupCategory
         return $this->maxStudent;
     }
 
-    /**
-     * Set selfRegAllowed.
-     *
-     * @param bool $selfRegAllowed
-     *
-     * @return CGroupCategory
-     */
-    public function setSelfRegAllowed($selfRegAllowed)
+    public function setSelfRegAllowed(bool $selfRegAllowed): self
     {
         $this->selfRegAllowed = $selfRegAllowed;
 
@@ -411,14 +306,7 @@ class CGroupCategory
         return $this->selfRegAllowed;
     }
 
-    /**
-     * Set selfUnregAllowed.
-     *
-     * @param bool $selfUnregAllowed
-     *
-     * @return CGroupCategory
-     */
-    public function setSelfUnregAllowed($selfUnregAllowed)
+    public function setSelfUnregAllowed(bool $selfUnregAllowed): self
     {
         $this->selfUnregAllowed = $selfUnregAllowed;
 
@@ -435,14 +323,7 @@ class CGroupCategory
         return $this->selfUnregAllowed;
     }
 
-    /**
-     * Set groupsPerUser.
-     *
-     * @param int $groupsPerUser
-     *
-     * @return CGroupCategory
-     */
-    public function setGroupsPerUser($groupsPerUser)
+    public function setGroupsPerUser(int $groupsPerUser): self
     {
         $this->groupsPerUser = $groupsPerUser;
 
@@ -459,78 +340,6 @@ class CGroupCategory
         return $this->groupsPerUser;
     }
 
-    /**
-     * Set displayOrder.
-     *
-     * @param int $displayOrder
-     *
-     * @return CGroupCategory
-     */
-    public function setDisplayOrder($displayOrder)
-    {
-        $this->displayOrder = $displayOrder;
-
-        return $this;
-    }
-
-    /**
-     * Get displayOrder.
-     *
-     * @return int
-     */
-    public function getDisplayOrder()
-    {
-        return $this->displayOrder;
-    }
-
-    /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CGroupCategory
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CGroupCategory
-     */
-    public function setCId($cId)
-    {
-        $this->cId = $cId;
-
-        return $this;
-    }
-
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
-    {
-        return $this->cId;
-    }
-
     public function getDocumentAccess(): int
     {
         return $this->documentAccess;
@@ -541,5 +350,20 @@ class CGroupCategory
         $this->documentAccess = $documentAccess;
 
         return $this;
+    }
+
+    public function getResourceIdentifier(): int
+    {
+        return $this->iid;
+    }
+
+    public function getResourceName(): string
+    {
+        return $this->getTitle();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setTitle($name);
     }
 }

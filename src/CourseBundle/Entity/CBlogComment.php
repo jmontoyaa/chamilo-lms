@@ -1,111 +1,90 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * CBlogComment.
  *
  * @ORM\Table(
- *  name="c_blog_comment",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_blog_comment",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CBlogComment
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="comment_id", type="integer")
      */
-    protected $commentId;
+    protected int $commentId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="title", type="string", length=250, nullable=false)
      */
-    protected $title;
+    protected string $title;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="comment", type="text", nullable=false)
      */
-    protected $comment;
+    protected string $comment;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="author_id", type="integer", nullable=false)
      */
-    protected $authorId;
+    protected int $authorId;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="date_creation", type="datetime", nullable=false)
      */
-    protected $dateCreation;
+    protected DateTime $dateCreation;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="blog_id", type="integer", nullable=false)
      */
-    protected $blogId;
+    protected int $blogId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="post_id", type="integer", nullable=false)
      */
-    protected $postId;
+    protected int $postId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="task_id", type="integer", nullable=true)
      */
-    protected $taskId;
+    protected ?int $taskId = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="parent_comment_id", type="integer", nullable=false)
      */
-    protected $parentCommentId;
+    protected int $parentCommentId;
 
     /**
      * Set title.
      *
-     * @param string $title
-     *
      * @return CBlogComment
      */
-    public function setTitle($title)
+    public function setTitle(string $title)
     {
         $this->title = $title;
 
@@ -125,11 +104,9 @@ class CBlogComment
     /**
      * Set comment.
      *
-     * @param string $comment
-     *
      * @return CBlogComment
      */
-    public function setComment($comment)
+    public function setComment(string $comment)
     {
         $this->comment = $comment;
 
@@ -149,11 +126,9 @@ class CBlogComment
     /**
      * Set authorId.
      *
-     * @param int $authorId
-     *
      * @return CBlogComment
      */
-    public function setAuthorId($authorId)
+    public function setAuthorId(int $authorId)
     {
         $this->authorId = $authorId;
 
@@ -173,11 +148,9 @@ class CBlogComment
     /**
      * Set dateCreation.
      *
-     * @param \DateTime $dateCreation
-     *
      * @return CBlogComment
      */
-    public function setDateCreation($dateCreation)
+    public function setDateCreation(DateTime $dateCreation)
     {
         $this->dateCreation = $dateCreation;
 
@@ -187,7 +160,7 @@ class CBlogComment
     /**
      * Get dateCreation.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getDateCreation()
     {
@@ -197,11 +170,9 @@ class CBlogComment
     /**
      * Set blogId.
      *
-     * @param int $blogId
-     *
      * @return CBlogComment
      */
-    public function setBlogId($blogId)
+    public function setBlogId(int $blogId)
     {
         $this->blogId = $blogId;
 
@@ -221,11 +192,9 @@ class CBlogComment
     /**
      * Set postId.
      *
-     * @param int $postId
-     *
      * @return CBlogComment
      */
-    public function setPostId($postId)
+    public function setPostId(int $postId)
     {
         $this->postId = $postId;
 
@@ -245,11 +214,9 @@ class CBlogComment
     /**
      * Set taskId.
      *
-     * @param int $taskId
-     *
      * @return CBlogComment
      */
-    public function setTaskId($taskId)
+    public function setTaskId(int $taskId)
     {
         $this->taskId = $taskId;
 
@@ -269,11 +236,9 @@ class CBlogComment
     /**
      * Set parentCommentId.
      *
-     * @param int $parentCommentId
-     *
      * @return CBlogComment
      */
-    public function setParentCommentId($parentCommentId)
+    public function setParentCommentId(int $parentCommentId)
     {
         $this->parentCommentId = $parentCommentId;
 
@@ -293,11 +258,9 @@ class CBlogComment
     /**
      * Set commentId.
      *
-     * @param int $commentId
-     *
      * @return CBlogComment
      */
-    public function setCommentId($commentId)
+    public function setCommentId(int $commentId)
     {
         $this->commentId = $commentId;
 
@@ -317,11 +280,9 @@ class CBlogComment
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CBlogComment
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 

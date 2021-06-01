@@ -1,18 +1,17 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 /**
  * Validate requirements for a open session.
  *
  * @author Angel Fernando Quiroz Campos <angel.quiroz@beeznest.com>
- *
- * @package chamilo.plugin.advanced_subscription
  */
 require_once __DIR__.'/../config.php';
 
 $plugin = AdvancedSubscriptionPlugin::create();
 
 if (!isset($_GET['session_id'], $_GET['user_id'], $_GET['profile_completed'])) {
-    die;
+    exit;
 }
 
 $sessionInfo = api_get_session_info($_GET['session_id']);

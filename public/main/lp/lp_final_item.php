@@ -1,12 +1,13 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Framework\Container;
 
 /**
  * Print a learning path finish page with details.
  *
  * @author Jose Loguercio <jose.loguercio@beeznest.com>
- *
- * @package chamilo.learnpath
  */
 $_in_course = true;
 
@@ -76,8 +77,8 @@ $currentItem = $lp->items[$currentItemId];
 $currentItemStatus = $currentItem->get_status();
 $accessGranted = false;
 
-if (($count - $completed == 0) ||
-    ($count - $completed == 1 && ($currentItemStatus == 'incomplete') || ($currentItemStatus == 'not attempted'))
+if ((0 == $count - $completed) ||
+    (1 == $count - $completed && ('incomplete' == $currentItemStatus) || ('not attempted' == $currentItemStatus))
 ) {
     if ($lp->prerequisites_match($currentItemId)) {
         $accessGranted = true;
@@ -92,9 +93,11 @@ unset($currentItem);
 
 // If for some reason we consider the requirements haven't been completed yet,
 // show a prerequisites warning
-if ($accessGranted == false) {
+if (false == $accessGranted) {
     echo Display::return_message(
-        get_lang('This learning object cannot display because the course prerequisites are not completed. This happens when a course imposes that you follow it step by step or get a minimum score in tests before you reach the next steps.'),
+        get_lang(
+            'This learning object cannot display because the course prerequisites are not completed. This happens when a course imposes that you follow it step by step or get a minimum score in tests before you reach the next steps.'
+        ),
         'warning'
     );
     $finalItemTemplate = '';
@@ -133,14 +136,12 @@ if ($accessGranted == false) {
 
         if ($link) {
             $cat = new Category();
-            $catCourseCode = CourseManager::get_course_by_category($categoryId);
-            $show_message = $cat->show_message_resource_delete($catCourseCode);
+            $show_message = Category::show_message_resource_delete($courseId);
+            $repo = Container::getGradeBookCategoryRepository();
+            $category = $repo->find($categoryId);
 
             if (false === $show_message && !api_is_allowed_to_edit() && !api_is_excluded_user_type()) {
-                $certificate = Category::generateUserCertificate(
-                    $categoryId,
-                    $userId
-                );
+                $certificate = Category::generateUserCertificate($category, $userId);
 
                 if (!empty($certificate['pdf_url']) ||
                     !empty($certificate['badge_link'])
@@ -149,9 +150,7 @@ if ($accessGranted == false) {
                         $downloadCertificateLink = Category::getDownloadCertificateBlock($certificate);
                     }
 
-                    if (is_array($certificate) &&
-                        isset($certificate['badge_link'])
-                    ) {
+                    if (is_array($certificate) && isset($certificate['badge_link'])) {
                         $courseId = api_get_course_int_id();
                         $badgeLink = generateLPFinalItemTemplateBadgeLinks(
                             $userId,
@@ -161,16 +160,8 @@ if ($accessGranted == false) {
                     }
                 }
 
-                $currentScore = Category::getCurrentScore(
-                    $userId,
-                    $category,
-                    true
-                );
-                Category::registerCurrentScore(
-                    $currentScore,
-                    $userId,
-                    $categoryId
-                );
+                $currentScore = Category::getCurrentScore($userId, $category, true);
+                Category::registerCurrentScore($currentScore, $userId, $categoryId);
             }
         }
 
@@ -247,11 +238,14 @@ function generateLPFinalItemTemplateBadgeLinks($userId, $courseId, $sessionId = 
     if ($userSkills) {
         foreach ($userSkills as $userSkill) {
             $skill = $em->find('ChamiloCoreBundle:Skill', $userSkill['skill_id']);
+            if (!$skill) {
+                continue;
+            }
             $skillList .= "
                 <div class='row'>
                     <div class='col-md-2 col-xs-4'>
                         <div class='thumbnail'>
-                          <img class='skill-badge-img' src='".Skill::getWebIconPath($skill)."' >
+                          <img class='skill-badge-img' src='".SkillModel::getWebIconPath($skill)."' >
                         </div>
                     </div>
                     <div class='col-md-8 col-xs-8'>
@@ -270,14 +264,17 @@ function generateLPFinalItemTemplateBadgeLinks($userId, $courseId, $sessionId = 
                 </div>
             ";
         }
-        $badgeLink .= "
-            <div class='panel panel-default'>
-                <div class='panel-body'>
-                    <h3 class='text-center'>".get_lang('Additionally, you have achieved the following skills')."</h3>
-                    $skillList
-                </div>
-            </div>
-        ";
+
+        if (!empty($skillList)) {
+            $badgeLink .= "
+		    <div class='panel panel-default'>
+		        <div class='panel-body'>
+		            <h3 class='text-center'>".get_lang('Additionally, you have achieved the following skills')."</h3>
+		            $skillList
+		        </div>
+		    </div>
+		";
+        }
     }
 
     return $badgeLink;

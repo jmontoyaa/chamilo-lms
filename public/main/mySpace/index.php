@@ -1,10 +1,10 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Framework\Container;
+
 /**
  * Homepage for the MySpace directory.
- *
- * @package chamilo.reporting
  */
 
 // resetting the course id
@@ -12,17 +12,15 @@ $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
 
-// Access control
 api_block_anonymous_users();
 
 $htmlHeadXtra[] = api_get_jqgrid_js();
-$htmlHeadXtra[] = '<script type="text/javascript" src="'.api_get_path(WEB_PUBLIC_PATH).'assets/jquery.easy-pie-chart/dist/jquery.easypiechart.js"></script>';
-
+//$htmlHeadXtra[] = '<script type="text/javascript" src="'.api_get_path(WEB_PUBLIC_PATH).'assets/jquery.easy-pie-chart/dist/jquery.easypiechart.js"></script>';
 $this_section = SECTION_TRACKING;
 
 ob_start();
 $nameTools = get_lang('Reporting');
-$export_csv = isset($_GET['export']) && $_GET['export'] === 'csv' ? true : false;
+$export_csv = isset($_GET['export']) && 'csv' === $_GET['export'] ? true : false;
 $display = isset($_GET['display']) ? Security::remove_XSS($_GET['display']) : null;
 $csv_content = [];
 $user_id = api_get_user_id();
@@ -41,7 +39,6 @@ $logInfo = [
 Event::registerLog($logInfo);
 
 $allowToTrack = api_is_platform_admin(true, true) || api_is_teacher();
-
 if (!$allowToTrack) {
     api_not_allowed(true);
 }
@@ -59,11 +56,11 @@ if (isset($_GET['view']) && in_array($_GET['view'], $views)) {
 }
 
 $menu_items = [];
-$pluginCalendar = api_get_plugin_setting('learning_calendar', 'enabled') === 'true';
+$pluginCalendar = 'true' === api_get_plugin_setting('learning_calendar', 'enabled');
 $calendarMenuAdded = false;
 
 if ($is_platform_admin) {
-    if ($view == 'admin') {
+    if ('admin' === $view) {
         $menu_items[] = Display::url(
             Display::return_icon('teacher.png', get_lang('Trainer View'), [], ICON_SIZE_MEDIUM),
             api_get_self().'?view=teacher'
@@ -154,7 +151,7 @@ if ($is_drh) {
 
 $actionsRight = '';
 $actionsLeft = '';
-if ($display == 'useroverview' || $display == 'sessionoverview' || $display == 'courseoverview') {
+if ('useroverview' === $display || 'sessionoverview' === $display || 'courseoverview' === $display) {
     $actionsRight .= Display::url(
         Display::return_icon(
             'export_csv.png',
@@ -193,7 +190,7 @@ if (!empty($session_id) &&
         'index.php'
     );
     if (!api_is_platform_admin()) {
-        if (api_get_setting('add_users_by_coach') == 'true') {
+        if ('true' === api_get_setting('add_users_by_coach')) {
             if ($is_coach) {
                 $actionsLeft .= Display::url(
                     Display::return_icon(
@@ -228,7 +225,7 @@ if (!empty($session_id) &&
         api_get_path(WEB_CODE_PATH).'auth/my_progress.php'
     );
 
-    if ($pluginCalendar && api_is_teacher() && $calendarMenuAdded === false) {
+    if ($pluginCalendar && api_is_teacher() && false === $calendarMenuAdded) {
         $lpCalendar = LearningCalendarPlugin::create();
         $actionsLeft .= Display::url(
             Display::return_icon('agenda.png', $lpCalendar->get_lang('Learning calendar'), [], ICON_SIZE_MEDIUM),
@@ -319,19 +316,22 @@ $totalTimeSpent = null;
 $averageScore = null;
 $posts = null;
 
-if ($skipData === false) {
+if (false === $skipData) {
     if (!empty($students)) {
         // Students
         $studentIds = array_values($students);
         $progress = Tracking::get_avg_student_progress($studentIds);
-        $countAssignments = Tracking::count_student_assignments($studentIds);
+        // @todo fix stats
+        //$countAssignments = Tracking::count_student_assignments($studentIds);
+        $countAssignments = 0;
         // average progress
         $avgTotalProgress = $progress / $numberStudents;
         // average assignments
         $numberAssignments = $countAssignments / $numberStudents;
         $avg_courses_per_student = $countCourses / $numberStudents;
         $totalTimeSpent = Tracking::get_time_spent_on_the_platform($studentIds);
-        $posts = Tracking::count_student_messages($studentIds);
+        //$posts = Tracking::count_student_messages($studentIds);
+        $posts = 0;
         $averageScore = Tracking::getAverageStudentScore($studentIds);
     }
 

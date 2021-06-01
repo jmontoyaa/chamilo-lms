@@ -5,8 +5,6 @@
  * It displays a list of users and a list of courses;
  * you can select multiple users and courses and then click on.
  *
- * @package chamilo.admin
- *
  * @author Julio Montoya <gugli100@gmail.com>
  */
 $cidReset = true;
@@ -23,6 +21,7 @@ if (!api_get_multiple_access_url()) {
 $first_letter_course = '';
 $courses = [];
 $url_list = [];
+$users = [];
 $tbl_access_url = Database::get_main_table(TABLE_MAIN_ACCESS_URL);
 $tbl_course = Database::get_main_table(TABLE_MAIN_COURSE);
 
@@ -31,14 +30,17 @@ $tool_name = get_lang('Add courses to an URL');
 $interbreadcrumb[] = ['url' => 'index.php', 'name' => get_lang('Administration')];
 $interbreadcrumb[] = ['url' => 'access_urls.php', 'name' => get_lang('Multiple access URL / Branding')];
 
-Display :: display_header($tool_name);
+Display::display_header($tool_name);
 
-echo '<div class="actions">';
-echo Display::url(
-    Display::return_icon('edit.png', get_lang('Edit courses of an URL'), ''),
-    api_get_path(WEB_CODE_PATH).'admin/access_url_edit_courses_to_url.php'
+echo Display::toolbarAction(
+    'url',
+    [
+        Display::url(
+            Display::return_icon('edit.png', get_lang('Edit courses of an URL'), ''),
+            api_get_path(WEB_CODE_PATH).'admin/access_url_edit_courses_to_url.php'
+        ),
+    ]
 );
-echo '</div>';
 
 api_display_tool_title($tool_name);
 
@@ -48,8 +50,12 @@ if (isset($_POST['form_sent']) && $_POST['form_sent']) {
     $url_list = is_array($_POST['url_list']) ? $_POST['url_list'] : [];
     $first_letter_course = $_POST['first_letter_course'];
 
-    if ($form_sent == 1) {
-        if (count($courses) == 0 || count($url_list) == 0) {
+    foreach ($users as $key => $value) {
+        $users[$key] = intval($value);
+    }
+
+    if (1 == $form_sent) {
+        if (0 == count($courses) || 0 == count($url_list)) {
             echo Display::return_message(get_lang('At least one course and one URL'), 'error');
         } else {
             UrlManager::add_courses_to_urls($courses, $url_list);
@@ -61,8 +67,8 @@ if (isset($_POST['form_sent']) && $_POST['form_sent']) {
 $first_letter_course_lower = Database::escape_string(api_strtolower($first_letter_course));
 
 $sql = "SELECT code, title FROM $tbl_course
-		WHERE 
-            title LIKE '".$first_letter_course_lower."%' OR 
+		WHERE
+            title LIKE '".$first_letter_course_lower."%' OR
 		    title LIKE '".$first_letter_course_lower."%'
 		ORDER BY title, code DESC ";
 

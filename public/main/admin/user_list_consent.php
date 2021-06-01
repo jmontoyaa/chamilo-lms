@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use ChamiloSession as Session;
@@ -6,8 +7,6 @@ use ChamiloSession as Session;
 /**
  * @author Bart Mollet
  * @author Julio Montoya <gugli100@gmail.com> BeezNest 2011
- *
- * @package chamilo.admin
  */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
@@ -21,6 +20,7 @@ $this_section = SECTION_PLATFORM_ADMIN;
 
 $extraFields = UserManager::createDataPrivacyExtraFields();
 Session::write('data_privacy_extra_fields', $extraFields);
+$userInfo = api_get_user_info();
 
 /**
  * Prepares the shared SQL query for the user table.
@@ -62,7 +62,7 @@ function prepare_user_sql_query($getCount)
     // adding the filter to see the user's only of the current access_url
     if ((api_is_platform_admin() || api_is_session_admin()) && api_get_multiple_access_url()) {
         $access_url_rel_user_table = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
-        $sql .= " INNER JOIN $access_url_rel_user_table url_rel_user 
+        $sql .= " INNER JOIN $access_url_rel_user_table url_rel_user
                   ON (u.id=url_rel_user.user_id)";
     }
 
@@ -73,7 +73,7 @@ function prepare_user_sql_query($getCount)
     $extraFieldValue = Database::get_main_table(TABLE_EXTRA_FIELD_VALUES);
     $sql .= " INNER JOIN $extraFieldValue v
               ON (
-                    u.id = v.item_id AND 
+                    u.id = v.item_id AND
                     (field_id = $extraFieldId OR field_id = $extraFieldIdDeleteAccount) AND
                     v.value = 1
               ) ";
@@ -100,7 +100,7 @@ function prepare_user_sql_query($getCount)
         }
     }
 
-    if ($atLeastOne == false) {
+    if (false == $atLeastOne) {
         $keywordListValues = [];
     }
 
@@ -121,7 +121,7 @@ function prepare_user_sql_query($getCount)
         $keyword_admin = '';
 
         if (isset($keywordListValues['keyword_status']) &&
-            $keywordListValues['keyword_status'] == PLATFORM_ADMIN
+            PLATFORM_ADMIN == $keywordListValues['keyword_status']
         ) {
             $query_admin_table = " , $admin_table a ";
             $keyword_admin = ' AND a.user_id = u.id ';
@@ -159,7 +159,7 @@ function prepare_user_sql_query($getCount)
     }
 
     $preventSessionAdminsToManageAllUsers = api_get_setting('prevent_session_admins_to_manage_all_users');
-    if (api_is_session_admin() && $preventSessionAdminsToManageAllUsers === 'true') {
+    if (api_is_session_admin() && 'true' === $preventSessionAdminsToManageAllUsers) {
         $sql .= " AND u.creator_id = ".api_get_user_id();
     }
 
@@ -220,12 +220,12 @@ function get_user_data($from, $number_of_items, $column, $direction)
             $user[0],
             USER_IMAGE_SIZE_SMALL
         );
-        $photo = '<img 
-            src="'.$userPicture.'" width="22" height="22" 
-            alt="'.api_get_person_name($user[2], $user[3]).'" 
+        $photo = '<img
+            src="'.$userPicture.'" width="22" height="22"
+            alt="'.api_get_person_name($user[2], $user[3]).'"
             title="'.api_get_person_name($user[2], $user[3]).'" />';
 
-        if ($user[7] == 1 && !empty($user[10])) {
+        if (1 == $user[7] && !empty($user[10])) {
             // check expiration date
             $expiration_time = convert_sql_date($user[10]);
             // if expiration date is passed, store a special value for active field
@@ -270,9 +270,8 @@ function email_filter($email)
 /**
  * Returns a mailto-link.
  *
- * @param string $email  An email-address
- * @param array  $params Deprecated
- * @param array  $row
+ * @param array $params Deprecated
+ * @param array $row
  *
  * @return string HTML-code with a mailto-link
  */
@@ -396,20 +395,20 @@ function active_filter($active, $params, $row)
 {
     $_user = api_get_user_info();
 
-    if ($active == '1') {
+    if ('1' == $active) {
         $action = 'Lock';
         $image = 'accept';
-    } elseif ($active == '-1') {
+    } elseif ('-1' == $active) {
         $action = 'edit';
         $image = 'warning';
-    } elseif ($active == '0') {
+    } elseif ('0' == $active) {
         $action = 'Unlock';
         $image = 'error';
     }
 
     $result = '';
 
-    if ($action === 'edit') {
+    if ('edit' === $action) {
         $result = Display::return_icon(
             $image.'.png',
             get_lang('Account expired'),
@@ -484,7 +483,7 @@ if (!empty($action)) {
                     $number_of_affected_users = 0;
                     if (is_array($_POST['id'])) {
                         foreach ($_POST['id'] as $index => $user_id) {
-                            if ($user_id != $_user['user_id']) {
+                            if ($user_id != $userInfo['user_id']) {
                                 if (UserManager::delete_user($user_id)) {
                                     $number_of_affected_users++;
                                 }
@@ -612,11 +611,11 @@ if (api_is_western_name_order()) {
 $table->set_header(5, get_lang('Login'));
 $table->set_header(6, get_lang('e-mail'));
 $table->set_header(7, get_lang('Profile'));
-$table->set_header(8, get_lang('active'), true, 'width="15px"');
-$table->set_header(9, get_lang('Registration date'), true, 'width="90px"');
-$table->set_header(10, get_lang('Request type'), true, 'width="15px"');
-$table->set_header(11, get_lang('Request date'), true, 'width="15px"');
-$table->set_header(12, get_lang('Action'), false, 'width="220px"');
+$table->set_header(8, get_lang('active'));
+$table->set_header(9, get_lang('Registration date'));
+$table->set_header(10, get_lang('Request type'));
+$table->set_header(11, get_lang('Request date'));
+$table->set_header(12, get_lang('Action'), false);
 
 $table->set_column_filter(3, 'user_filter');
 $table->set_column_filter(4, 'user_filter');
@@ -638,14 +637,10 @@ $table->set_form_actions($actionsList);
 
 $table_result = $table->return_table();
 $extra_search_options = '';
-$toolbarActions = Display::toolbarAction(
-    'toolbarUser',
-    [$actionsLeft, $actionsCenter, $actionsRight],
-    [4, 4, 4]
-);
+$toolbarActions = Display::toolbarAction('toolbarUser', [$actionsLeft, $actionsCenter, $actionsRight]);
 
 $noticeMessage = sprintf(
-    get_lang('InformationrmationRightToBeForgottenLinkX'),
+    get_lang("You can find more information about the user's right to be forgotten through the following page: %s"),
     '<a href="https://gdpr-info.eu/art-17-gdpr/">https://gdpr-info.eu/art-17-gdpr/</a>'
 );
 $notice = Display::return_message($noticeMessage, 'normal', false);

@@ -1,8 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
-/**
- *	@package chamilo.admin
- */
+
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -11,7 +10,8 @@ require_once __DIR__.'/../inc/global.inc.php';
 $this_section = SECTION_PLATFORM_ADMIN;
 
 $id_session = isset($_GET['id_session']) ? (int) $_GET['id_session'] : 0;
-SessionManager::protectSession($id_session);
+$session = api_get_session_entity($id_session);
+SessionManager::protectSession($session);
 
 // Database Table Definitions
 $tbl_course = Database::get_main_table(TABLE_MAIN_COURSE);
@@ -34,7 +34,7 @@ if (!list($session_name) = Database::fetch_row($result)) {
     exit;
 }
 
-if ($action == 'delete') {
+if ('delete' == $action) {
     $idChecked = $_REQUEST['idChecked'];
     if (is_array($idChecked) && count($idChecked) > 0) {
         $my_temp = [];
@@ -58,7 +58,7 @@ $from = $page * $limit;
 $sql = "SELECT c.id, c.code, c.title, nbr_users
 		FROM $tbl_session_rel_course, $tbl_course c
 		WHERE c_id = c.id AND session_id='$id_session'
-		ORDER BY $sort
+		ORDER BY `$sort`
 		LIMIT $from,".($limit + 1);
 $result = Database::query($sql);
 $Courses = Database::store_result($result);

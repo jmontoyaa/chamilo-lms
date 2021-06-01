@@ -1,22 +1,23 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Framework\Container;
+
 /**
- * @package chamilo.social
- *
  * @author Julio Montoya <gugli100@gmail.com>
  */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 
 api_block_anonymous_users();
-if (api_get_setting('allow_social_tool') !== 'true') {
+if ('true' !== api_get_setting('allow_social_tool')) {
     api_not_allowed();
 }
 
 $this_section = SECTION_SOCIAL;
 
-$group_id = isset($_GET['id']) ? intval($_GET['id']) : intval($_POST['id']);
+$group_id = isset($_GET['id']) ? (int) $_GET['id'] : (int) $_POST['id'];
 $tool_name = get_lang('Edit group');
 $usergroup = new UserGroup();
 $group_data = $usergroup->get($group_id);
@@ -38,7 +39,8 @@ if (!$usergroup->is_group_admin($group_id)) {
 $form = new FormValidator('group_edit', 'post', '', '');
 $form->addElement('hidden', 'id', $group_id);
 $usergroup->setGroupType($usergroup::SOCIAL_CLASS);
-$usergroup->setForm($form, 'edit', $group_data);
+$repo = Container::getUsergroupRepository();
+$usergroup->setForm($form, 'edit', $repo->find($group_id));
 
 // Set default values
 $form->setDefaults($group_data);

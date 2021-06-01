@@ -1,94 +1,83 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
+use Chamilo\CoreBundle\Traits\UserTrait;
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * TrackECourseAccess.
  *
  * @ORM\Table(
- *  name="track_e_course_access",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="user_id", columns={"user_id"}),
- *      @ORM\Index(name="login_course_date", columns={"login_course_date"}),
- *      @ORM\Index(name="session_id", columns={"session_id"}),
- *      @ORM\Index(name="user_course_session_date", columns={"user_id", "c_id", "session_id", "login_course_date"})
- *  }
+ *     name="track_e_course_access",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"}),
+ *         @ORM\Index(name="user_id", columns={"user_id"}),
+ *         @ORM\Index(name="login_course_date", columns={"login_course_date"}),
+ *         @ORM\Index(name="session_id", columns={"session_id"}),
+ *         @ORM\Index(name="user_course_session_date", columns={"user_id", "c_id", "session_id", "login_course_date"})
+ *     }
  * )
  * @ORM\Entity(repositoryClass="Chamilo\CoreBundle\Repository\TrackECourseAccessRepository")
  */
 class TrackECourseAccess
 {
+    use UserTrait;
+
     /**
-     * @var int
-     *
      * @ORM\Column(name="course_access_id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $courseAccessId;
+    protected int $courseAccessId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer", nullable=false)
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="user_id", type="integer", nullable=false)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="trackECourseAccess")
+     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $userId;
+    protected User $user;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="login_course_date", type="datetime", nullable=false)
      */
-    protected $loginCourseDate;
+    protected DateTime $loginCourseDate;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="logout_course_date", type="datetime", nullable=true)
      */
-    protected $logoutCourseDate;
+    protected ?DateTime $logoutCourseDate = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="counter", type="integer", nullable=false)
      */
-    protected $counter;
+    protected int $counter;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="session_id", type="integer", nullable=false)
      */
-    protected $sessionId;
+    protected int $sessionId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="user_ip", type="string", length=39, nullable=false)
      */
-    protected $userIp;
+    protected string $userIp;
 
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return TrackECourseAccess
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
@@ -106,37 +95,11 @@ class TrackECourseAccess
     }
 
     /**
-     * Set userId.
-     *
-     * @param int $userId
-     *
-     * @return TrackECourseAccess
-     */
-    public function setUserId($userId)
-    {
-        $this->userId = $userId;
-
-        return $this;
-    }
-
-    /**
-     * Get userId.
-     *
-     * @return int
-     */
-    public function getUserId()
-    {
-        return $this->userId;
-    }
-
-    /**
      * Set loginCourseDate.
      *
-     * @param \DateTime $loginCourseDate
-     *
      * @return TrackECourseAccess
      */
-    public function setLoginCourseDate($loginCourseDate)
+    public function setLoginCourseDate(DateTime $loginCourseDate)
     {
         $this->loginCourseDate = $loginCourseDate;
 
@@ -146,7 +109,7 @@ class TrackECourseAccess
     /**
      * Get loginCourseDate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getLoginCourseDate()
     {
@@ -156,11 +119,9 @@ class TrackECourseAccess
     /**
      * Set logoutCourseDate.
      *
-     * @param \DateTime $logoutCourseDate
-     *
      * @return TrackECourseAccess
      */
-    public function setLogoutCourseDate($logoutCourseDate)
+    public function setLogoutCourseDate(DateTime $logoutCourseDate)
     {
         $this->logoutCourseDate = $logoutCourseDate;
 
@@ -170,7 +131,7 @@ class TrackECourseAccess
     /**
      * Get logoutCourseDate.
      *
-     * @return \DateTime
+     * @return null|DateTime
      */
     public function getLogoutCourseDate()
     {
@@ -180,11 +141,9 @@ class TrackECourseAccess
     /**
      * Set counter.
      *
-     * @param int $counter
-     *
      * @return TrackECourseAccess
      */
-    public function setCounter($counter)
+    public function setCounter(int $counter)
     {
         $this->counter = $counter;
 
@@ -204,11 +163,9 @@ class TrackECourseAccess
     /**
      * Set sessionId.
      *
-     * @param int $sessionId
-     *
      * @return TrackECourseAccess
      */
-    public function setSessionId($sessionId)
+    public function setSessionId(int $sessionId)
     {
         $this->sessionId = $sessionId;
 
@@ -228,11 +185,9 @@ class TrackECourseAccess
     /**
      * Set userIp.
      *
-     * @param string $userIp
-     *
      * @return TrackECourseAccess
      */
-    public function setUserIp($userIp)
+    public function setUserIp(string $userIp)
     {
         $this->userIp = $userIp;
 

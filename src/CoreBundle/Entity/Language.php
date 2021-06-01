@@ -1,97 +1,77 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Language.
+ * Platform languages.
  *
  * @ORM\Table(
  *     name="language",
- *     options={"row_format":"DYNAMIC"},
- *     indexes={@ORM\Index(name="idx_language_dokeos_folder", columns={"dokeos_folder"})}
+ *     options={"row_format"="DYNAMIC"}
  * )
  * @ORM\Entity(repositoryClass="Chamilo\CoreBundle\Repository\LanguageRepository")
  */
 class Language
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var string
+     * @Assert\NotBlank()
      *
      * @ORM\Column(name="original_name", type="string", length=255, nullable=true)
      */
-    protected $originalName;
+    protected ?string $originalName = null;
 
     /**
-     * @var string
+     * @Assert\NotBlank()
      *
-     * @ORM\Column(name="english_name", type="string", length=255, nullable=true)
+     * @ORM\Column(name="english_name", type="string", length=255)
      */
-    protected $englishName;
+    protected string $englishName;
 
     /**
-     * @var string
+     * @Assert\NotBlank()
      *
-     * @ORM\Column(name="isocode", type="string", length=10, nullable=true)
+     * @ORM\Column(name="isocode", type="string", length=10)
      */
-    protected $isocode;
+    protected string $isocode;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(name="dokeos_folder", type="string", length=250, nullable=true)
-     */
-    protected $dokeosFolder;
-
-    /**
-     * @var bool
-     *
      * @ORM\Column(name="available", type="boolean", nullable=false)
      */
-    protected $available;
+    protected bool $available;
 
     /**
-     * @var \Chamilo\CoreBundle\Entity\Language
      * @ORM\ManyToOne(targetEntity="Language", inversedBy="subLanguages")
      * @ORM\JoinColumn(name="parent_id", referencedColumnName="id", nullable=true)
      */
-    protected $parent;
+    protected ?Language $parent = null;
 
     /**
-     * @var ArrayCollection
      * @ORM\OneToMany(targetEntity="Language", mappedBy="parent")
      */
-    protected $subLanguages;
+    protected Collection $subLanguages;
 
-    /**
-     * Language constructor.
-     */
     public function __construct()
     {
-        $this->children = new ArrayCollection();
+        $this->subLanguages = new ArrayCollection();
     }
 
-    /**
-     * Set originalName.
-     *
-     * @param string $originalName
-     *
-     * @return Language
-     */
-    public function setOriginalName($originalName)
+    public function setOriginalName(string $originalName): self
     {
         $this->originalName = $originalName;
 
@@ -108,14 +88,7 @@ class Language
         return $this->originalName;
     }
 
-    /**
-     * Set englishName.
-     *
-     * @param string $englishName
-     *
-     * @return Language
-     */
-    public function setEnglishName($englishName)
+    public function setEnglishName(string $englishName): self
     {
         $this->englishName = $englishName;
 
@@ -132,14 +105,7 @@ class Language
         return $this->englishName;
     }
 
-    /**
-     * Set isocode.
-     *
-     * @param string $isocode
-     *
-     * @return Language
-     */
-    public function setIsocode($isocode)
+    public function setIsocode(string $isocode): self
     {
         $this->isocode = $isocode;
 
@@ -156,38 +122,7 @@ class Language
         return $this->isocode;
     }
 
-    /**
-     * Set dokeosFolder.
-     *
-     * @param string $dokeosFolder
-     *
-     * @return Language
-     */
-    public function setDokeosFolder($dokeosFolder)
-    {
-        $this->dokeosFolder = $dokeosFolder;
-
-        return $this;
-    }
-
-    /**
-     * Get dokeosFolder.
-     *
-     * @return string
-     */
-    public function getDokeosFolder()
-    {
-        return $this->dokeosFolder;
-    }
-
-    /**
-     * Set available.
-     *
-     * @param bool $available
-     *
-     * @return Language
-     */
-    public function setAvailable($available)
+    public function setAvailable(bool $available): self
     {
         $this->available = $available;
 
@@ -204,34 +139,19 @@ class Language
         return $this->available;
     }
 
-    /**
-     * Set parent.
-     *
-     * @return Language
-     */
-    public function setParent(self $parent)
+    public function setParent(self $parent): self
     {
         $this->parent = $parent;
 
         return $this;
     }
 
-    /**
-     * Get parent.
-     *
-     * @return Language
-     */
-    public function getParent()
+    public function getParent(): ?self
     {
         return $this->parent;
     }
 
-    /**
-     * Get subLanguages.
-     *
-     * @return ArrayCollection
-     */
-    public function getSubLanguages()
+    public function getSubLanguages(): Collection
     {
         return $this->subLanguages;
     }

@@ -1,5 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CAnnouncement;
 
 /**
  * @author Frederik Vermeire <frederik.vermeire@pandora.be>, UGent Internship
@@ -9,12 +13,7 @@
  * @abstract The task of the internship was to integrate the 'send messages to specific users' with the
  *             Announcements tool and also add the resource linker here. The database also needed refactoring
  *             as there was no title field (the title was merged into the content field)
- *
- * @package chamilo.announcements
- * multiple functions
  */
-
-// use anonymous mode when accessing this course tool
 $use_anonymous = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -27,17 +26,19 @@ $token = Security::get_existing_token();
 $courseId = api_get_course_int_id();
 $_course = api_get_course_info_by_id($courseId);
 $group_id = api_get_group_id();
+$sessionId = api_get_session_id();
 $current_course_tool = TOOL_ANNOUNCEMENT;
 $this_section = SECTION_COURSES;
 $nameTools = get_lang('Announcements');
+$repo = Container::getAnnouncementRepository();
 
 $allowToEdit = (
     api_is_allowed_to_edit(false, true) ||
-    (api_get_course_setting('allow_user_edit_announcement') && !api_is_anonymous())
+    (1 === (int) api_get_course_setting('allow_user_edit_announcement') && !api_is_anonymous()) ||
+    ($sessionId && api_is_coach() && api_get_configuration_value('allow_coach_to_edit_announcements'))
 );
 $allowStudentInGroupToSend = false;
 
-$sessionId = api_get_session_id();
 $drhHasAccessToSessionContent = api_drh_can_access_all_session_content();
 if (!empty($sessionId) && $drhHasAccessToSessionContent) {
     $allowToEdit = $allowToEdit || api_is_drh();
@@ -45,29 +46,27 @@ if (!empty($sessionId) && $drhHasAccessToSessionContent) {
 
 // Database Table Definitions
 $tbl_announcement = Database::get_course_table(TABLE_ANNOUNCEMENT);
-$tbl_item_property = Database::get_course_table(TABLE_ITEM_PROPERTY);
 
 $isTutor = false;
 if (!empty($group_id)) {
-    $groupProperties = GroupManager::get_group_properties($group_id);
+    $groupEntity = api_get_group_entity($group_id);
     $interbreadcrumb[] = [
         'url' => api_get_path(WEB_CODE_PATH).'group/group.php?'.api_get_cidreq(),
         'name' => get_lang('Groups'),
     ];
     $interbreadcrumb[] = [
         'url' => api_get_path(WEB_CODE_PATH).'group/group_space.php?'.api_get_cidreq(),
-        'name' => get_lang('Group area').' '.$groupProperties['name'],
+        'name' => get_lang('Group area').' '.$groupEntity->getName(),
     ];
 
-    if ($allowToEdit === false) {
+    if (false === $allowToEdit) {
         // Check if user is tutor group
-        $isTutor = GroupManager::is_tutor_of_group(api_get_user_id(), $groupProperties, $courseId);
+        $isTutor = $groupEntity->userIsTutor(api_get_user_entity());
         if ($isTutor) {
             $allowToEdit = true;
         }
-
         // Last chance ... students can send announcements
-        if ($groupProperties['announcements_state'] == GroupManager::TOOL_PRIVATE_BETWEEN_USERS) {
+        if (GroupManager::TOOL_PRIVATE_BETWEEN_USERS == $groupEntity->getAnnouncementsState()) {
             $allowStudentInGroupToSend = true;
         }
     }
@@ -89,21 +88,25 @@ $logInfo = [
 ];
 Event::registerLog($logInfo);
 
+$announcementAttachmentIsDisabled = api_get_configuration_value('disable_announcement_attachment');
+$thisAnnouncementId = null;
+
 switch ($action) {
     case 'move':
+        throw new Exception('@todo move');
         if (!$allowToEdit) {
             api_not_allowed(true);
         }
 
         /* Move announcement up/down */
         if (!empty($_GET['down'])) {
-            $thisAnnouncementId = intval($_GET['down']);
-            $sortDirection = "DESC";
+            $thisAnnouncementId = (int) ($_GET['down']);
+            $sortDirection = 'DESC';
         }
-
+        /*
         if (!empty($_GET['up'])) {
-            $thisAnnouncementId = intval($_GET['up']);
-            $sortDirection = "ASC";
+            $thisAnnouncementId = (int) ($_GET['up']);
+            $sortDirection = 'ASC';
         }
 
         if (!empty($sortDirection)) {
@@ -112,7 +115,7 @@ switch ($action) {
             }
 
             $sql = "SELECT DISTINCT announcement.id, announcement.display_order
-                    FROM $tbl_announcement announcement 
+                    FROM $tbl_announcement announcement
                     INNER JOIN $tbl_item_property itemproperty
                     ON (announcement.c_id = itemproperty.c_id)
                     WHERE
@@ -147,7 +150,8 @@ switch ($action) {
             Display::addFlash(Display::return_message(get_lang('The announcement has been moved')));
             header('Location: '.$homeUrl);
             exit;
-        }
+        }*/
+
         break;
     case 'view':
         $interbreadcrumb[] = [
@@ -159,6 +163,7 @@ switch ($action) {
         if (empty($content)) {
             api_not_allowed(true);
         }
+
         break;
     case 'list':
         $htmlHeadXtra[] = api_get_jqgrid_js();
@@ -281,19 +286,14 @@ switch ($action) {
         if (empty($count)) {
             $html = '';
             if (($allowToEdit || $allowStudentInGroupToSend) &&
-                (empty($_GET['origin']) || $_GET['origin'] !== 'learnpath')
+                (empty($_GET['origin']) || 'learnpath' !== $_GET['origin'])
             ) {
-                $html .= '<div id="no-data-view">';
-                $html .= '<h3>'.get_lang('Announcements').'</h3>';
-                $html .= Display::return_icon('valves.png', '', [], 64);
-                $html .= '<div class="controls">';
-                $html .= Display::url(
+                $html .= Display::noDataView(
+                    get_lang('Announcements'),
+                    Display::return_icon('valves.png', '', [], 64),
                     get_lang('Add an announcement'),
-                    api_get_self()."?".api_get_cidreq()."&action=add",
-                    ['class' => 'btn btn-primary']
+                    api_get_self().'?'.api_get_cidreq().'&action=add'
                 );
-                $html .= '</div>';
-                $html .= '</div>';
             } else {
                 $html = Display::return_message(get_lang('There are no announcements.'), 'warning');
             }
@@ -301,11 +301,12 @@ switch ($action) {
         } else {
             $content .= Display::grid_html('announcements');
         }
+
         break;
     case 'delete':
         /* Delete announcement */
         $id = (int) $_GET['id'];
-        if ($sessionId != 0 && api_is_allowed_to_session_edit(false, true) == false) {
+        if (0 != $sessionId && false == api_is_allowed_to_session_edit(false, true)) {
             api_not_allowed();
         }
         $delete = false;
@@ -323,17 +324,19 @@ switch ($action) {
         }
         header('Location: '.$homeUrl);
         exit;
+
         break;
     case 'delete_all':
         if (api_is_allowed_to_edit()) {
             $allow = api_get_configuration_value('disable_delete_all_announcements');
-            if ($allow === false) {
+            if (false === $allow) {
                 AnnouncementManager::delete_all_announcements($_course);
                 Display::addFlash(Display::return_message(get_lang('Announcement has been deletedAll')));
             }
             header('Location: '.$homeUrl);
             exit;
         }
+
         break;
     case 'delete_attachment':
         $id = (int) $_GET['id_attach'];
@@ -344,43 +347,44 @@ switch ($action) {
 
         header('Location: '.$homeUrl);
         exit;
+
         break;
-    case 'showhide':
-        if (!isset($_GET['isStudentView']) || $_GET['isStudentView'] != 'false') {
-            if (isset($_GET['id']) && $_GET['id']) {
-                if ($sessionId != 0 &&
-                    api_is_allowed_to_session_edit(false, true) == false
-                ) {
-                    api_not_allowed();
-                }
+    case 'set_visibility':
+        if (!empty($announcement_id)) {
+            if (0 != $sessionId &&
+                false == api_is_allowed_to_session_edit(false, true)
+            ) {
+                api_not_allowed();
+            }
 
-                if (!$allowToEdit) {
-                    api_not_allowed(true);
-                }
+            $status = isset($_GET['status']) ? $_GET['status'] : null;
+            if (!$allowToEdit) {
+                api_not_allowed(true);
+            }
 
-                if (!api_is_session_general_coach() ||
-                    api_is_element_in_the_session(TOOL_ANNOUNCEMENT, $_GET['id'])
-                ) {
-                    AnnouncementManager::change_visibility_announcement(
-                        $_course,
-                        $_GET['id']
-                    );
-                    Display::addFlash(Display::return_message(get_lang('The visibility has been changed.')));
-                    header('Location: '.$homeUrl);
-                    exit;
-                }
+            if (!api_is_session_general_coach() ||
+                api_is_element_in_the_session(TOOL_ANNOUNCEMENT, $announcement_id)
+            ) {
+                AnnouncementManager::change_visibility_announcement(
+                    $_course,
+                    $announcement_id,
+                    $status
+                );
+                Display::addFlash(Display::return_message(get_lang('The visibility has been changed.')));
+                header('Location: '.$homeUrl);
+                exit;
             }
         }
         break;
     case 'add':
     case 'modify':
-        if ($sessionId != 0 &&
-            api_is_allowed_to_session_edit(false, true) == false
+        if (0 != $sessionId &&
+            false == api_is_allowed_to_session_edit(false, true)
         ) {
             api_not_allowed(true);
         }
 
-        if ($allowStudentInGroupToSend === false) {
+        if (false === $allowStudentInGroupToSend) {
             if (!$allowToEdit) {
                 api_not_allowed(true);
             }
@@ -428,12 +432,12 @@ switch ($action) {
                     get_lang('Inactivity on %s'),
                     api_get_setting('siteName')
                 );
-            } elseif (isset($_GET['remindallinactives']) && $_GET['remindallinactives'] === 'true') {
+            } elseif (isset($_GET['remindallinactives']) && 'true' === $_GET['remindallinactives']) {
                 // we want to remind inactive users. The $_GET['since'] parameter
                 // determines which users have to be warned (i.e the users who have been inactive for x days or more
                 $since = 6;
                 if (isset($_GET['since'])) {
-                    if ($_GET['since'] === 'never') {
+                    if ('never' === $_GET['since']) {
                         $since = 'never';
                     } else {
                         $since = (int) $_GET['since'];
@@ -466,7 +470,7 @@ switch ($action) {
                 );
                 // when we want to remind the users who have never been active
                 // then we have a different subject and content for the announcement
-                if ($_GET['since'] === 'never') {
+                if ('never' === $_GET['since']) {
                     $title_to_modify = sprintf(
                         get_lang('Inactivity on %s'),
                         api_get_setting('siteName')
@@ -478,7 +482,7 @@ switch ($action) {
             }
             $element = CourseManager::addUserGroupMultiSelect($form, []);
         } else {
-            $element = CourseManager::addGroupMultiSelect($form, $groupProperties, []);
+            $element = CourseManager::addGroupMultiSelect($form, $groupEntity, []);
         }
 
         $form->addHtml('</div>');
@@ -488,14 +492,15 @@ switch ($action) {
             $announcement_to_modify = '';
         }
 
-        $announcementInfo = [];
+        $announcementInfo = null;
         if (!empty($id)) {
-            $announcementInfo = AnnouncementManager::get_by_id($courseId, $id);
+            /** @var CAnnouncement $announcementInfo */
+            $announcementInfo = $repo->find($id);
         }
 
         $showSubmitButton = true;
         if (!empty($announcementInfo)) {
-            $to = AnnouncementManager::loadEditUsers('announcement', $id);
+            $to = AnnouncementManager::loadEditUsers($announcementInfo);
 
             if (!empty($group_id)) {
                 $separated = CourseManager::separateUsersGroups($to);
@@ -507,9 +512,9 @@ switch ($action) {
             }
 
             $defaults = [
-                'title' => $announcementInfo['title'],
-                'content' => $announcementInfo['content'],
-                'id' => $announcementInfo['id'],
+                'title' => $announcementInfo->getTitle(),
+                'content' => $announcementInfo->getContent(),
+                'id' => $announcementInfo->getIid(),
                 'users' => $to,
             ];
         } else {
@@ -524,22 +529,22 @@ switch ($action) {
         $form->addHtml("
             <script>
                 $(function () {
-                    $('#announcement_preview').on('click', function() {  
+                    $('#announcement_preview').on('click', function() {
                         var users = [];
                         $('#users_to option').each(function() {
-                            users.push($(this).val());                            
+                            users.push($(this).val());
                         });
-                        
+
                         var form = $('#announcement').serialize();
                         $.ajax({
                             type: 'POST',
                             dataType: 'json',
                             url: '".$ajaxUrl."',
-                            data: {users : JSON.stringify(users), form: form},  
+                            data: {users : JSON.stringify(users), form: form},
                             beforeSend: function() {
                                 $('#announcement_preview_result').html('<i class=\"fa fa-spinner\"></i>');
                                 $('#send_button').hide();
-                            },  
+                            },
                             success: function(result) {
                                 var resultToString = '';
                                 $.each(result, function(index, value) {
@@ -549,7 +554,7 @@ switch ($action) {
                                     '".addslashes(get_lang('Announcement will be sent to'))."<br/>' + resultToString
                                 );
                                 $('#announcement_preview_result').show();
-                                $('#send_button').show();                                
+                                $('#send_button').show();
                             }
                         });
                     });
@@ -571,6 +576,7 @@ switch ($action) {
                         });
                     </script>
                 ");
+
                 break;
             }
         }
@@ -600,17 +606,25 @@ switch ($action) {
             false,
             ['ToolbarSet' => 'Announcements']
         );
-        $form->addElement('file', 'user_upload', get_lang('Add attachment'));
-        $form->addElement('textarea', 'file_comment', get_lang('File comment'));
+
+        if (!$announcementAttachmentIsDisabled) {
+            $form->addElement('file', 'user_upload', get_lang('Add attachment'));
+            $form->addElement('textarea', 'file_comment', get_lang('File comment'));
+        }
+
         $form->addHidden('sec_token', $token);
 
         if (empty($sessionId)) {
-            $form->addCheckBox('send_to_users_in_session', null, get_lang('Send to users in all sessions of this course'));
+            $form->addCheckBox(
+                'send_to_users_in_session',
+                null,
+                get_lang('Send to users in all sessions of this course')
+            );
         }
 
         $config = api_get_configuration_value('announcement.hide_send_to_hrm_users');
 
-        if ($config === false) {
+        if (false === $config) {
             $form->addCheckBox(
                 'send_to_hrm_users',
                 null,
@@ -638,170 +652,166 @@ switch ($action) {
 
         if ($form->validate()) {
             $data = $form->getSubmitValues();
-            $data['users'] = isset($data['users']) ? $data['users'] : [];
-            $sendToUsersInSession = isset($data['send_to_users_in_session']) ? true : false;
-            $sendMeCopy = isset($data['send_me_a_copy_by_email']) ? true : false;
-
+            $data['users'] = $data['users'] ?? [];
+            $sendToUsersInSession = isset($data['send_to_users_in_session']);
+            $sendMeCopy = isset($data['send_me_a_copy_by_email']);
             if (isset($id) && $id) {
                 // there is an Id => the announcement already exists => update mode
-                if (Security::check_token('post')) {
-                    $file_comment = $_POST['file_comment'];
-                    $file = $_FILES['user_upload'];
+                $file_comment = $announcementAttachmentIsDisabled ? null : $_POST['file_comment'];
+                $file = $announcementAttachmentIsDisabled ? [] : $_FILES['user_upload'];
+                $announcement = AnnouncementManager::edit_announcement(
+                    $id,
+                    $data['title'],
+                    $data['content'],
+                    $data['users'],
+                    $file,
+                    $file_comment,
+                    $sendToUsersInSession
+                );
 
-                    AnnouncementManager::edit_announcement(
-                        $id,
+                // Send mail
+                $messageSentTo = [];
+                if (isset($_POST['email_ann']) && empty($_POST['onlyThoseMails'])) {
+                    $messageSentTo = AnnouncementManager::sendEmail(
+                        api_get_course_info(),
+                        api_get_session_id(),
+                        $announcement,
+                        $sendToUsersInSession,
+                        isset($data['send_to_hrm_users'])
+                    );
+                }
+
+                if ($sendMeCopy && !in_array(api_get_user_id(), $messageSentTo)) {
+                    $email = new AnnouncementEmail(api_get_course_info(), api_get_session_id(), $announcement);
+                    $email->sendAnnouncementEmailToMySelf();
+                }
+
+                Display::addFlash(
+                    Display::return_message(
+                        get_lang('Announcement has been modified'),
+                        'success'
+                    )
+                );
+                Security::clear_token();
+                header('Location: '.$homeUrl);
+                exit;
+            } else {
+                // Insert mode
+                $file = $_FILES['user_upload'];
+                $file_comment = $data['file_comment'];
+
+                if (empty($group_id)) {
+                    $announcement = AnnouncementManager::add_announcement(
+                        api_get_course_info(),
+                        api_get_session_id(),
                         $data['title'],
                         $data['content'],
                         $data['users'],
                         $file,
                         $file_comment,
+                        null,
                         $sendToUsersInSession
+                    );
+                } else {
+                    $announcement = AnnouncementManager::addGroupAnnouncement(
+                        $data['title'],
+                        $data['content'],
+                        $group_id,
+                        $data['users'],
+                        $file,
+                        $file_comment,
+                        $sendToUsersInSession
+                    );
+                }
+
+                if ($announcement) {
+                    Display::addFlash(
+                        Display::return_message(
+                            get_lang('Announcement has been added'),
+                            'success'
+                        )
                     );
 
                     // Send mail
                     $messageSentTo = [];
-                    if (isset($_POST['email_ann']) && empty($_POST['onlyThoseMails'])) {
+                    if (isset($data['email_ann']) && $data['email_ann']) {
                         $messageSentTo = AnnouncementManager::sendEmail(
                             api_get_course_info(),
                             api_get_session_id(),
-                            $id,
-                            $sendToUsersInSession,
-                            isset($data['send_to_hrm_users'])
+                            $announcement,
+                            $sendToUsersInSession
                         );
                     }
 
                     if ($sendMeCopy && !in_array(api_get_user_id(), $messageSentTo)) {
-                        $email = new AnnouncementEmail(api_get_course_info(), api_get_session_id(), $id);
+                        $email = new AnnouncementEmail(api_get_course_info(), api_get_session_id(), $announcement);
                         $email->sendAnnouncementEmailToMySelf();
                     }
 
-                    Display::addFlash(
-                        Display::return_message(
-                            get_lang('Announcement has been modified'),
-                            'success'
-                        )
-                    );
                     Security::clear_token();
                     header('Location: '.$homeUrl);
                     exit;
                 }
-            } else {
-                // Insert mode
-                if (Security::check_token('post')) {
-                    $file = $_FILES['user_upload'];
-                    $file_comment = $data['file_comment'];
-
-                    if (empty($group_id)) {
-                        $insert_id = AnnouncementManager::add_announcement(
-                            api_get_course_info(),
-                            api_get_session_id(),
-                            $data['title'],
-                            $data['content'],
-                            $data['users'],
-                            $file,
-                            $file_comment,
-                            null,
-                            $sendToUsersInSession
-                        );
-                    } else {
-                        $insert_id = AnnouncementManager::addGroupAnnouncement(
-                            $data['title'],
-                            $data['content'],
-                            $group_id,
-                            $data['users'],
-                            $file,
-                            $file_comment,
-                            $sendToUsersInSession
-                        );
-                    }
-
-                    if ($insert_id) {
-                        Display::addFlash(
-                            Display::return_message(
-                                get_lang('Announcement has been added'),
-                                'success'
-                            )
-                        );
-
-                        // Send mail
-                        $messageSentTo = [];
-                        if (isset($data['email_ann']) && $data['email_ann']) {
-                            $messageSentTo = AnnouncementManager::sendEmail(
-                                api_get_course_info(),
-                                api_get_session_id(),
-                                $insert_id,
-                                $sendToUsersInSession
-                            );
-                        }
-
-                        if ($sendMeCopy && !in_array(api_get_user_id(), $messageSentTo)) {
-                            $email = new AnnouncementEmail(api_get_course_info(), api_get_session_id(), $insert_id);
-                            $email->sendAnnouncementEmailToMySelf();
-                        }
-
-                        Security::clear_token();
-                        header('Location: '.$homeUrl);
-                        exit;
-                    }
-                    api_not_allowed(true);
-                } // end condition token
+                api_not_allowed(true);
             }
         }
         $content = $form->returnForm();
+
         break;
 }
 
 if (!empty($_GET['remind_inactive'])) {
-    $to[] = 'USER:'.intval($_GET['remind_inactive']);
+    $to[] = 'USER:'.(int) ($_GET['remind_inactive']);
 }
 
-if (empty($_GET['origin']) or $_GET['origin'] !== 'learnpath') {
+if (empty($_GET['origin']) || 'learnpath' !== $_GET['origin']) {
     // We are not in the learning path
     Display::display_header($nameTools, get_lang('Announcements'));
 }
 
 // Tool introduction
-if (empty($_GET['origin']) || $_GET['origin'] !== 'learnpath') {
+if (empty($_GET['origin']) || 'learnpath' !== $_GET['origin']) {
     Display::display_introduction_section(TOOL_ANNOUNCEMENT);
 }
 
 // Actions
 $show_actions = false;
 $actionsLeft = '';
-if (($allowToEdit || $allowStudentInGroupToSend) && (empty($_GET['origin']) || $_GET['origin'] !== 'learnpath')) {
+if (($allowToEdit || $allowStudentInGroupToSend) && (empty($_GET['origin']) || 'learnpath' !== $_GET['origin'])) {
     if (in_array($action, ['add', 'modify', 'view'])) {
-        $actionsLeft .= "<a href='".api_get_self()."?".api_get_cidreq()."'>".
+        $actionsLeft .= "<a href='".api_get_self().'?'.api_get_cidreq()."'>".
             Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM).
-            "</a>";
+            '</a>';
     } else {
-        $actionsLeft .= "<a href='".api_get_self()."?".api_get_cidreq()."&action=add'>".
+        $actionsLeft .= "<a href='".api_get_self().'?'.api_get_cidreq()."&action=add'>".
             Display::return_icon('new_announce.png', get_lang('Add an announcement'), '', ICON_SIZE_MEDIUM).
-            "</a>";
+            '</a>';
     }
     $show_actions = true;
 } else {
     if (in_array($action, ['view'])) {
-        $actionsLeft .= "<a href='".api_get_self()."?".api_get_cidreq()."'>".
-            Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM)."</a>";
+        $actionsLeft .= "<a href='".api_get_self().'?'.api_get_cidreq()."'>".
+            Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM).'</a>';
     }
 }
 
-if ($allowToEdit && api_get_group_id() == 0) {
+/*
+if ($allowToEdit && 0 == api_get_group_id()) {
     $allow = api_get_configuration_value('disable_delete_all_announcements');
-    if ($allow === false && api_is_allowed_to_edit()) {
+    if (false === $allow && api_is_allowed_to_edit()) {
         if (!isset($_GET['action']) ||
-            isset($_GET['action']) && $_GET['action'] == 'list'
+            isset($_GET['action']) && 'list' == $_GET['action']
         ) {
-            $actionsLeft .= "<a href=\"".api_get_self()."?".api_get_cidreq()."&action=delete_all\" onclick=\"javascript:if(!confirm('".get_lang("Please confirm your choice")."')) return false;\">".
+            $actionsLeft .= '<a href="'.api_get_self().'?'.api_get_cidreq()."&action=delete_all\" onclick=\"javascript:if(!confirm('".get_lang('Please confirm your choice')."')) return false;\">".
                 Display::return_icon(
                     'delete_announce.png',
                     get_lang('Clear list of announcements'),
                     '',
                     ICON_SIZE_MEDIUM
-                )."</a>";
+                ).'</a>';
         }
     }
-}
+}*/
 
 if ($show_actions) {
     echo Display::toolbarAction('toolbar', [$actionsLeft, $searchFormToString]);
@@ -809,7 +819,7 @@ if ($show_actions) {
 
 echo $content;
 
-if (empty($_GET['origin']) || $_GET['origin'] !== 'learnpath') {
+if (empty($_GET['origin']) || 'learnpath' !== $_GET['origin']) {
     //we are not in learnpath tool
     Display::display_footer();
 }

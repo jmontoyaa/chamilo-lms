@@ -1,13 +1,14 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Framework\Container;
+use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\QrCode;
 
 /**
  * Certificate Class
  * Generate certificates based in the gradebook tool.
- *
- * @package chamilo.library.certificates
  */
 class Certificate extends Model
 {
@@ -169,11 +170,11 @@ class Certificate extends Model
     {
         $delete_db = false;
         if (!empty($this->certificate_data)) {
-            if (!is_null($this->html_file) || $this->html_file != '' || strlen($this->html_file)) {
+            if (!is_null($this->html_file) || '' != $this->html_file || strlen($this->html_file)) {
                 // Deleting HTML file
                 if (is_file($this->html_file)) {
                     @unlink($this->html_file);
-                    if (is_file($this->html_file) === false) {
+                    if (false === is_file($this->html_file)) {
                         $delete_db = true;
                     } else {
                         $delete_db = false;
@@ -206,7 +207,7 @@ class Certificate extends Model
     {
         // The user directory should be set
         if (empty($this->certification_user_path) &&
-            $this->force_certificate_generation === false
+            false === $this->force_certificate_generation
         ) {
             return false;
         }
@@ -229,7 +230,7 @@ class Certificate extends Model
             $courseId = $courseInfo['real_id'];
             $sessionId = $category->get_session_id();
 
-            $skill = new Skill();
+            $skill = new SkillModel();
             $skill->addSkillToUser(
                 $this->user_id,
                 $category,
@@ -254,7 +255,7 @@ class Certificate extends Model
                         if (file_exists($myPathCertificate) &&
                             !empty($name) &&
                             !is_dir($myPathCertificate) &&
-                            $this->force_certificate_generation == false
+                            false == $this->force_certificate_generation
                         ) {
                             // Seems that the file was already generated
                             return true;
@@ -474,7 +475,7 @@ class Certificate extends Model
         ) {
             $table = Database::get_main_table(TABLE_MAIN_GRADEBOOK_CERTIFICATE);
             $now = api_get_utc_datetime();
-            $sql = 'UPDATE '.$table.' SET 
+            $sql = 'UPDATE '.$table.' SET
                         path_certificate="'.Database::escape_string($path_certificate).'",
                         created_at = "'.$now.'"
                     WHERE cat_id = "'.$categoryId.'" AND user_id="'.$user_id.'" ';
@@ -512,16 +513,19 @@ class Certificate extends Model
      */
     public function generateQRImage($text, $path)
     {
-        // Make sure HTML certificate is generated
         if (!empty($text) && !empty($path)) {
             $qrCode = new QrCode($text);
+            //$qrCode->setEncoding('UTF-8');
+            $qrCode->setSize(120);
+            $qrCode->setMargin(5);
             $qrCode->setWriterByName('png');
+            $qrCode->setErrorCorrectionLevel(ErrorCorrectionLevel::MEDIUM());
+            $qrCode->setForegroundColor(['r' => 0, 'g' => 0, 'b' => 0, 'a' => 0]);
+            $qrCode->setBackgroundColor(['r' => 255, 'g' => 255, 'b' => 255, 'a' => 0]);
+            $qrCode->setValidateResult(false);
             $qrCode->writeFile($path);
 
-            //L low, M - Medium, L large error correction
-            //return QrCode::png($text, $path, 'M', 2, 2);
-
-            return file_exists($path);
+            return true;
         }
 
         return false;
@@ -596,7 +600,7 @@ class Certificate extends Model
             return true;
         }
 
-        if (api_get_setting('allow_public_certificates') != 'true') {
+        if ('true' != api_get_setting('allow_public_certificates')) {
             // The "non-public" setting is set, so do not print
             return false;
         }
@@ -617,7 +621,7 @@ class Certificate extends Model
             api_get_course_info($gradeBookInfo['course_code'])
         );
 
-        if ($setting == 0) {
+        if (0 == $setting) {
             // Printing not allowed
             return false;
         }
@@ -713,50 +717,62 @@ class Certificate extends Model
         $value = $extraFieldValue->get_values_by_handler_and_field_variable($this->user_id, 'legal_accept');
         $termsValidationDate = '';
         if (isset($value) && !empty($value['value'])) {
-            list($id, $id2, $termsValidationDate) = explode(':', $value['value']);
+            [$id, $id2, $termsValidationDate] = explode(':', $value['value']);
         }
 
         $sessions = SessionManager::get_sessions_by_user($this->user_id, false, true);
         $totalTimeInLearningPaths = 0;
         $sessionsApproved = [];
         $coursesApproved = [];
+        $courseList = [];
+
+        $gradeBookRepo = Container::getGradeBookCategoryRepository();
         if ($sessions) {
             foreach ($sessions as $session) {
                 $allCoursesApproved = [];
                 foreach ($session['courses'] as $course) {
-                    $courseInfo = api_get_course_info_by_id($course['real_id']);
-                    $courseCode = $courseInfo['code'];
-                    $gradebookCategories = Category::load(
+                    $course = api_get_course_entity($course['real_id']);
+                    $courseId = $course->getId();
+                    $category = $gradeBookRepo->findOneBy(['course' => $course, 'session' => $session['session_id']]);
+
+                    /*$gradebookCategories = Category::load(
                         null,
                         null,
                         $courseCode,
                         null,
                         false,
                         $session['session_id']
-                    );
+                    );*/
 
-                    if (isset($gradebookCategories[0])) {
-                        /** @var Category $category */
-                        $category = $gradebookCategories[0];
+                    if (null !== $category) {
                         $result = Category::userFinishedCourse(
                             $this->user_id,
                             $category,
                             true
                         );
 
+                        // Find time spent in LP
+                        $timeSpent = Tracking::get_time_spent_in_lp(
+                            $this->user_id,
+                            $course,
+                            [],
+                            $session['session_id']
+                        );
+
+                        if (!isset($courseList[$courseId])) {
+                            $courseList[$courseId]['approved'] = false;
+                            $courseList[$courseId]['time_spent'] = 0;
+                        }
+
                         if ($result) {
-                            $coursesApproved[$course['real_id']] = $courseInfo['title'];
+                            $courseList[$courseId]['approved'] = true;
+                            $coursesApproved[$courseId] = $course->getTitle();
 
                             // Find time spent in LP
-                            $totalTimeInLearningPaths += Tracking::get_time_spent_in_lp(
-                                $this->user_id,
-                                $courseCode,
-                                [],
-                                $session['session_id']
-                            );
-
+                            //$totalTimeInLearningPaths += $timeSpent;
                             $allCoursesApproved[] = true;
                         }
+                        $courseList[$courseId]['time_spent'] += $timeSpent;
                     }
                 }
 
@@ -766,7 +782,14 @@ class Certificate extends Model
             }
         }
 
-        $skill = new Skill();
+        $totalTimeInLearningPaths = 0;
+        foreach ($courseList as $courseId => $courseData) {
+            if (true === $courseData['approved']) {
+                $totalTimeInLearningPaths += $courseData['time_spent'];
+            }
+        }
+
+        $skill = new SkillModel();
         // Ofaj
         $skills = $skill->getStudentSkills($this->user_id, 2);
         $timeInSeconds = Tracking::get_time_spent_on_the_platform(
@@ -795,7 +818,9 @@ class Certificate extends Model
                 null,
                 null,
                 false,
-                false
+                false,
+                false,
+                'd-m-Y'
             )
         );
         $tplContent->assign(
@@ -805,7 +830,9 @@ class Certificate extends Model
                 null,
                 null,
                 false,
-                false
+                false,
+                false,
+                'd-m-Y'
             )
         );
         $tplContent->assign('skills', $skills);
@@ -813,6 +840,7 @@ class Certificate extends Model
         $tplContent->assign('courses', $coursesApproved);
         $tplContent->assign('time_spent_in_lps', api_time_to_hms($totalTimeInLearningPaths));
         $tplContent->assign('time_spent_in_lps_in_hours', round($totalTimeInLearningPaths / 3600, 1));
+
         $layoutContent = $tplContent->get_template('gradebook/custom_certificate.tpl');
         $content = $tplContent->fetch($layoutContent);
 
@@ -835,7 +863,7 @@ class Certificate extends Model
         $params['right'] = 0;
         $params['top'] = 0;
         $params['bottom'] = 0;
-        $page_format = $params['orientation'] == 'landscape' ? 'A4-L' : 'A4';
+        $page_format = 'landscape' == $params['orientation'] ? 'A4-L' : 'A4';
         $pdf = new PDF($page_format, $params['orientation'], $params);
 
         $pdf->html_to_pdf(
@@ -874,10 +902,11 @@ class Certificate extends Model
     {
         $controller = new IndexManager(get_lang('My courses'));
         $courseAndSessions = $controller->returnCoursesAndSessions($userId, true, null, true, false);
-
+        $repo = Container::getGradeBookCategoryRepository();
         if (isset($courseAndSessions['courses']) && !empty($courseAndSessions['courses'])) {
             foreach ($courseAndSessions['courses'] as $course) {
-                $cats = Category::load(
+                $category = $repo->findOneBy(['course' => $course['real_id']]);
+                /*$cats = Category::load(
                     null,
                     null,
                     $course['code'],
@@ -885,13 +914,9 @@ class Certificate extends Model
                     null,
                     null,
                     false
-                );
-
-                if (isset($cats[0]) && !empty($cats[0])) {
-                    Category::generateUserCertificate(
-                        $cats[0]->get_id(),
-                        $userId
-                    );
+                );*/
+                if (null !== $category) {
+                    Category::generateUserCertificate($category, $userId);
                 }
             }
         }
@@ -903,7 +928,7 @@ class Certificate extends Model
                         if (!empty($sessionData['courses'])) {
                             $sessionId = $sessionData['session_id'];
                             foreach ($sessionData['courses'] as $courseData) {
-                                $cats = Category:: load(
+                                /*$cats = Category:: load(
                                     null,
                                     null,
                                     $courseData['course_code'],
@@ -911,13 +936,13 @@ class Certificate extends Model
                                     null,
                                     $sessionId,
                                     false
-                                );
+                                );*/
 
-                                if (isset($cats[0]) && !empty($cats[0])) {
-                                    Category::generateUserCertificate(
-                                        $cats[0]->get_id(),
-                                        $userId
-                                    );
+                                $category = $repo->findOneBy(
+                                    ['course' => $courseData['real_id'], 'session' => $sessionId]
+                                );
+                                if (null !== $category) {
+                                    Category::generateUserCertificate($category, $userId);
                                 }
                             }
                         }

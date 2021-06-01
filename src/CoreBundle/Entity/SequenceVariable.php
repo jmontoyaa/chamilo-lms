@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Class SequenceVariable.
@@ -15,34 +18,27 @@ use Doctrine\ORM\Mapping as ORM;
 class SequenceVariable
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue()
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var string
-     *
+     * @Assert\NotBlank()
      * @ORM\Column(name="name", type="string", nullable=true)
      */
-    protected $name;
+    protected ?string $name = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="description", type="text", nullable=true)
      */
-    protected $description;
+    protected ?string $description = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="default_val", type="string", nullable=true)
      */
-    protected $defaultValue;
+    protected ?string $defaultValue = null;
 
     /**
      * Get id.
@@ -63,11 +59,9 @@ class SequenceVariable
     }
 
     /**
-     * @param string $name
-     *
      * @return SequenceVariable
      */
-    public function setName($name)
+    public function setName(string $name)
     {
         $this->name = $name;
 
@@ -83,11 +77,9 @@ class SequenceVariable
     }
 
     /**
-     * @param string $defaultValue
-     *
      * @return SequenceVariable
      */
-    public function setDefaultValue($defaultValue)
+    public function setDefaultValue(string $defaultValue)
     {
         $this->defaultValue = $defaultValue;
 
@@ -103,11 +95,9 @@ class SequenceVariable
     }
 
     /**
-     * @param string $description
-     *
      * @return SequenceVariable
      */
-    public function setDescription($description)
+    public function setDescription(string $description)
     {
         $this->description = $description;
 

@@ -1,91 +1,85 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * CBlog.
  *
  * @ORM\Table(
- *  name="c_blog",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="session_id", columns={"session_id"})
- *  }
+ *     name="c_blog",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"}),
+ *         @ORM\Index(name="session_id", columns={"session_id"})
+ *     }
  * )
  * @ORM\Entity
  */
-class CBlog
+class CBlog extends AbstractResource implements ResourceInterface
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="blog_id", type="integer")
      */
-    protected $blogId;
+    protected int $blogId;
 
     /**
-     * @var string
-     *
+     * @Assert\NotBlank()
      * @ORM\Column(name="blog_name", type="string", length=250, nullable=false)
      */
-    protected $blogName;
+    protected string $blogName;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="blog_subtitle", type="string", length=250, nullable=true)
      */
-    protected $blogSubtitle;
+    protected ?string $blogSubtitle = null;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="date_creation", type="datetime", nullable=false)
      */
-    protected $dateCreation;
+    protected DateTime $dateCreation;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="visibility", type="boolean", nullable=false)
      */
-    protected $visibility;
+    protected bool $visibility;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="session_id", type="integer", nullable=true)
      */
-    protected $sessionId;
+    protected ?int $sessionId = null;
+
+    public function __toString(): string
+    {
+        return $this->getBlogName();
+    }
 
     /**
      * Set blogName.
      *
-     * @param string $blogName
-     *
      * @return CBlog
      */
-    public function setBlogName($blogName)
+    public function setBlogName(string $blogName)
     {
         $this->blogName = $blogName;
 
@@ -105,11 +99,9 @@ class CBlog
     /**
      * Set blogSubtitle.
      *
-     * @param string $blogSubtitle
-     *
      * @return CBlog
      */
-    public function setBlogSubtitle($blogSubtitle)
+    public function setBlogSubtitle(string $blogSubtitle)
     {
         $this->blogSubtitle = $blogSubtitle;
 
@@ -129,11 +121,9 @@ class CBlog
     /**
      * Set dateCreation.
      *
-     * @param \DateTime $dateCreation
-     *
      * @return CBlog
      */
-    public function setDateCreation($dateCreation)
+    public function setDateCreation(DateTime $dateCreation)
     {
         $this->dateCreation = $dateCreation;
 
@@ -143,7 +133,7 @@ class CBlog
     /**
      * Get dateCreation.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getDateCreation()
     {
@@ -153,11 +143,9 @@ class CBlog
     /**
      * Set visibility.
      *
-     * @param bool $visibility
-     *
      * @return CBlog
      */
-    public function setVisibility($visibility)
+    public function setVisibility(bool $visibility)
     {
         $this->visibility = $visibility;
 
@@ -177,11 +165,9 @@ class CBlog
     /**
      * Set sessionId.
      *
-     * @param int $sessionId
-     *
      * @return CBlog
      */
-    public function setSessionId($sessionId)
+    public function setSessionId(int $sessionId)
     {
         $this->sessionId = $sessionId;
 
@@ -201,11 +187,9 @@ class CBlog
     /**
      * Set blogId.
      *
-     * @param int $blogId
-     *
      * @return CBlog
      */
-    public function setBlogId($blogId)
+    public function setBlogId(int $blogId)
     {
         $this->blogId = $blogId;
 
@@ -225,15 +209,18 @@ class CBlog
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CBlog
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
         return $this;
+    }
+
+    public function getIid(): int
+    {
+        return $this->iid;
     }
 
     /**
@@ -244,5 +231,20 @@ class CBlog
     public function getCId()
     {
         return $this->cId;
+    }
+
+    public function getResourceIdentifier(): int
+    {
+        return $this->getIid();
+    }
+
+    public function getResourceName(): string
+    {
+        return $this->getBlogName();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setBlogName($name);
     }
 }

@@ -1,27 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Form\Resource;
 
-use Chamilo\CoreBundle\Form\Type\IllustrationType;
 use Chamilo\CourseBundle\Entity\CDocument;
-use FOS\CKEditorBundle\Form\Type\CKEditorType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-/**
- * Class CDocumentType.
- */
 class CDocumentType extends AbstractType
 {
-    public function buildForm(FormBuilderInterface $builder, array $options)
+    public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('title')
+            ->add('title', TextType::class)
 //            ->add('comment', CKEditorType::class)
             /*->add(
                 'shared',
@@ -49,9 +46,8 @@ class CDocumentType extends AbstractType
                     'allow_delete' => true,
                 )
             )*/
-            //->add('c_id', HiddenType::class)
             ->add('filetype', HiddenType::class)
-            ->add(
+            /*->add(
                 'illustration',
                 IllustrationType::class,
                 [
@@ -59,7 +55,7 @@ class CDocumentType extends AbstractType
                     'required' => false,
                     'mapped' => false,
                 ]
-            )
+            )*/
             /*->add(
                 'rights',
                 'collection',
@@ -69,11 +65,11 @@ class CDocumentType extends AbstractType
                     'allow_add' => true,
                 )
             )*/
-            //->add('resourceNode', new ResourceNodeType())
-            ->add('save', SubmitType::class);
+            //->add('save', SubmitType::class)
+        ;
     }
 
-    public function configureOptions(OptionsResolver $resolver)
+    public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults(
             [
@@ -82,7 +78,7 @@ class CDocumentType extends AbstractType
         );
     }
 
-    public function getName()
+    public function getName(): string
     {
         return 'chamilo_document';
     }

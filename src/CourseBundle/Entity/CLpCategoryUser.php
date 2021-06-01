@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Traits\UserTrait;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -15,33 +18,28 @@ use Doctrine\ORM\Mapping as ORM;
  */
 class CLpCategoryUser
 {
+    use UserTrait;
+
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
      * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CLpCategory", inversedBy="users")
      * @ORM\JoinColumn(name="category_id", referencedColumnName="iid")
      */
-    protected $category;
+    protected CLpCategory $category;
 
     /**
-     * @var User
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\UserBundle\Entity\User")
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User")
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id")
      */
-    protected $user;
+    protected User $user;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         return (string) $this->getId();
     }
@@ -54,54 +52,14 @@ class CLpCategoryUser
         return $this->id;
     }
 
-    /**
-     * @param int $id
-     *
-     * @return CLpCategoryUser
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * @return CLpCategory
-     */
-    public function getCategory()
+    public function getCategory(): CLpCategory
     {
         return $this->category;
     }
 
-    /**
-     * @param CLpCategory $category
-     *
-     * @return CLpCategoryUser
-     */
-    public function setCategory($category)
+    public function setCategory(CLpCategory $category): self
     {
         $this->category = $category;
-
-        return $this;
-    }
-
-    /**
-     * @return User
-     */
-    public function getUser()
-    {
-        return $this->user;
-    }
-
-    /**
-     * @param User $user
-     *
-     * @return CLpCategoryUser
-     */
-    public function setUser($user)
-    {
-        $this->user = $user;
 
         return $this;
     }

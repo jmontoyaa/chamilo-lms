@@ -1,12 +1,12 @@
 <?php
 /* For licensing terms, see /license.txt */
 
-use Chamilo\SkillBundle\Entity\SkillRelCourse;
+use Chamilo\CoreBundle\Entity\SkillRelCourse;
 
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 
-if (api_get_configuration_value('allow_skill_rel_items') == false) {
+if (false == api_get_configuration_value('allow_skill_rel_items')) {
     api_not_allowed(true);
 }
 
@@ -36,7 +36,7 @@ $form->addHeader(get_lang('Add skills').$sessionName);
 
 $skillList = [];
 $em = Database::getManager();
-$items = $em->getRepository('ChamiloSkillBundle:SkillRelCourse')->findBy(
+$items = $em->getRepository(SkillRelCourse::class)->findBy(
     ['course' => $courseId, 'session' => $sessionId]
 );
 /** @var SkillRelCourse $skillRelCourse */
@@ -62,7 +62,7 @@ $form->addButtonSave(get_lang('Save'));
 $form->setDefaults(['skills' => array_keys($skillList)]);
 
 if ($form->validate()) {
-    $result = Skill::saveSkillsToCourseFromForm($form);
+    $result = SkillModel::saveSkillsToCourseFromForm($form);
     if ($result) {
         Display::addFlash(Display::return_message(get_lang('Update successful')));
     }

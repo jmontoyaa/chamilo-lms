@@ -22,7 +22,6 @@ class FeatureContext extends MinkContext
     public function iAmAPlatformAdministrator()
     {
         $this->iAmLoggedAs('admin');
-        $this->getSession()->back();
     }
 
     /**
@@ -90,7 +89,9 @@ class FeatureContext extends MinkContext
      */
     public function iAmOnCourseXHomepage($courseCode)
     {
-        $this->visit('/courses/'.$courseCode.'/index.php');
+        $this->visit('/main/course_home/redirect.php?cidReq='.$courseCode);
+        $this->waitForThePageToBeLoaded();
+        //$this->visit('/courses/'.$courseCode.'/index.php');
         $this->assertElementNotOnPage('.alert-danger');
     }
 
@@ -100,6 +101,8 @@ class FeatureContext extends MinkContext
     public function iAmOnCourseXHomepageInSessionY($courseCode, $sessionName)
     {
         $this->visit('/main/course_home/redirect.php?cidReq='.$courseCode.'&session_name='.$sessionName);
+        $this->waitForThePageToBeLoaded();
+        $this->assertElementNotOnPage('.alert-danger');
     }
 
     /**
@@ -116,11 +119,25 @@ class FeatureContext extends MinkContext
      */
     public function iAmLoggedAs($username)
     {
-        $this->visit('/logout');
+        //$this->visit('/logout');
         $this->visit('/login');
-        $this->fillField('login__username', $username);
-        $this->fillField('login__password', $username);
-        $this->pressButton('_submit');
+        $this->fillField('login', $username);
+        $this->fillField('password', $username);
+        $this->pressButton('Sign in');
+        $this->waitForThePageToBeLoaded();
+        //$this->waitForThePageToBeLoaded();
+    }
+
+    /**
+     * Checks, that element with specified CSS doesn't exist on page
+     *
+     * @Then /^(?:|I )should not see an error$/
+     */
+    public function iShouldNotSeeAnError()
+    {
+        $this->assertSession()->pageTextNotContains('Internal server error');
+        $this->assertSession()->pageTextNotContains('error');
+        $this->assertSession()->elementNotExists('css', '.alert-danger');
     }
 
     /**
@@ -184,8 +201,7 @@ class FeatureContext extends MinkContext
      */
     public function iAmNotLogged()
     {
-        $this->visit('/index.php?logout=logout');
-        $this->visit('I am on homepage');
+        $this->visit('/logout');
     }
 
     /**
@@ -252,7 +268,7 @@ class FeatureContext extends MinkContext
     }
 
     /**
-     * @Then /^I fill in ckeditor field "([^"]*)" with "([^"]*)"$/
+     * @Then /^I fill in editor field "([^"]*)" with "([^"]*)"$/
      */
     public function iFillInWysiwygOnFieldWith($locator, $value)
     {
@@ -269,9 +285,32 @@ class FeatureContext extends MinkContext
         }
 
         $this->getSession()->executeScript(
-            "CKEDITOR.instances[\"$fieldId\"].setData(\"$value\");"
+            "setContentFromEditor(\"$fieldId\", \"$value\");"
         );
     }
+
+    /**
+     * @Then /^I fill in tinymce field "([^"]*)" with "([^"]*)"$/
+     */
+    public function iFillInTinyMceOnFieldWith($locator, $value)
+    {
+        // Just in case wait that ckeditor is loaded
+        $this->getSession()->wait(2000);
+
+        $el = $this->getSession()->getPage()->findField($locator);
+        $fieldId = $el->getAttribute('id');
+
+        if (empty($fieldId)) {
+            throw new Exception(
+                'Could not find an id for field with locator: '.$locator
+            );
+        }
+
+        $this->getSession()->executeScript(
+            "tinymce.get(\"$fieldId\").getBody().innerHTML = \"$value\";"
+        );
+    }
+
 
     /**
      * @Then /^I fill the only ckeditor in the page with "([^"]*)"$/
@@ -306,6 +345,17 @@ class FeatureContext extends MinkContext
     public function iFillInSelectInputWithAndSelect($field, $id, $value)
     {
         $this->getSession()->executeScript("$('$field').select2({data : [{id: $id, text: '$value'}]});");
+    }
+
+    /**
+     * @When /^(?:|I )fill in ajax select2 input "(?P<field>(?:[^"]|\\")*)" with id "(?P<id>(?:[^"]|\\")*)" and value "(?P<value>(?:[^"]|\\")*)"$/
+     */
+    public function iFillInAjaxSelectInputWithAndSelect($field, $id, $value)
+    {
+        $this->getSession()->executeScript("
+            var newOption = new Option('$value', $id, true, true);
+            $('$field').append(newOption).trigger('change');
+        ");
     }
 
     /**
@@ -397,11 +447,11 @@ class FeatureContext extends MinkContext
     }
 
     /**
-     * @When /^wait for the page to be loaded$/
+     * @When /^(?:|I )wait for the page to be loaded$/
      */
     public function waitForThePageToBeLoaded()
     {
-        $this->getSession()->wait(3000);
+        $this->getSession()->wait(4000);
     }
 
     /**
@@ -418,7 +468,7 @@ class FeatureContext extends MinkContext
      */
     public function waitVeryLongForThePageToBeLoadedWhenReady()
     {
-        $this->getSession()->wait(10000, "document.readyState === 'complete'");
+        $this->getSession()->wait(9000, "document.readyState === 'complete'");
     }
 
     /**
@@ -482,6 +532,20 @@ class FeatureContext extends MinkContext
     }
 
     /**
+     * @Given /^I check the "([^"]*)" radio button selector$/
+     */
+    public function iCheckTheRadioButtonBasedInSelector($element)
+    {
+        $this->getSession()->executeScript("
+            $(function() {
+                $('$element').prop('checked', true);
+            });
+        ");
+
+        return true;
+    }
+
+    /**
      * @Then /^I should see an icon with title "([^"]*)"$/
      */
     public function iShouldSeeAnIconWithTitle($value)
@@ -511,7 +575,6 @@ class FeatureContext extends MinkContext
      */
     public function saveUrlWithName($name)
     {
-
         $url = $this->getSession()->getCurrentUrl();
         $this->getSession()->setCookie($name, $url);
     }

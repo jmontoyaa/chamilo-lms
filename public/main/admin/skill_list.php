@@ -1,12 +1,13 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Entity\Skill;
 
 /**
  * Skill list for management.
  *
  * @author Angel Fernando Quiroz Campos <angel.quiroz@beeznest.com>
- *
- * @package chamilo.admin
  */
 $cidReset = true;
 
@@ -16,7 +17,7 @@ $this_section = SECTION_PLATFORM_ADMIN;
 
 api_protect_admin_script();
 
-Skill::isAllowed();
+SkillModel::isAllowed();
 
 $action = isset($_GET['action']) ? $_GET['action'] : 'list';
 $skillId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
@@ -25,7 +26,7 @@ $entityManager = Database::getManager();
 
 switch ($action) {
     case 'enable':
-        $skill = $entityManager->find('ChamiloCoreBundle:Skill', $skillId);
+        $skill = $entityManager->find(Skill::class, $skillId);
 
         if (is_null($skill)) {
             Display::addFlash(
@@ -58,8 +59,8 @@ switch ($action) {
         exit;
         break;
     case 'disable':
-        /** @var \Chamilo\CoreBundle\Entity\Skill $skill */
-        $skill = $entityManager->find('ChamiloCoreBundle:Skill', $skillId);
+        /** @var Skill $skill */
+        $skill = $entityManager->find(Skill::class, $skillId);
 
         if (is_null($skill)) {
             Display::addFlash(
@@ -79,12 +80,12 @@ switch ($action) {
 
             $entityManager->persist($skill);
 
-            $skillObj = new Skill();
+            $skillObj = new SkillModel();
             $children = $skillObj->getChildren($skill->getId());
 
             foreach ($children as $child) {
                 $skill = $entityManager->find(
-                    'ChamiloCoreBundle:Skill',
+                    Skill::class,
                     $child['id']
                 );
 
@@ -158,8 +159,8 @@ switch ($action) {
         }
 
         /* View */
-        $skill = new Skill();
-        $skillList = $skill->get_all();
+        $skill = new SkillModel();
+        $skillList = $skill->getAllSkills();
         $extraFieldSearchTagId = isset($_REQUEST['tag_id']) ? $_REQUEST['tag_id'] : 0;
 
         if ($extraFieldSearchTagId) {
@@ -182,7 +183,7 @@ switch ($action) {
 
         $tpl->assign(
             'actions',
-            Display::toolbarAction('toolbar', [$toolbar], [12])
+            Display::toolbarAction('toolbar', [$toolbar])
         );
         $tpl->assign('content', $content);
         $tpl->display_one_col_template();

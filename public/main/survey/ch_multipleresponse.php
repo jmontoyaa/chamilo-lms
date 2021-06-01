@@ -17,7 +17,7 @@ class ch_multipleresponse extends survey_question
             'horizontal' => get_lang('Horizontal'),
             'vertical' => get_lang('Vertical'),
         ];
-        $this->getForm()->addRadio('horizontalvertical', get_lang('Display'), $options);
+        $this->getForm()->addRadio('horizontalvertical', get_lang('DisplayAnswersHorVert'), $options);
 
         $formData['horizontalvertical'] = isset($formData['horizontalvertical']) ? $formData['horizontalvertical'] : 'horizontal';
         $this->getForm()->setDefaults($formData);
@@ -35,6 +35,12 @@ class ch_multipleresponse extends survey_question
             }
         }
 
+        if (isset($formData['answersid']) && !empty($formData['answersid'])) {
+            foreach ($formData['answersid'] as $value) {
+                $this->getForm()->addHidden('answersid[]', $value);
+            }
+        }
+
         parent::addRemoveButtons($formData);
     }
 
@@ -49,12 +55,11 @@ class ch_multipleresponse extends survey_question
     ) {
         $class = 'checkbox-inline';
         $labelClass = 'checkbox-inline';
-        if ($questionData['display'] == 'vertical') {
+        if ('vertical' == $questionData['display']) {
             $class = 'checkbox-vertical';
         }
 
         $name = 'question'.$questionData['question_id'];
-
         $form->addCheckBoxGroup(
             $name,
             null,
@@ -63,7 +68,6 @@ class ch_multipleresponse extends survey_question
         );
 
         $defaults = [];
-
         if (!empty($answers)) {
             foreach ($answers as $answer) {
                 $defaults[$name.'['.$answer.']'] = true;

@@ -1,9 +1,8 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.calendar
- */
+use Chamilo\CoreBundle\Framework\Container;
 
 // use anonymous mode when accessing this course tool
 $use_anonymous = true;
@@ -21,7 +20,7 @@ $this_section = SECTION_COURSES;
 $url = null;
 if (empty($action)) {
     if (!empty($course_info)) {
-        $url = api_get_path(WEB_CODE_PATH).'calendar/agenda_js.php?type=course'.'&'.api_get_cidreq();
+        $url = api_get_path(WEB_CODE_PATH).'calendar/agenda_js.php?type=course&'.api_get_cidreq();
     } else {
         $url = api_get_path(WEB_CODE_PATH).'calendar/agenda_js.php?';
     }
@@ -31,35 +30,29 @@ if (empty($action)) {
 
 $logInfo = [
     'tool' => TOOL_CALENDAR_EVENT,
-    'tool_id' => 0,
-    'tool_id_detail' => 0,
     'action' => $action,
-    'info' => '',
 ];
 Event::registerLog($logInfo);
 
 $group_id = api_get_group_id();
-$groupInfo = GroupManager::get_group_properties($group_id);
-$eventId = isset($_REQUEST['id']) ? $_REQUEST['id'] : null;
-$type = $event_type = isset($_GET['type']) ? $_GET['type'] : null;
+$eventId = $_REQUEST['id'] ?? null;
+$type = $event_type = $_GET['type'] ?? null;
+$htmlHeadXtra[] = '<script>
+$(function() {
+    var checked = $("input[name=repeat]").attr("checked");
+    if (checked) {
+        $("#options2").show();
+    }
+});
 
-$htmlHeadXtra[] = "<script>
 function plus_repeated_event() {
-    if (document.getElementById('options2').style.display == 'none') {
-        document.getElementById('options2').style.display = 'block';
+    if (document.getElementById("options2").style.display == "none") {
+        document.getElementById("options2").style.display = "block";
     } else {
-        document.getElementById('options2').style.display = 'none';
+        document.getElementById("options2").style.display = "none";
     }
 }
-    $(function() {
-        var checked = $('input[name=repeat]').attr('checked');
-        if (checked) {
-            $('#options2').show();
-        }
-    });
-</script>";
 
-$htmlHeadXtra[] = '<script>
 var counter_image = 1;
 function add_image_form() {
 	// Multiple filepaths for image form
@@ -71,11 +64,12 @@ function add_image_form() {
 	}
 	var elem1 = document.createElement("div");
 	elem1.setAttribute("id","filepath_"+counter_image);
-	
+
 	filepaths.appendChild(elem1);
 	id_elem1 = "filepath_"+counter_image;
 	id_elem1 = "\'"+id_elem1+"\'";
-	document.getElementById("filepath_"+counter_image).innerHTML = "<input type=\"file\" name=\"attach_"+counter_image+"\" />&nbsp; <br />'.get_lang('Description').'&nbsp;&nbsp;<input type=\"text\" name=\"legend[]\"  /><br /><br />";
+	document.
+	    getElementById("filepath_"+counter_image).innerHTML = "<input type=\"file\" name=\"attach_"+counter_image+"\" />&nbsp; <br />'.get_lang('Description').'&nbsp;&nbsp;<input type=\"text\" name=\"legend[]\"  /><br /><br />";
 	if (filepaths.childNodes.length == 6) {
 		var link_attach = document.getElementById("link-more-attach");
 		if (link_attach) {
@@ -90,7 +84,7 @@ $nameTools = get_lang('Agenda');
 
 Event::event_access_tool(TOOL_CALENDAR_EVENT);
 
-if ($type === 'fromjs') {
+if ('fromjs' === $type) {
     // split the "id" parameter only if string and there are _ separators
     if (preg_match('/_/', $eventId)) {
         $id_list = explode('_', $eventId);
@@ -99,18 +93,18 @@ if ($type === 'fromjs') {
     }
     $eventId = $id_list[1];
     $event_type = $id_list[0];
-    $event_type = $event_type === 'platform' ? 'admin' : $event_type;
+    $event_type = 'platform' === $event_type ? 'admin' : $event_type;
 }
 
 $agenda = new Agenda($event_type);
 $allowToEdit = $agenda->getIsAllowedToEdit();
 $actions = $agenda->displayActions('calendar');
 
-if (!$allowToEdit && $event_type === 'course') {
+if (!$allowToEdit && 'course' === $event_type) {
     api_not_allowed(true);
 }
 
-if ($event_type === 'course') {
+if ('course' === $event_type) {
     $agendaUrl = api_get_path(WEB_CODE_PATH).'calendar/agenda_js.php?'.api_get_cidreq().'&type=course';
 } else {
     $agendaUrl = api_get_path(WEB_CODE_PATH).'calendar/agenda_js.php?&type='.$event_type;
@@ -127,15 +121,24 @@ if ($allowToEdit) {
             if ($form->validate()) {
                 $values = $form->getSubmitValues();
 
-                $sendEmail = isset($values['add_announcement']) ? true : false;
+                $sendEmail = isset($values['add_announcement']);
                 $allDay = isset($values['all_day']) ? 'true' : 'false';
-                $sendAttachment = isset($_FILES) && !empty($_FILES) ? true : false;
-                $attachmentList = $sendAttachment ? $_FILES : null;
-                $attachmentCommentList = isset($values['legend']) ? $values['legend'] : null;
-                $comment = isset($values['comment']) ? $values['comment'] : null;
-                $usersToSend = isset($values['users_to_send']) ? $values['users_to_send'] : '';
+                $sendAttachment = isset($_FILES) && !empty($_FILES);
+                $attachmentCommentList = $values['legend'] ?? null;
+                $comment = $values['comment'] ?? null;
+                $usersToSend = $values['users_to_send'] ?? '';
                 $startDate = $values['date_range_start'];
                 $endDate = $values['date_range_end'];
+
+                $attachmentList = [];
+                if ($sendAttachment) {
+                    $request = Container::getRequest();
+                    foreach ($_FILES as $name => $file) {
+                        if ($request->files->has($name)) {
+                            $attachmentList[] = $request->files->get($name);
+                        }
+                    }
+                }
 
                 $eventId = $agenda->addEvent(
                     $startDate,
@@ -161,6 +164,7 @@ if ($allowToEdit) {
                         $values['users_to_send']
                     );
                 }
+
                 $message = Display::return_message(get_lang('Event added'), 'confirmation');
                 if ($sendEmail) {
                     $message .= Display::return_message(
@@ -184,10 +188,8 @@ if ($allowToEdit) {
             }
 
             $event['action'] = 'edit';
-            $event['id'] = $eventId;
-
+            $event['id'] = $event['iid'];
             $form = $agenda->getForm($event);
-
             if ($form->validate()) {
                 $values = $form->getSubmitValues();
 
@@ -258,10 +260,7 @@ if ($allowToEdit) {
 
                 if (!empty($deleteAttachmentList)) {
                     foreach ($deleteAttachmentList as $deleteAttachmentId => $value) {
-                        $agenda->deleteAttachmentFile(
-                            $deleteAttachmentId,
-                            $agenda->course
-                        );
+                        $agenda->deleteAttachmentFile($deleteAttachmentId);
                     }
                 }
 
@@ -294,7 +293,7 @@ if ($allowToEdit) {
             }
             $content = $form->returnForm();
             break;
-        case "delete":
+        case 'delete':
             if (!(api_is_session_general_coach() &&
                 !api_is_element_in_the_session(TOOL_AGENDA, $eventId))
             ) {
@@ -306,20 +305,20 @@ if ($allowToEdit) {
 }
 
 if (!empty($group_id)) {
-    $group_properties = GroupManager :: get_group_properties($group_id);
+    $group_properties = GroupManager::get_group_properties($group_id);
     $interbreadcrumb[] = [
-        "url" => api_get_path(WEB_CODE_PATH)."group/group.php?".api_get_cidreq(),
-        "name" => get_lang('Groups'),
+        'url' => api_get_path(WEB_CODE_PATH).'group/group.php?'.api_get_cidreq(),
+        'name' => get_lang('Groups'),
     ];
     $interbreadcrumb[] = [
-        "url" => api_get_path(WEB_CODE_PATH)."group/group_space.php?".api_get_cidreq(),
-        "name" => get_lang('Group area').' '.$group_properties['name'],
+        'url' => api_get_path(WEB_CODE_PATH).'group/group_space.php?'.api_get_cidreq(),
+        'name' => get_lang('Group area').' '.$group_properties['name'],
     ];
 }
 if (!empty($actionName)) {
     $interbreadcrumb[] = [
-        "url" => $url,
-        "name" => get_lang('Agenda'),
+        'url' => $url,
+        'name' => get_lang('Agenda'),
     ];
 } else {
     $actionName = '';

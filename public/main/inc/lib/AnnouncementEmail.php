@@ -1,5 +1,10 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CAnnouncement;
+use Chamilo\CourseBundle\Entity\CAnnouncementAttachment;
 
 /**
  * Announcement Email.
@@ -9,18 +14,13 @@
  */
 class AnnouncementEmail
 {
-    public $session_id = null;
+    public $session_id;
     public $logger;
-    protected $course = null;
-    protected $announcement = null;
+    protected $course;
+    /** @var CAnnouncement */
+    protected $announcement;
 
-    /**
-     * @param array           $courseInfo
-     * @param int             $sessionId
-     * @param int             $announcementId
-     * @param \Monolog\Logger $logger
-     */
-    public function __construct($courseInfo, $sessionId, $announcementId, $logger = null)
+    public function __construct(array $courseInfo, $sessionId, CAnnouncement $announcement, Monolog\Logger $logger = null)
     {
         if (empty($courseInfo)) {
             $courseInfo = api_get_course_info();
@@ -28,41 +28,8 @@ class AnnouncementEmail
 
         $this->course = $courseInfo;
         $this->session_id = empty($sessionId) ? api_get_session_id() : (int) $sessionId;
-
-        if (is_numeric($announcementId)) {
-            $this->announcement = AnnouncementManager::get_by_id($courseInfo['real_id'], $announcementId);
-        }
+        $this->announcement = $announcement;
         $this->logger = $logger;
-    }
-
-    /**
-     * Course info.
-     *
-     * @param string $key
-     *
-     * @return string|null
-     */
-    public function course($key = '')
-    {
-        $result = $key ? $this->course[$key] : $this->course;
-        $result = $key == 'id' ? intval($result) : $result;
-
-        return $result;
-    }
-
-    /**
-     * Announcement info.
-     *
-     * @param string $key
-     *
-     * @return array
-     */
-    public function announcement($key = '')
-    {
-        $result = $key ? $this->announcement[$key] : $this->announcement;
-        $result = $key == 'id' ? intval($result) : $result;
-
-        return $result;
     }
 
     /**
@@ -73,74 +40,24 @@ class AnnouncementEmail
      */
     public function all_users()
     {
-        $courseCode = $this->course('code');
+        $courseCode = $this->course['code'];
         if (empty($this->session_id)) {
             $group_id = api_get_group_id();
             if (empty($group_id)) {
                 $userList = CourseManager::get_user_list_from_course_code($courseCode);
+                $userList = array_column($userList, 'user_id');
             } else {
                 $userList = GroupManager::get_users($group_id);
-                $new_user_list = [];
-                foreach ($userList as $user) {
-                    $new_user_list[] = ['user_id' => $user];
-                }
-                $userList = $new_user_list;
             }
         } else {
             $userList = CourseManager::get_user_list_from_course_code(
                 $courseCode,
                 $this->session_id
             );
+            $userList = array_column($userList, 'user_id');
         }
 
         return $userList;
-    }
-
-    /**
-     * Returns users and groups an announcement item has been sent to.
-     *
-     * @return array Array of users and groups to whom the element has been sent
-     */
-    public function sent_to_info()
-    {
-        $result = [];
-        $result['groups'] = [];
-        $result['users'] = [];
-
-        $table = Database::get_course_table(TABLE_ITEM_PROPERTY);
-        $tool = TOOL_ANNOUNCEMENT;
-        $id = $this->announcement('id');
-        $course_id = $this->course('real_id');
-        $sessionCondition = api_get_session_condition($this->session_id);
-
-        $sql = "SELECT to_group_id, to_user_id
-                FROM $table
-                WHERE
-                    c_id = $course_id AND
-                    tool = '$tool' AND
-                    ref = $id
-                    $sessionCondition";
-
-        $rs = Database::query($sql);
-
-        while ($row = Database::fetch_array($rs, 'ASSOC')) {
-            // if to_user_id <> 0 then it is sent to a specific user
-            $user_id = $row['to_user_id'];
-            if (!empty($user_id)) {
-                $result['users'][] = (int) $user_id;
-                // If user is set then skip the group
-                continue;
-            }
-
-            // if to_group_id is null then it is sent to a specific user
-            // if to_group_id = 0 then it is sent to everybody
-            $group_id = $row['to_group_id'];
-            if (!empty($group_id)) {
-                $result['groups'][] = (int) $group_id;
-            }
-        }
-
-        return $result;
     }
 
     /**
@@ -152,18 +69,19 @@ class AnnouncementEmail
      */
     public function sent_to()
     {
-        $sent_to = $this->sent_to_info();
-        $users = $sent_to['users'];
-        $users = $users ? $users : [];
-        $groups = $sent_to['groups'];
+        $sent_to = $this->announcement->getUsersAndGroupSubscribedToResource();
+        $users = $sent_to['users'] ?? [];
+        $groups = $sent_to['groups'] ?? [];
 
         if ($users) {
             $users = UserManager::get_user_list_by_ids($users, true);
+            $users = array_column($users, 'id');
         }
 
         if (!empty($groups)) {
             $groupUsers = GroupManager::get_groups_users($groups);
             $groupUsers = UserManager::get_user_list_by_ids($groupUsers, true);
+            $groupUsers = array_column($groupUsers, 'id');
 
             if (!empty($groupUsers)) {
                 $users = array_merge($users, $groupUsers);
@@ -177,15 +95,7 @@ class AnnouncementEmail
             $users = self::all_users();
         }
 
-        // Clean users just in case
-        $newListUsers = [];
-        if (!empty($users)) {
-            foreach ($users as $user) {
-                $newListUsers[$user['user_id']] = ['user_id' => $user['user_id']];
-            }
-        }
-
-        return $newListUsers;
+        return $users;
     }
 
     /**
@@ -197,10 +107,11 @@ class AnnouncementEmail
      */
     public function subject($directMessage = false)
     {
+        $title = $this->announcement->getTitle();
         if ($directMessage) {
-            $result = $this->announcement('title');
+            $result = $title;
         } else {
-            $result = $this->course('title').' - '.$this->announcement('title');
+            $result = $this->course['title'].' - '.$title;
         }
 
         $result = stripslashes($result);
@@ -217,9 +128,9 @@ class AnnouncementEmail
      */
     public function message($receiverUserId)
     {
-        $content = $this->announcement('content');
+        $content = $this->announcement->getContent();
         $session_id = $this->session_id;
-        $courseCode = $this->course('code');
+        $courseCode = $this->course['code'];
 
         $content = AnnouncementManager::parseContent(
             $receiverUserId,
@@ -229,20 +140,25 @@ class AnnouncementEmail
         );
 
         // Build the link by hand because api_get_cidreq() doesn't accept course params
-        $course_param = 'cidReq='.$courseCode.'&id_session='.$session_id.'&gidReq='.api_get_group_id();
-        $course_name = $this->course('title');
+        $course_param = 'cid='.$this->course['real_id'].'&sid='.$session_id.'&gid='.api_get_group_id();
+        $course_name = $this->course['title'];
 
         $result = "<div>$content</div>";
 
         // Adding attachment
-        $attachment = $this->attachment();
-        if (!empty($attachment)) {
-            $result .= '<br />';
-            $result .= Display::url(
-                $attachment['filename'],
-                api_get_path(WEB_CODE_PATH).'announcements/download.php?file='.basename($attachment['path']).'&'.$course_param
-            );
-            $result .= '<br />';
+        $attachments = $this->announcement->getAttachments();
+        if (!empty($attachments)) {
+            $repo = Container::getAnnouncementAttachmentRepository();
+            /** @var CAnnouncementAttachment $attachment */
+            foreach ($attachments as $attachment) {
+                $url = $repo->getResourceFileDownloadUrl($attachment);
+                $result .= '<br />';
+                $result .= Display::url(
+                    $attachment->getFilename(),
+                    $url
+                );
+                $result .= '<br />';
+            }
         }
 
         $result .= '<hr />';
@@ -264,16 +180,13 @@ class AnnouncementEmail
     {
         $result = [];
         $table = Database::get_course_table(TABLE_ANNOUNCEMENT_ATTACHMENT);
-        $id = $this->announcement('id');
-        $course_id = $this->course('real_id');
-        $sql = "SELECT * FROM $table 
-                WHERE c_id = $course_id AND announcement_id = $id ";
+        $id = $this->announcement->getIid();
+        $course_id = $this->course['real_id'];
+        $sql = "SELECT * FROM $table
+                WHERE announcement_id = $id ";
         $rs = Database::query($sql);
-        $course_path = $this->course('directory');
         while ($row = Database::fetch_array($rs)) {
-            $path = api_get_path(SYS_COURSE_PATH).$course_path.'/upload/announcements/'.$row['path'];
-            $filename = $row['filename'];
-            $result[] = ['path' => $path, 'filename' => $filename];
+            $result[] = $row;
         }
 
         $result = $result ? reset($result) : [];
@@ -325,19 +238,19 @@ class AnnouncementEmail
             $this->logger->addInfo('User list is empty. No emails will be sent.');
         }
         $messageSentTo = [];
-        foreach ($users as $user) {
-            $message = $this->message($user['user_id']);
-            $wasSent = MessageManager::messageWasAlreadySent($senderId, $user['user_id'], $subject, $message);
-            if ($wasSent === false) {
+        foreach ($users as $userId) {
+            $message = $this->message($userId);
+            $wasSent = MessageManager::messageWasAlreadySent($senderId, $userId, $subject, $message);
+            if (false === $wasSent) {
                 if (!empty($this->logger)) {
                     $this->logger->addInfo(
-                        'Announcement: #'.$this->announcement('id').'. Send email to user: #'.$user['user_id']
+                        'Announcement: #'.$this->announcement->getIid().'. Send email to user: #'.$userId
                     );
                 }
 
-                $messageSentTo[] = $user['user_id'];
+                $messageSentTo[] = $userId;
                 MessageManager::send_message_simple(
-                    $user['user_id'],
+                    $userId,
                     $subject,
                     $message,
                     $senderId,
@@ -347,13 +260,13 @@ class AnnouncementEmail
             } else {
                 if (!empty($this->logger)) {
                     $this->logger->addInfo(
-                        'Message "'.$subject.'" was already sent. Announcement: #'.$this->announcement('id').'. 
-                        User: #'.$user['user_id']
+                        'Message "'.$subject.'" was already sent. Announcement: #'.$this->announcement->getIid().'.
+                        User: #'.$userId
                     );
                 }
             }
 
-            if (($counter % $batchSize) === 0) {
+            if (0 === ($counter % $batchSize)) {
                 $em->flush();
                 $em->clear();
             }
@@ -398,15 +311,12 @@ class AnnouncementEmail
      */
     public function logMailSent()
     {
-        $id = $this->announcement('id');
-        $courseId = $this->course('real_id');
+        $id = $this->announcement->getIid();
         $table = Database::get_course_table(TABLE_ANNOUNCEMENT);
-        $sql = "UPDATE $table SET 
+        $sql = "UPDATE $table SET
                 email_sent = 1
-                WHERE 
-                    c_id = $courseId AND 
-                    id = $id AND 
-                    session_id = {$this->session_id} 
+                WHERE
+                    iid = $id
                 ";
         Database::query($sql);
     }

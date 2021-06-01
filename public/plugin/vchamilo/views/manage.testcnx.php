@@ -1,10 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
  * Tests database connection.
- *
- * @package vchamilo
  *
  * @author Moheissen Fabien (fabien.moheissen@gmail.com)
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL
@@ -51,5 +50,5 @@ try {
     echo $plugin->get_lang('connectionok');
 } catch (Exception $e) {
     echo $plugin->get_lang('badconnection');
-    die();
+    exit();
 }

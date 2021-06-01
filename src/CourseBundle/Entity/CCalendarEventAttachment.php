@@ -1,114 +1,56 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * CCalendarEventAttachment.
  *
  * @ORM\Table(
- *  name="c_calendar_event_attachment",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_calendar_event_attachment",
+ *     indexes={
+ *     }
  * )
  * @ORM\Entity
  */
-class CCalendarEventAttachment
+class CCalendarEventAttachment extends AbstractResource implements ResourceInterface
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
-     */
-    protected $cId;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="path", type="string", length=255, nullable=false)
-     */
-    protected $path;
-
-    /**
-     * @var string
-     *
      * @ORM\Column(name="comment", type="text", nullable=true)
      */
-    protected $comment;
+    protected ?string $comment = null;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="size", type="integer", nullable=false)
-     */
-    protected $size;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="agenda_id", type="integer", nullable=false)
-     */
-    protected $agendaId;
-
-    /**
-     * @var string
-     *
      * @ORM\Column(name="filename", type="string", length=255, nullable=false)
      */
-    protected $filename;
+    protected string $filename;
 
     /**
-     * Set path.
-     *
-     * @param string $path
-     *
-     * @return CCalendarEventAttachment
+     * @ORM\ManyToOne(targetEntity="CCalendarEvent", cascade={"persist"}, inversedBy="attachments")
+     * @ORM\JoinColumn(name="agenda_id", referencedColumnName="iid", onDelete="CASCADE")
      */
-    public function setPath($path)
-    {
-        $this->path = $path;
+    protected CCalendarEvent $event;
 
-        return $this;
+    public function __toString(): string
+    {
+        return $this->getFilename();
     }
 
-    /**
-     * Get path.
-     *
-     * @return string
-     */
-    public function getPath()
-    {
-        return $this->path;
-    }
-
-    /**
-     * Set comment.
-     *
-     * @param string $comment
-     *
-     * @return CCalendarEventAttachment
-     */
-    public function setComment($comment)
+    public function setComment(string $comment): self
     {
         $this->comment = $comment;
 
@@ -126,61 +68,11 @@ class CCalendarEventAttachment
     }
 
     /**
-     * Set size.
-     *
-     * @param int $size
-     *
-     * @return CCalendarEventAttachment
-     */
-    public function setSize($size)
-    {
-        $this->size = $size;
-
-        return $this;
-    }
-
-    /**
-     * Get size.
-     *
-     * @return int
-     */
-    public function getSize()
-    {
-        return $this->size;
-    }
-
-    /**
-     * Set agendaId.
-     *
-     * @param int $agendaId
-     *
-     * @return CCalendarEventAttachment
-     */
-    public function setAgendaId($agendaId)
-    {
-        $this->agendaId = $agendaId;
-
-        return $this;
-    }
-
-    /**
-     * Get agendaId.
-     *
-     * @return int
-     */
-    public function getAgendaId()
-    {
-        return $this->agendaId;
-    }
-
-    /**
      * Set filename.
      *
-     * @param string $filename
-     *
      * @return CCalendarEventAttachment
      */
-    public function setFilename($filename)
+    public function setFilename(string $filename)
     {
         $this->filename = $filename;
 
@@ -198,50 +90,43 @@ class CCalendarEventAttachment
     }
 
     /**
-     * Set id.
-     *
-     * @param int $id
-     *
+     * @return int
+     */
+    public function getIid()
+    {
+        return $this->iid;
+    }
+
+    public function getEvent(): CCalendarEvent
+    {
+        return $this->event;
+    }
+
+    /**
      * @return CCalendarEventAttachment
      */
-    public function setId($id)
+    public function setEvent(CCalendarEvent $event): self
     {
-        $this->id = $id;
+        $this->event = $event;
 
         return $this;
     }
 
     /**
-     * Get id.
-     *
-     * @return int
+     * Resource identifier.
      */
-    public function getId()
+    public function getResourceIdentifier(): int
     {
-        return $this->id;
+        return $this->getIid();
     }
 
-    /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CCalendarEventAttachment
-     */
-    public function setCId($cId)
+    public function getResourceName(): string
     {
-        $this->cId = $cId;
-
-        return $this;
+        return $this->getFilename();
     }
 
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
+    public function setResourceName(string $name): self
     {
-        return $this->cId;
+        return $this->setFilename($name);
     }
 }

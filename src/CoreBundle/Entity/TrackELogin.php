@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -18,50 +21,38 @@ use Doctrine\ORM\Mapping as ORM;
 class TrackELogin
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="login_user_id", type="integer", nullable=false)
      */
-    protected $loginUserId;
+    protected int $loginUserId;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="login_date", type="datetime", nullable=false)
      */
-    protected $loginDate;
+    protected DateTime $loginDate;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="user_ip", type="string", length=39, nullable=false)
      */
-    protected $userIp;
+    protected string $userIp;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="logout_date", type="datetime", nullable=true)
      */
-    protected $logoutDate;
+    protected ?DateTime $logoutDate = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="login_id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="IDENTITY")
      */
-    protected $loginId;
+    protected int $loginId;
 
     /**
      * Set loginUserId.
      *
-     * @param int $loginUserId
-     *
      * @return TrackELogin
      */
-    public function setLoginUserId($loginUserId)
+    public function setLoginUserId(int $loginUserId)
     {
         $this->loginUserId = $loginUserId;
 
@@ -81,11 +72,9 @@ class TrackELogin
     /**
      * Set loginDate.
      *
-     * @param \DateTime $loginDate
-     *
      * @return TrackELogin
      */
-    public function setLoginDate($loginDate)
+    public function setLoginDate(DateTime $loginDate)
     {
         $this->loginDate = $loginDate;
 
@@ -95,7 +84,7 @@ class TrackELogin
     /**
      * Get loginDate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getLoginDate()
     {
@@ -105,11 +94,9 @@ class TrackELogin
     /**
      * Set userIp.
      *
-     * @param string $userIp
-     *
      * @return TrackELogin
      */
-    public function setUserIp($userIp)
+    public function setUserIp(string $userIp)
     {
         $this->userIp = $userIp;
 
@@ -129,11 +116,9 @@ class TrackELogin
     /**
      * Set logoutDate.
      *
-     * @param \DateTime $logoutDate
-     *
      * @return TrackELogin
      */
-    public function setLogoutDate($logoutDate)
+    public function setLogoutDate(DateTime $logoutDate)
     {
         $this->logoutDate = $logoutDate;
 
@@ -143,7 +128,7 @@ class TrackELogin
     /**
      * Get logoutDate.
      *
-     * @return \DateTime
+     * @return null|DateTime
      */
     public function getLogoutDate()
     {

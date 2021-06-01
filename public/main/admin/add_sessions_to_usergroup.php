@@ -1,12 +1,10 @@
 <?php
+
 /* For licensing terms, see /license.txt */
-/**
- *   @package chamilo.admin
- */
+
 // resetting the course id
 $cidReset = true;
 
-// including some necessary files
 require_once __DIR__.'/../inc/global.inc.php';
 
 $id = isset($_REQUEST['id']) ? (int) $_REQUEST['id'] : 0;
@@ -28,7 +26,7 @@ $interbreadcrumb[] = ['url' => 'usergroups.php', 'name' => get_lang('Classes')];
 $tool_name = get_lang('Subscribe class to sessions');
 
 $add_type = 'multiple';
-if (isset($_REQUEST['add_type']) && $_REQUEST['add_type'] != '') {
+if (isset($_REQUEST['add_type']) && '' != $_REQUEST['add_type']) {
     $add_type = Security::remove_XSS($_REQUEST['add_type']);
 }
 
@@ -80,7 +78,7 @@ if (isset($_POST['form_sent']) && $_POST['form_sent']) {
     if (!is_array($elements_posted)) {
         $elements_posted = [];
     }
-    if ($form_sent == 1) {
+    if (1 == $form_sent) {
         //added a parameter to send emails when registering a user
         $usergroup->subscribe_sessions_to_usergroup($id, $elements_posted);
         header('Location: usergroups.php');
@@ -110,7 +108,7 @@ if (!empty($session_list)) {
     }
 }
 
-$ajax_search = $add_type === 'unique' ? true : false;
+$ajax_search = 'unique' === $add_type ? true : false;
 
 // checking for extra field with filter on
 function search_usergroup_sessions($needle, $type)
@@ -119,16 +117,16 @@ function search_usergroup_sessions($needle, $type)
     $xajax_response = new xajaxResponse();
     $return = '';
     if (!empty($needle) && !empty($type)) {
-        if ($type == 'searchbox') {
+        if ('searchbox' == $type) {
             $session_list = SessionManager::get_sessions_list(
                 ['s.name' => ['operator' => 'LIKE', 'value' => "%$needle%"]]
             );
-        } elseif ($type != 'single') {
+        } elseif ('single' != $type) {
             $session_list = SessionManager::get_sessions_list(
                 ['s.name' => ['operator' => 'LIKE', 'value' => "$needle%"]]
             );
         }
-        if ($type != 'single') {
+        if ('single' != $type) {
             $return .= '<select id="elements_not_in" name="elements_not_in_name[]" multiple="multiple" size="15" style="width:360px;">';
             foreach ($session_list as $row) {
                 if (!in_array($row['id'], array_keys($elements_in))) {
@@ -151,7 +149,7 @@ $xajax->processRequests();
 Display::display_header($tool_name);
 
 $add = (empty($_GET['add']) ? '' : Security::remove_XSS($_GET['add']));
-if ($add_type == 'multiple') {
+if ('multiple' === $add_type) {
     $link_add_type_unique = '<a href="'.api_get_self().'?add='.$add.'&add_type=unique">'.
         Display::return_icon('single.gif').get_lang('Single registration').'</a>';
     $link_add_type_multiple = Display::return_icon('multiple.gif').get_lang('Multiple registration');
@@ -161,22 +159,35 @@ if ($add_type == 'multiple') {
         Display::return_icon('multiple.gif').get_lang('Multiple registration').'</a>';
 }
 
-echo '<div class="actions">';
-echo '<a href="usergroups.php">'.
+
+$actions = '<a href="usergroups.php">'.
     Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM).'</a>';
-echo '<a href="javascript://" class="advanced_parameters" style="margin-top: 8px" onclick="display_advanced_search();"><span id="img_plus_and_minus">&nbsp;'.
-    Display::return_icon('div_show.gif', get_lang('Show'), ['style' => 'vertical-align:middle']).' '.get_lang('Advanced search').'</span></a>';
-echo '</div>';
-echo '<div id="advancedSearch" style="display: none">'.get_lang('Session Search'); ?> :
-     <input name="SearchSession" onchange = "xajax_search_usergroup_sessions(this.value,'searchbox')" onkeyup="this.onchange()">
-     </div>
-<form name="formulaire" method="post" action="<?php echo api_get_self(); ?>?id=<?php echo $id; if (!empty($_GET['add'])) {
-    echo '&add=true';
-} ?>" style="margin:0px;" <?php if ($ajax_search) {
-    echo ' onsubmit="valide();"';
-}?>>
-<?php
-echo '<legend>'.$data['name'].': '.$tool_name.'</legend>';
+
+$actions .= '<a href="javascript://" class="advanced_parameters btn"  onclick="display_advanced_search();">
+                '.get_lang('Advanced search').'
+             </a>';
+
+echo Display::toolbarAction('add_sessions', [$actions]);
+
+echo '<div id="advancedSearch" style="display: none">
+        '.get_lang('Session Search').' :
+        <input
+            type="text"
+            name="SearchSession"
+            onchange="xajax_search_usergroup_sessions(this.value,\'searchbox\')" onkeyup="this.onchange()">
+     </div>';
+
+echo Display::page_header($data['name'].': '.$tool_name);
+
+$extra = '';
+if (!empty($_GET['add'])) {
+    $extra = '&add=true';
+}
+if ($ajax_search) {
+    $extra .= ' onsubmit="valide();" ';
+}
+
+echo '<form name="formulaire" method="post" action="'.api_get_self().'?id='.$id.'"  '.$extra.' >';
 echo Display::input('hidden', 'id', $id);
 echo Display::input('hidden', 'form_sent', '1');
 echo Display::input('hidden', 'add_type', null);
@@ -193,7 +204,7 @@ if (!empty($errorMsg)) {
   <td align="center"><b><?php echo get_lang('Sessions in group'); ?> :</b></td>
 </tr>
 
-<?php if ($add_type == 'multiple') {
+<?php if ('multiple' == $add_type) {
     ?>
 <tr>
 <td align="center">
@@ -213,7 +224,7 @@ if (!empty($errorMsg)) {
   <td align="center">
   <div id="content_source">
       <?php
-      if (!($add_type == 'multiple')) {
+      if (!('multiple' == $add_type)) {
           ?>
         <input type="text" id="user_to_add" onkeyup="xajax_search_users(this.value,'single')" />
         <div id="ajax_list_users_single"></div>
@@ -265,7 +276,6 @@ echo Display::select(
     ['style' => 'width:360px', 'multiple' => 'multiple', 'id' => 'elements_in', 'size' => '15px'],
     false
 );
-    unset($sessionUsersList);
 ?>
  </td>
 </tr>

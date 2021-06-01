@@ -1,13 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
+use Chamilo\CoreBundle\Traits\UserTrait;
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * UserRelUser.
+ * Associations between users (friends).
  *
  * @ORM\Table(name="user_rel_user", indexes={
  *     @ORM\Index(name="idx_user_rel_user__user", columns={"user_id"}),
@@ -18,99 +22,62 @@ use Doctrine\ORM\Mapping as ORM;
  */
 class UserRelUser
 {
+    use UserTrait;
+
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="bigint")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="user_id", type="integer", nullable=false)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="userRelUsers")
+     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $userId;
+    protected User $user;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="friend_user_id", type="integer", nullable=false)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User")
+     * @ORM\JoinColumn(name="friend_user_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $friendUserId;
+    protected User $friend;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="relation_type", type="integer", nullable=false)
      */
-    protected $relationType;
+    protected int $relationType;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="last_edit", type="datetime", nullable=true)
      */
-    protected $lastEdit;
+    protected ?DateTime $lastEdit = null;
 
-    /**
-     * Set userId.
-     *
-     * @param int $userId
-     *
-     * @return UserRelUser
-     */
-    public function setUserId($userId)
+    public function getUser(): User
     {
-        $this->userId = $userId;
+        return $this->user;
+    }
+
+    public function setUser(User $user): self
+    {
+        $this->user = $user;
 
         return $this;
     }
 
-    /**
-     * Get userId.
-     *
-     * @return int
-     */
-    public function getUserId()
+    public function getFriend(): User
     {
-        return $this->userId;
+        return $this->friend;
     }
 
-    /**
-     * Set friendUserId.
-     *
-     * @param int $friendUserId
-     *
-     * @return UserRelUser
-     */
-    public function setFriendUserId($friendUserId)
+    public function setFriend(User $friend): self
     {
-        $this->friendUserId = $friendUserId;
+        $this->friend = $friend;
 
         return $this;
     }
 
-    /**
-     * Get friendUserId.
-     *
-     * @return int
-     */
-    public function getFriendUserId()
-    {
-        return $this->friendUserId;
-    }
-
-    /**
-     * Set relationType.
-     *
-     * @param int $relationType
-     *
-     * @return UserRelUser
-     */
-    public function setRelationType($relationType)
+    public function setRelationType(int $relationType): self
     {
         $this->relationType = $relationType;
 
@@ -127,14 +94,7 @@ class UserRelUser
         return $this->relationType;
     }
 
-    /**
-     * Set lastEdit.
-     *
-     * @param \DateTime $lastEdit
-     *
-     * @return UserRelUser
-     */
-    public function setLastEdit($lastEdit)
+    public function setLastEdit(DateTime $lastEdit): self
     {
         $this->lastEdit = $lastEdit;
 
@@ -144,7 +104,7 @@ class UserRelUser
     /**
      * Get lastEdit.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getLastEdit()
     {

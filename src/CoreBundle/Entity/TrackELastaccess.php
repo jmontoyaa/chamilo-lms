@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -19,57 +22,43 @@ use Doctrine\ORM\Mapping as ORM;
 class TrackELastaccess
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="access_user_id", type="integer", nullable=true)
      */
-    protected $accessUserId;
+    protected int $accessUserId;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="access_date", type="datetime", nullable=false)
      */
-    protected $accessDate;
+    protected DateTime $accessDate;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer", nullable=false)
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="access_tool", type="string", length=30, nullable=true)
      */
-    protected $accessTool;
+    protected ?string $accessTool = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="access_session_id", type="integer", nullable=true)
      */
-    protected $accessSessionId;
+    protected ?int $accessSessionId = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="access_id", type="bigint")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="IDENTITY")
      */
-    protected $accessId;
+    protected int $accessId;
 
     /**
      * Set accessUserId.
      *
-     * @param int $accessUserId
-     *
      * @return TrackELastaccess
      */
-    public function setAccessUserId($accessUserId)
+    public function setAccessUserId(int $accessUserId)
     {
         $this->accessUserId = $accessUserId;
 
@@ -89,11 +78,9 @@ class TrackELastaccess
     /**
      * Set accessDate.
      *
-     * @param \DateTime $accessDate
-     *
      * @return TrackELastaccess
      */
-    public function setAccessDate($accessDate)
+    public function setAccessDate(DateTime $accessDate)
     {
         $this->accessDate = $accessDate;
 
@@ -103,7 +90,7 @@ class TrackELastaccess
     /**
      * Get accessDate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getAccessDate()
     {
@@ -113,11 +100,9 @@ class TrackELastaccess
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return TrackELastaccess
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
@@ -137,11 +122,9 @@ class TrackELastaccess
     /**
      * Set accessTool.
      *
-     * @param string $accessTool
-     *
      * @return TrackELastaccess
      */
-    public function setAccessTool($accessTool)
+    public function setAccessTool(string $accessTool)
     {
         $this->accessTool = $accessTool;
 
@@ -161,11 +144,9 @@ class TrackELastaccess
     /**
      * Set accessSessionId.
      *
-     * @param int $accessSessionId
-     *
      * @return TrackELastaccess
      */
-    public function setAccessSessionId($accessSessionId)
+    public function setAccessSessionId(int $accessSessionId)
     {
         $this->accessSessionId = $accessSessionId;
 

@@ -1,9 +1,10 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.admin
- */
+use Chamilo\CoreBundle\Entity\Asset;
+use Chamilo\CoreBundle\Framework\Container;
+
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -20,10 +21,6 @@ api_protect_limit_for_session_admin();
 
 $formSent = 0;
 $errorMsg = '';
-
-// Crop picture plugin for session images
-//$htmlHeadXtra[] = api_get_css_asset('cropper/dist/cropper.min.css');
-//$htmlHeadXtra[] = api_get_asset('cropper/dist/cropper.min.js');
 
 $interbreadcrumb[] = [
     'url' => 'session_list.php',
@@ -52,7 +49,7 @@ function search_coachs($needle)
         if (api_is_multiple_url_enabled()) {
             $tbl_user_rel_access_url = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
             $access_url_id = api_get_current_access_url_id();
-            if ($access_url_id != -1) {
+            if (-1 != $access_url_id) {
                 $sql = 'SELECT username, lastname, firstname
                         FROM '.$tbl_user.' user
                         INNER JOIN '.$tbl_user_rel_access_url.' url_user
@@ -137,8 +134,6 @@ $form->addElement('header', $tool_name);
 $result = SessionManager::setForm($form);
 
 $url = api_get_path(WEB_AJAX_PATH).'session.ajax.php';
-$urlUpload = api_get_path(WEB_UPLOAD_PATH);
-$sysUploadPath = api_get_path(SYS_UPLOAD_PATH);
 $urlAjaxExtraField = api_get_path(WEB_AJAX_PATH).'extra_field.ajax.php?1=1';
 
 $htmlHeadXtra[] = "
@@ -168,44 +163,44 @@ $(function() {
                     $('#access').val(0);
                     $('#access').selectpicker('render');
                     accessSwitcher(0);
-                    $('#duration').val(parseInt(data.duration));                    
-                } else {                    
+                    $('#duration').val(parseInt(data.duration));
+                } else {
                     $('#access').val(1);
                     $('#access').selectpicker('render');
                     accessSwitcher(1);
-                    
+
                     var variables = [
                         'display_start_date',
                         'access_start_date',
                         'coach_access_start_date',
                         'display_end_date',
                         'access_end_date',
-                        'coach_access_end_date'                        
-                    ];                    
+                        'coach_access_end_date'
+                    ];
                     variables.forEach(function(variable) {
-                        var variableName = variable + '_to_local_time';                        
-                        if (data[variableName]) {                        
+                        var variableName = variable + '_to_local_time';
+                        if (data[variableName]) {
                             var parsedDate = $.datepicker.parseDateTime(
-                                'yy-mm-dd', 
-                                'hh:mm:ss', 
+                                'yy-mm-dd',
+                                'hh:mm:ss',
                                 data[variableName]
-                            );         
+                            );
                             if (parsedDate) {
                                 $('#'+variable).datetimepicker('setDate', parsedDate);
-                            }           
+                            }
                         }
                     });
                 }
-                
+
                 $('[name=\'show_description\']').prop('checked', false);
                 if (data.show_description) {
                     $('[name=\'show_description\']').prop('checked', true);
                 }
-                
+
                 $('[name=\'send_subscription_notification\']').prop('checked', false);
                 if (data.send_subscription_notification) {
                     $('[name=\'send_subscription_notification\']').prop('checked', true);
-                } 
+                }
 
                 $.each(data.extra_fields, function(i, item) {
                     var fieldName = 'extra_'+item.variable;
@@ -252,7 +247,7 @@ $(function() {
                             break;
                         case '4': // simple select
                         case '5': // multiple select
-                            var options = item.value.split(';');                            
+                            var options = item.value.split(';');
                             $('#'+fieldName+'').val(options);
                             $('#'+fieldName+'').selectpicker('render');
                             break;
@@ -327,23 +322,19 @@ $(function() {
                             }
                             break;
                         case '16':
-                            if (item.value) {
-                                //    $('input[name='+fieldName+']').val(item.value);
-                                var url = '".$urlUpload."';
-                                
-                                url = url + item.value;
-                                
+                            if (item.url) {
+                                var url = item.url;
                                 var divFormGroup = fieldName + '-form-group';
                                 var divWrapper = fieldName + '_crop_image';
                                 var divPreview = fieldName + '_preview_image';
                                 var divCropButton = fieldName + '_crop_button';
                                 var cropResult = fieldName + '_crop_result';
-                                                                
+
                                 $('[name=\''+cropResult+'\']').val('import_file_from_session::' + sessionId);
                                 $('#' + divFormGroup).show();
                                 $('#' + divWrapper).show();
                                 $('#' + divCropButton).hide();
-                                $('#' + divPreview).attr('src', url);                                
+                                $('#' + divPreview).attr('src', url);
                                 //$('[name=\''+fieldName+'\']')
                             }
                             break;
@@ -360,8 +351,6 @@ $form->addButtonNext(get_lang('Next step'));
 if (!$formSent) {
     $formDefaults['access_start_date'] = $formDefaults['display_start_date'] = api_get_local_time();
     $formDefaults['coach_username'] = api_get_user_id();
-} else {
-    $formDefaults['name'] = api_htmlentities($name, ENT_QUOTES, $charset);
 }
 
 $form->setDefaults($formDefaults);
@@ -386,10 +375,11 @@ if ($form->validate()) {
     $showDescription = isset($params['show_description']) ? 1 : 0;
     $sendSubscriptionNotification = isset($params['send_subscription_notification']);
     $isThisImageCropped = isset($params['picture_crop_result']);
+    $status = isset($params['status']) ? $params['status'] : 0;
 
     $extraFields = [];
     foreach ($params as $key => $value) {
-        if (strpos($key, 'extra_') === 0) {
+        if (0 === strpos($key, 'extra_')) {
             $extraFields[$key] = $value;
         }
     }
@@ -412,12 +402,13 @@ if ($form->validate()) {
             $extraFieldInfo['id']
         );
 
-        if ($extraFieldValueData && file_exists($sysUploadPath.$extraFieldValueData['value'])) {
-            $extraFields['extra_image']['name'] = basename($extraFieldValueData['value']);
-            $extraFields['extra_image']['tmp_name'] = $sysUploadPath.$extraFieldValueData['value'];
-            $extraFields['extra_image']['type'] = 'image/png';
-            $extraFields['extra_image']['error'] = 0;
-            $extraFields['extra_image']['size'] = filesize($sysUploadPath.$extraFieldValueData['value']);
+        if ($extraFieldValueData) {
+            $repo = Container::getAssetRepository();
+            /** @var Asset $asset */
+            $asset = $repo->find($extraFieldValueData);
+            if ($asset) {
+                $extraFields['extra_image']['id'] = $extraFieldValueData;
+            }
         }
     }
 
@@ -438,7 +429,9 @@ if ($form->validate()) {
         $showDescription,
         $extraFields,
         null,
-        $sendSubscriptionNotification
+        $sendSubscriptionNotification,
+        api_get_current_access_url_id(),
+        $status
     );
 
     if ($return == strval(intval($return))) {
@@ -454,11 +447,9 @@ if (!empty($return)) {
     echo Display::return_message($return, 'error', false);
 }
 
-echo '<div class="actions">';
-echo '<a href="../session/session_list.php">'.
+$actions = '<a href="../session/session_list.php">'.
     Display::return_icon('back.png', get_lang('Back to').' '.get_lang('Administration'), '', ICON_SIZE_MEDIUM).'</a>';
-echo '</div>';
-
+echo Display::toolbarAction('session', [$actions]);
 $form->display();
 
 Display::display_footer();

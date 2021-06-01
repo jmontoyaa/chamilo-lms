@@ -1,11 +1,12 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CGlossary;
 use ChamiloSession as Session;
 
 /**
- * @package chamilo.glossary
- *
  * @author Christian Fasanando, initial version
  * @author Bas Wijnen import/export to CSV
  */
@@ -13,10 +14,8 @@ require_once __DIR__.'/../inc/global.inc.php';
 
 $current_course_tool = TOOL_GLOSSARY;
 
-// The section (tabs).
-$this_section = SECTION_COURSES;
-
 // Notification for unauthorized people.
+$this_section = SECTION_COURSES;
 api_protect_course_script(true);
 
 // Additional javascripts.
@@ -37,7 +36,7 @@ $(function() {
         modal: true
     });
     $("#export_opener").click(function() {
-        var targetUrl = $(this).attr("href");        
+        var targetUrl = $(this).attr("href");
         $( "#dialog-confirm" ).dialog({
             width:400,
             height:300,
@@ -58,6 +57,7 @@ $(function() {
 // Tracking
 Event::event_access_tool(TOOL_GLOSSARY);
 
+/*
 function sorter($item1, $item2)
 {
     if ($item1[2] == $item2[2]) {
@@ -66,7 +66,7 @@ function sorter($item1, $item2)
 
     return $item1[2] < $item2[2] ? -1 : 1;
 }
-
+*/
 // Displaying the header
 $action = isset($_GET['action']) ? Security::remove_XSS($_GET['action']) : '';
 $currentUrl = api_get_self().'?'.api_get_cidreq();
@@ -99,11 +99,11 @@ switch ($action) {
             $form->addElement('text', 'name', get_lang('Term'), ['id' => 'glossary_title']);
         }
 
-        $form->addElement(
-            'html_editor',
+        $form->addHtmlEditor(
             'description',
             get_lang('Term definition'),
-            null,
+            true,
+            false,
             ['ToolbarSet' => 'Glossary', 'Height' => '300']
         );
         $form->addButtonCreate(get_lang('Save term'), 'SubmitGlossary');
@@ -134,6 +134,7 @@ switch ($action) {
             );
             $content .= $form->returnForm();
         }
+
         break;
     case 'edit_glossary':
         if (!api_is_allowed_to_edit(null, true)) {
@@ -171,6 +172,10 @@ switch ($action) {
                 ['ToolbarSet' => 'Glossary', 'Height' => '300']
             );
 
+            $repo = Container::getGlossaryRepository();
+            /** @var CGlossary $glossaryData */
+            $glossaryData = $repo->find($glossaryId);
+            /*
             // setting the defaults
             $glossary_data = GlossaryManager::get_glossary_information($glossaryId);
 
@@ -190,8 +195,14 @@ switch ($action) {
             $form->addLabel(get_lang('Creation date'), $glossary_data['insert_date']);
             $form->addLabel(get_lang('Updated'), $glossary_data['update_date']);
 
+            */
             $form->addButtonUpdate(get_lang('Update term'), 'SubmitGlossary');
-            $form->setDefaults($glossary_data);
+            $default = [
+                'glossary_id' => $glossaryData->getIid(),
+                'name' => $glossaryData->getName(),
+                'description' => $glossaryData->getDescription(),
+            ];
+            $form->setDefaults($default);
 
             // setting the rules
             $form->addRule('name', get_lang('Required field'), 'required');
@@ -222,6 +233,7 @@ switch ($action) {
                 $content .= $form->returnForm();
             }
         }
+
         break;
     case 'delete_glossary':
         if (!api_is_allowed_to_edit(null, true)) {
@@ -231,14 +243,17 @@ switch ($action) {
         Security::clear_token();
         header('Location: '.$currentUrl);
         exit;
+
         break;
     case 'moveup':
         //GlossaryManager::move_glossary('up',$_GET['glossary_id']); //actions not available
         GlossaryManager::display_glossary();
+
         break;
     case 'movedown':
         //GlossaryManager::move_glossary('down',$_GET['glossary_id']); //actions not available
         GlossaryManager::display_glossary();
+
         break;
     case 'import':
         if (!api_is_allowed_to_edit(null, true)) {
@@ -304,18 +319,18 @@ switch ($action) {
             switch ($format) {
                 case 'csv':
                     $data = Import::csvToArray($_FILES['file']['tmp_name']);
+
                     break;
                 case 'xls':
                     $data = Import::xlsToArray($_FILES['file']['tmp_name']);
+
                     break;
             }
 
-            $goodList = [];
             $updatedList = [];
             $addedList = [];
             $badList = [];
             $doubles = [];
-            $added = [];
             $termsPerKey = [];
 
             if ($data) {
@@ -417,6 +432,7 @@ switch ($action) {
             header('Location: '.$currentUrl);
             exit;
         }
+
         break;
     case 'export':
         if (!api_is_allowed_to_edit(null, true)) {
@@ -424,6 +440,7 @@ switch ($action) {
         }
         $format = isset($_GET['export_format']) ? $_GET['export_format'] : 'csv';
         GlossaryManager::exportToFormat($format);
+
         break;
     case 'changeview':
         if (in_array($_GET['view'], ['list', 'table'])) {
@@ -440,22 +457,24 @@ switch ($action) {
         }
         header('Location: '.$currentUrl);
         exit;
+
         break;
     case 'export_documents':
         GlossaryManager::movePdfToDocuments();
         header('Location: '.$currentUrl);
         exit;
+
         break;
     default:
         $tool_name = get_lang('List');
-        $htmlHeadXtra[] = '<script type="text/javascript" src="'.api_get_path(WEB_CODE_PATH).'glossary/glossary.js.php?add_ready=1&'.api_get_cidreq().'"></script>';
+        $htmlHeadXtra[] = '<script src="'.api_get_path(WEB_CODE_PATH).'glossary/glossary.js.php?add_ready=1&'.api_get_cidreq().'"></script>';
         $htmlHeadXtra[] = api_get_js('jquery.highlight.js');
         $content = GlossaryManager::display_glossary();
+
         break;
 }
 
 Display::display_header($tool_name);
-
 Display::display_introduction_section(TOOL_GLOSSARY);
 
 echo $content;

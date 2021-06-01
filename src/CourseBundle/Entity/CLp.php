@@ -1,305 +1,252 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
-use Chamilo\CoreBundle\Entity\Resource\AbstractResource;
-use Chamilo\CoreBundle\Entity\Resource\ResourceInterface;
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\Asset;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
+use DateTime;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation as Gedmo;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * CLp.
+ * Course learning paths (LPs).
  *
  * @ORM\Table(
- *  name="c_lp",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *     @ORM\Index(name="session", columns={"session_id"})
- *  }
+ *     name="c_lp"
  * )
  * @ORM\Entity
  */
 class CLp extends AbstractResource implements ResourceInterface
 {
+    public const LP_TYPE = 1;
+    public const SCORM_TYPE = 2;
+    public const AICC_TYPE = 3;
+
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
-     */
-    protected $cId;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var int
-     *
+     * @Assert\NotBlank()
      * @ORM\Column(name="lp_type", type="integer", nullable=false)
      */
-    protected $lpType;
+    protected int $lpType;
 
     /**
-     * @var string
-     *
+     * @Assert\NotBlank()
      * @ORM\Column(name="name", type="string", length=255, nullable=false)
      */
-    protected $name;
+    protected string $name;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="ref", type="text", nullable=true)
      */
-    protected $ref;
+    protected ?string $ref = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="description", type="text", nullable=true)
      */
-    protected $description;
+    protected ?string $description;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="path", type="text", nullable=false)
      */
-    protected $path;
+    protected string $path;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="force_commit", type="boolean", nullable=false)
      */
-    protected $forceCommit;
+    protected bool $forceCommit;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="default_view_mod", type="string", length=32, nullable=false, options={"default":"embedded"})
      */
-    protected $defaultViewMod;
+    protected string $defaultViewMod;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="default_encoding", type="string", length=32, nullable=false, options={"default":"UTF-8"})
      */
-    protected $defaultEncoding;
+    protected string $defaultEncoding;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="display_order", type="integer", nullable=false, options={"default":"0"})
      */
-    protected $displayOrder;
+    protected int $displayOrder;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="content_maker", type="text", nullable=false)
      */
-    protected $contentMaker;
+    protected string $contentMaker;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="content_local", type="string", length=32, nullable=false, options={"default":"local"})
      */
-    protected $contentLocal;
+    protected string $contentLocal;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="content_license", type="text", nullable=false)
      */
-    protected $contentLicense;
+    protected string $contentLicense;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="prevent_reinit", type="boolean", nullable=false, options={"default":"1"})
      */
-    protected $preventReinit;
+    protected bool $preventReinit;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="js_lib", type="text", nullable=false)
      */
-    protected $jsLib;
+    protected string $jsLib;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="debug", type="boolean", nullable=false)
      */
-    protected $debug;
+    protected bool $debug;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="theme", type="string", length=255, nullable=false)
      */
-    protected $theme;
+    protected string $theme;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(name="preview_image", type="string", length=255, nullable=false)
-     */
-    protected $previewImage;
-
-    /**
-     * @var string
-     *
      * @ORM\Column(name="author", type="text", nullable=false)
      */
-    protected $author;
+    protected string $author;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="session_id", type="integer", nullable=false)
-     */
-    protected $sessionId;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="prerequisite", type="integer", nullable=false)
      */
-    protected $prerequisite;
+    protected int $prerequisite;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="hide_toc_frame", type="boolean", nullable=false)
      */
-    protected $hideTocFrame;
+    protected bool $hideTocFrame;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="seriousgame_mode", type="boolean", nullable=false)
      */
-    protected $seriousgameMode;
+    protected bool $seriousgameMode;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="use_max_score", type="integer", nullable=false, options={"default":"1"})
      */
-    protected $useMaxScore;
+    protected int $useMaxScore;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="autolaunch", type="integer", nullable=false)
      */
-    protected $autolaunch;
+    protected int $autolaunch;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="category_id", type="integer", nullable=false, unique=false)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CLpCategory", inversedBy="lps")
+     * @ORM\JoinColumn(name="category_id", referencedColumnName="iid")
      */
-    protected $categoryId;
+    protected ?CLpCategory $category = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="max_attempts", type="integer", nullable=false)
      */
-    protected $maxAttempts;
+    protected int $maxAttempts;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="subscribe_users", type="integer", nullable=false)
      */
-    protected $subscribeUsers;
+    protected int $subscribeUsers;
 
     /**
-     * @var \DateTime
+     * @Gedmo\Timestampable(on="create")
      *
      * @ORM\Column(name="created_on", type="datetime", nullable=false)
      */
-    protected $createdOn;
+    protected DateTime $createdOn;
 
     /**
-     * @var \DateTime
+     * @Gedmo\Timestampable(on="update")
      *
      * @ORM\Column(name="modified_on", type="datetime", nullable=false)
      */
-    protected $modifiedOn;
+    protected DateTime $modifiedOn;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="publicated_on", type="datetime", nullable=true)
      */
-    protected $publicatedOn;
+    protected ?DateTime $publicatedOn;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="expired_on", type="datetime", nullable=true)
      */
-    protected $expiredOn;
+    protected ?DateTime $expiredOn = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="accumulate_scorm_time", type="integer", nullable=false, options={"default":1})
      */
-    protected $accumulateScormTime;
+    protected int $accumulateScormTime;
 
     /**
-     * Constructor.
+     * @ORM\Column(name="accumulate_work_time", type="integer", nullable=false, options={"default":0})
      */
+    protected int $accumulateWorkTime;
+
+    /**
+     * @var Collection|CLpItem[]
+     *
+     * @ORM\OneToMany(targetEntity="CLpItem", mappedBy="lp", cascade={"persist", "remove"}, orphanRemoval=true)
+     */
+    protected Collection $items;
+
+    /**
+     * @ORM\OneToOne(targetEntity="Chamilo\CourseBundle\Entity\CForum", mappedBy="lp")
+     */
+    protected ?CForum $forum = null;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Asset", cascade={"persist", "remove"})
+     * @ORM\JoinColumn(name="asset_id", referencedColumnName="id")
+     */
+    protected ?Asset $asset = null;
+
     public function __construct()
     {
+        $now = new DateTime();
+        $this->createdOn = $now;
+        $this->modifiedOn = $now;
+        $this->publicatedOn = $now;
         $this->accumulateScormTime = 1;
+        $this->accumulateWorkTime = 0;
         $this->author = '';
         $this->autolaunch = 0;
         $this->contentLocal = 'local';
         $this->contentMaker = 'chamilo';
         $this->contentLicense = '';
-        $this->createdOn = new \DateTime();
-        $this->modifiedOn = new \DateTime();
         $this->defaultEncoding = 'UTF-8';
         $this->defaultViewMod = 'embedded';
         $this->description = '';
         $this->displayOrder = 0;
-        $this->debug = 0;
-        $this->forceCommit = 0;
-        $this->hideTocFrame = 0;
+        $this->debug = false;
+        $this->forceCommit = false;
+        $this->hideTocFrame = false;
         $this->jsLib = '';
         $this->maxAttempts = 0;
         $this->preventReinit = true;
         $this->path = '';
         $this->prerequisite = 0;
-        $this->previewImage = '';
-        $this->publicatedOn = new \DateTime();
-        $this->seriousgameMode = 0;
+        $this->seriousgameMode = false;
         $this->subscribeUsers = 0;
         $this->useMaxScore = 1;
         $this->theme = '';
+        $this->items = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -307,14 +254,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->getName();
     }
 
-    /**
-     * Set lpType.
-     *
-     * @param int $lpType
-     *
-     * @return CLp
-     */
-    public function setLpType($lpType)
+    public function setLpType(int $lpType): self
     {
         $this->lpType = $lpType;
 
@@ -331,38 +271,19 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->lpType;
     }
 
-    /**
-     * Set name.
-     *
-     * @param string $name
-     *
-     * @return CLp
-     */
-    public function setName($name)
+    public function setName(string $name): self
     {
         $this->name = $name;
 
         return $this;
     }
 
-    /**
-     * Get name.
-     *
-     * @return string
-     */
-    public function getName()
+    public function getName(): string
     {
-        return (string) $this->name;
+        return $this->name;
     }
 
-    /**
-     * Set ref.
-     *
-     * @param string $ref
-     *
-     * @return CLp
-     */
-    public function setRef($ref)
+    public function setRef(string $ref): self
     {
         $this->ref = $ref;
 
@@ -379,38 +300,19 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->ref;
     }
 
-    /**
-     * Set description.
-     *
-     * @param string $description
-     *
-     * @return CLp
-     */
-    public function setDescription($description)
+    public function setDescription(string $description): self
     {
         $this->description = $description;
 
         return $this;
     }
 
-    /**
-     * Get description.
-     *
-     * @return string
-     */
-    public function getDescription()
+    public function getDescription(): ?string
     {
         return $this->description;
     }
 
-    /**
-     * Set path.
-     *
-     * @param string $path
-     *
-     * @return CLp
-     */
-    public function setPath($path)
+    public function setPath(string $path): self
     {
         $this->path = $path;
 
@@ -427,14 +329,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->path;
     }
 
-    /**
-     * Set forceCommit.
-     *
-     * @param bool $forceCommit
-     *
-     * @return CLp
-     */
-    public function setForceCommit($forceCommit)
+    public function setForceCommit(bool $forceCommit): self
     {
         $this->forceCommit = $forceCommit;
 
@@ -451,14 +346,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->forceCommit;
     }
 
-    /**
-     * Set defaultViewMod.
-     *
-     * @param string $defaultViewMod
-     *
-     * @return CLp
-     */
-    public function setDefaultViewMod($defaultViewMod)
+    public function setDefaultViewMod(string $defaultViewMod): self
     {
         $this->defaultViewMod = $defaultViewMod;
 
@@ -475,14 +363,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->defaultViewMod;
     }
 
-    /**
-     * Set defaultEncoding.
-     *
-     * @param string $defaultEncoding
-     *
-     * @return CLp
-     */
-    public function setDefaultEncoding($defaultEncoding)
+    public function setDefaultEncoding(string $defaultEncoding): self
     {
         $this->defaultEncoding = $defaultEncoding;
 
@@ -499,14 +380,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->defaultEncoding;
     }
 
-    /**
-     * Set displayOrder.
-     *
-     * @param int $displayOrder
-     *
-     * @return CLp
-     */
-    public function setDisplayOrder($displayOrder)
+    public function setDisplayOrder(int $displayOrder): self
     {
         $this->displayOrder = $displayOrder;
 
@@ -523,14 +397,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->displayOrder;
     }
 
-    /**
-     * Set contentMaker.
-     *
-     * @param string $contentMaker
-     *
-     * @return CLp
-     */
-    public function setContentMaker($contentMaker)
+    public function setContentMaker(string $contentMaker): self
     {
         $this->contentMaker = $contentMaker;
 
@@ -547,14 +414,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->contentMaker;
     }
 
-    /**
-     * Set contentLocal.
-     *
-     * @param string $contentLocal
-     *
-     * @return CLp
-     */
-    public function setContentLocal($contentLocal)
+    public function setContentLocal(string $contentLocal): self
     {
         $this->contentLocal = $contentLocal;
 
@@ -571,14 +431,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->contentLocal;
     }
 
-    /**
-     * Set contentLicense.
-     *
-     * @param string $contentLicense
-     *
-     * @return CLp
-     */
-    public function setContentLicense($contentLicense)
+    public function setContentLicense(string $contentLicense): self
     {
         $this->contentLicense = $contentLicense;
 
@@ -595,14 +448,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->contentLicense;
     }
 
-    /**
-     * Set preventReinit.
-     *
-     * @param bool $preventReinit
-     *
-     * @return CLp
-     */
-    public function setPreventReinit($preventReinit)
+    public function setPreventReinit(bool $preventReinit): self
     {
         $this->preventReinit = $preventReinit;
 
@@ -619,14 +465,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->preventReinit;
     }
 
-    /**
-     * Set jsLib.
-     *
-     * @param string $jsLib
-     *
-     * @return CLp
-     */
-    public function setJsLib($jsLib)
+    public function setJsLib(string $jsLib): self
     {
         $this->jsLib = $jsLib;
 
@@ -643,14 +482,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->jsLib;
     }
 
-    /**
-     * Set debug.
-     *
-     * @param bool $debug
-     *
-     * @return CLp
-     */
-    public function setDebug($debug)
+    public function setDebug(bool $debug): self
     {
         $this->debug = $debug;
 
@@ -667,14 +499,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->debug;
     }
 
-    /**
-     * Set theme.
-     *
-     * @param string $theme
-     *
-     * @return CLp
-     */
-    public function setTheme($theme)
+    public function setTheme(string $theme): self
     {
         $this->theme = $theme;
 
@@ -691,38 +516,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->theme;
     }
 
-    /**
-     * Set previewImage.
-     *
-     * @param string $previewImage
-     *
-     * @return CLp
-     */
-    public function setPreviewImage($previewImage)
-    {
-        $this->previewImage = $previewImage;
-
-        return $this;
-    }
-
-    /**
-     * Get previewImage.
-     *
-     * @return string
-     */
-    public function getPreviewImage()
-    {
-        return $this->previewImage;
-    }
-
-    /**
-     * Set author.
-     *
-     * @param string $author
-     *
-     * @return CLp
-     */
-    public function setAuthor($author)
+    public function setAuthor(string $author): self
     {
         $this->author = $author;
 
@@ -739,38 +533,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->author;
     }
 
-    /**
-     * Set sessionId.
-     *
-     * @param int $sessionId
-     *
-     * @return CLp
-     */
-    public function setSessionId($sessionId)
-    {
-        $this->sessionId = $sessionId;
-
-        return $this;
-    }
-
-    /**
-     * Get sessionId.
-     *
-     * @return int
-     */
-    public function getSessionId()
-    {
-        return $this->sessionId;
-    }
-
-    /**
-     * Set prerequisite.
-     *
-     * @param int $prerequisite
-     *
-     * @return CLp
-     */
-    public function setPrerequisite($prerequisite)
+    public function setPrerequisite(int $prerequisite): self
     {
         $this->prerequisite = $prerequisite;
 
@@ -787,14 +550,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->prerequisite;
     }
 
-    /**
-     * Set hideTocFrame.
-     *
-     * @param bool $hideTocFrame
-     *
-     * @return CLp
-     */
-    public function setHideTocFrame($hideTocFrame)
+    public function setHideTocFrame(bool $hideTocFrame): self
     {
         $this->hideTocFrame = $hideTocFrame;
 
@@ -811,14 +567,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->hideTocFrame;
     }
 
-    /**
-     * Set seriousgameMode.
-     *
-     * @param bool $seriousgameMode
-     *
-     * @return CLp
-     */
-    public function setSeriousgameMode($seriousgameMode)
+    public function setSeriousgameMode(bool $seriousgameMode): self
     {
         $this->seriousgameMode = $seriousgameMode;
 
@@ -835,14 +584,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->seriousgameMode;
     }
 
-    /**
-     * Set useMaxScore.
-     *
-     * @param int $useMaxScore
-     *
-     * @return CLp
-     */
-    public function setUseMaxScore($useMaxScore)
+    public function setUseMaxScore(int $useMaxScore): self
     {
         $this->useMaxScore = $useMaxScore;
 
@@ -859,14 +601,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->useMaxScore;
     }
 
-    /**
-     * Set autolaunch.
-     *
-     * @param int $autolaunch
-     *
-     * @return CLp
-     */
-    public function setAutolaunch($autolaunch)
+    public function setAutolaunch(int $autolaunch): self
     {
         $this->autolaunch = $autolaunch;
 
@@ -883,14 +618,7 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->autolaunch;
     }
 
-    /**
-     * Set createdOn.
-     *
-     * @param \DateTime $createdOn
-     *
-     * @return CLp
-     */
-    public function setCreatedOn($createdOn)
+    public function setCreatedOn(DateTime $createdOn): self
     {
         $this->createdOn = $createdOn;
 
@@ -900,21 +628,14 @@ class CLp extends AbstractResource implements ResourceInterface
     /**
      * Get createdOn.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreatedOn()
     {
         return $this->createdOn;
     }
 
-    /**
-     * Set modifiedOn.
-     *
-     * @param \DateTime $modifiedOn
-     *
-     * @return CLp
-     */
-    public function setModifiedOn($modifiedOn)
+    public function setModifiedOn(DateTime $modifiedOn): self
     {
         $this->modifiedOn = $modifiedOn;
 
@@ -924,147 +645,89 @@ class CLp extends AbstractResource implements ResourceInterface
     /**
      * Get modifiedOn.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModifiedOn()
     {
         return $this->modifiedOn;
     }
 
-    /**
-     * Set publicatedOn.
-     *
-     * @param \DateTime $publicatedOn
-     *
-     * @return CLp
-     */
-    public function setPublicatedOn($publicatedOn)
+    public function setPublicatedOn(DateTime $publicatedOn): self
     {
         $this->publicatedOn = $publicatedOn;
 
         return $this;
     }
 
-    /**
-     * Get publicatedOn.
-     *
-     * @return \DateTime
-     */
-    public function getPublicatedOn()
+    public function getPublicatedOn(): ?DateTime
     {
         return $this->publicatedOn;
     }
 
-    /**
-     * Set expiredOn.
-     *
-     * @param \DateTime $expiredOn
-     *
-     * @return CLp
-     */
-    public function setExpiredOn($expiredOn)
+    public function setExpiredOn(?DateTime $expiredOn): self
     {
         $this->expiredOn = $expiredOn;
 
         return $this;
     }
 
-    /**
-     * Get expiredOn.
-     *
-     * @return \DateTime
-     */
-    public function getExpiredOn()
+    public function getExpiredOn(): ?DateTime
     {
         return $this->expiredOn;
     }
 
-    /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CLp
-     */
-    public function setId($id)
+    public function getCategory(): ?CLpCategory
     {
-        $this->id = $id;
+        return $this->category;
+    }
+
+    public function hasCategory(): bool
+    {
+        return null !== $this->category;
+    }
+
+    public function setCategory(CLpCategory $category = null): self
+    {
+        $this->category = $category;
 
         return $this;
     }
 
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CLp
-     */
-    public function setCId($cId)
-    {
-        $this->cId = $cId;
-
-        return $this;
-    }
-
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
-    {
-        return $this->cId;
-    }
-
-    /**
-     * @return int
-     */
-    public function getCategoryId()
-    {
-        return $this->categoryId;
-    }
-
-    /**
-     * @param int $categoryId
-     *
-     * @return CLp
-     */
-    public function setCategoryId($categoryId)
-    {
-        $this->categoryId = $categoryId;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getAccumulateScormTime()
+    public function getAccumulateScormTime(): int
     {
         return $this->accumulateScormTime;
     }
 
-    /**
-     * @param string $accumulateScormTime
-     *
-     * @return CLp
-     */
-    public function setAccumulateScormTime($accumulateScormTime)
+    public function setAccumulateScormTime(int $accumulateScormTime): self
     {
         $this->accumulateScormTime = $accumulateScormTime;
 
         return $this;
+    }
+
+    public function getAccumulateWorkTime(): int
+    {
+        return $this->accumulateWorkTime;
+    }
+
+    public function setAccumulateWorkTime(int $accumulateWorkTime): self
+    {
+        $this->accumulateWorkTime = $accumulateWorkTime;
+
+        return $this;
+    }
+
+    public function getMaxAttempts(): int
+    {
+        return $this->maxAttempts;
+    }
+
+    /**
+     * @return CLpItem[]|Collection
+     */
+    public function getItems()
+    {
+        return $this->items;
     }
 
     /**
@@ -1087,9 +750,47 @@ class CLp extends AbstractResource implements ResourceInterface
         return $this->subscribeUsers;
     }
 
-    /**
-     * Resource identifier.
-     */
+    public function setSubscribeUsers(int $value): self
+    {
+        $this->subscribeUsers = $value;
+
+        return $this;
+    }
+
+    public function getForum(): ?CForum
+    {
+        return $this->forum;
+    }
+
+    public function hasForum(): bool
+    {
+        return null !== $this->forum;
+    }
+
+    public function setForum(CForum $forum): self
+    {
+        $this->forum = $forum;
+
+        return $this;
+    }
+
+    public function getAsset(): ?Asset
+    {
+        return $this->asset;
+    }
+
+    public function hasAsset(): bool
+    {
+        return null !== $this->asset;
+    }
+
+    public function setAsset(?Asset $asset): self
+    {
+        $this->asset = $asset;
+
+        return $this;
+    }
+
     public function getResourceIdentifier(): int
     {
         return $this->getIid();
@@ -1098,5 +799,10 @@ class CLp extends AbstractResource implements ResourceInterface
     public function getResourceName(): string
     {
         return $this->getName();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setName($name);
     }
 }

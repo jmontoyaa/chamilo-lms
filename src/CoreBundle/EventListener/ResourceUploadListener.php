@@ -1,29 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\EventListener;
 
-use Chamilo\CoreBundle\Entity\Resource\AbstractResource;
-use Doctrine\Common\Persistence\ObjectManager;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
 use Oneup\UploaderBundle\Event\PostPersistEvent;
 use Oneup\UploaderBundle\Uploader\Response\ResponseInterface;
 use Symfony\Component\Routing\RouterInterface;
 
-/**
- * Class ResourceUploadListener.
- */
 class ResourceUploadListener
 {
-    /**
-     * @var ObjectManager
-     */
-    //private $om;
-    private $router;
+    private RouterInterface $router;
 
-    /**
-     * ResourceUploadListener constructor.
-     */
     public function __construct(RouterInterface $router)
     {
         //$this->om = $om;
@@ -35,7 +26,7 @@ class ResourceUploadListener
      */
     public function onUpload(PostPersistEvent $event)
     {
-        /** @var AbstractResource $resource */
+        /** @var ResourceInterface $resource */
         $resource = $event->getFile();
         $courseId = $event->getRequest()->get('cid');
         $sessionId = $event->getRequest()->get('sid');

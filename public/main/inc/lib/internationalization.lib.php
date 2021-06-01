@@ -1,9 +1,10 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
+use Carbon\Carbon;
 use Chamilo\CoreBundle\Framework\Container;
 use ChamiloSession as Session;
-use Patchwork\Utf8;
 use Westsworld\TimeAgo;
 
 /**
@@ -14,8 +15,6 @@ use Westsworld\TimeAgo;
  *
  * @author Ivan Tcholakov, <ivantcholakov@gmail.com>, 2009, 2010
  * @author More authors, mentioned in the correpsonding fragments of this source.
- *
- * @package chamilo.library
  */
 // Predefined date formats in Chamilo provided by the language sub-system.
 // To be used as a parameter for the function api_format_date()
@@ -125,6 +124,7 @@ function api_purify_language_id($language)
 function api_get_language_isocode()
 {
     $request = Container::getRequest();
+
     if ($request) {
         return $request->getLocale();
     }
@@ -232,15 +232,15 @@ function api_get_timezone()
         // Second, see if a timezone has been chosen for the platform
         $timezoneFromSettings = api_get_setting('timezone_value', 'timezones');
 
-        if ($timezoneFromSettings != null) {
+        if (null != $timezoneFromSettings) {
             $timezone = $timezoneFromSettings;
         }
 
         // If allowed by the administrator
         $allowUserTimezones = api_get_setting('use_users_timezone', 'timezones');
+        $userId = api_get_user_id();
 
-        if ($allowUserTimezones === 'true') {
-            $userId = api_get_user_id();
+        if ('true' === $allowUserTimezones && !empty($userId)) {
             // Get the timezone based on user preference, if it exists
             $newExtraField = new ExtraFieldValue('user');
             $data = $newExtraField->get_values_by_handler_and_field_variable($userId, 'timezone');
@@ -273,7 +273,7 @@ function api_get_utc_datetime(
     $returnNullIfInvalidDate = false,
     $returnObj = false
 ) {
-    if (is_null($time) || empty($time) || $time === '0000-00-00 00:00:00') {
+    if (is_null($time) || empty($time) || '0000-00-00 00:00:00' === $time) {
         if ($returnNullIfInvalidDate) {
             return null;
         }
@@ -287,8 +287,12 @@ function api_get_utc_datetime(
     // If time is a timestamp, return directly in utc
     if (is_numeric($time)) {
         $time = (int) $time;
+        $time = gmdate('Y-m-d H:i:s', $time);
+        if ($returnObj) {
+            return new DateTime($time, new DateTimeZone('UTC'));
+        }
 
-        return gmdate('Y-m-d H:i:s', $time);
+        return $time;
     }
     try {
         $fromTimezone = api_get_timezone();
@@ -336,7 +340,7 @@ function api_get_local_time(
     }
 
     // If time is a timestamp, convert it to a string
-    if (is_null($time) || empty($time) || $time == '0000-00-00 00:00:00') {
+    if (is_null($time) || empty($time) || '0000-00-00 00:00:00' == $time) {
         if ($returnNullIfInvalidDate) {
             return null;
         }
@@ -347,7 +351,7 @@ function api_get_local_time(
     if (is_numeric($time)) {
         $time = (int) $time;
         if ($returnNullIfInvalidDate) {
-            if (strtotime(date('d-m-Y H:i:s', $time)) !== (int) $time) {
+            if (strtotime(date('d-m-Y H:i:s', $time)) !== $time) {
                 return null;
             }
         }
@@ -445,6 +449,9 @@ function api_format_date($time, $format = null, $language = null)
 
     if (is_null($format)) {
         $format = DATE_TIME_FORMAT_LONG;
+    }
+    if ($time instanceof DateTime) {
+        $time = $time->format('Y-m-d H:i:s');
     }
 
     $datetype = null;
@@ -556,7 +563,7 @@ function api_format_date($time, $format = null, $language = null)
  * You can use it like this:
  * Display::dateToStringAgoAndLongDate($dateInUtc);.
  *
- * @param string $date                 Result of a date function in this format -> date('Y-m-d H:i:s', time());
+ * @param string|DateTime $date                 Result of a date function in this format -> date('Y-m-d H:i:s', time());
  * @param string $timeZone
  * @param bool   $returnDateDifference
  *
@@ -566,13 +573,13 @@ function api_format_date($time, $format = null, $language = null)
  */
 function date_to_str_ago($date, $timeZone = 'UTC', $returnDateDifference = false)
 {
-    if ($date === '0000-00-00 00:00:00') {
+    if ('0000-00-00 00:00:00' === $date) {
         return '';
     }
 
     $getOldTimezone = api_get_timezone();
     $isoCode = api_get_language_isocode();
-    if ($isoCode === 'pt') {
+    if ('pt' === $isoCode) {
         $isoCode = 'pt-BR';
     }
     $isoCode = ucfirst($isoCode);
@@ -583,13 +590,29 @@ function date_to_str_ago($date, $timeZone = 'UTC', $returnDateDifference = false
     } else {
         $language = new Westsworld\TimeAgo\Translations\En();
     }
+
+    // Use carbon?
+    //Carbon::instance($this->getCreatedAt())->diffForHumans();
     $timeAgo = new TimeAgo($language);
-    $date = api_get_utc_datetime($date, null, true);
+    if (!($date instanceof DateTime)) {
+        $date = api_get_utc_datetime($date, null, true);
+    }
+
     $value = $timeAgo->inWords($date);
     date_default_timezone_set($getOldTimezone);
 
     if ($returnDateDifference) {
-        $value = $timeAgo->dateDifference($date);
+        $now = new DateTime('now', $date->getTimezone());
+        $value = $date->diff($now);
+
+        return [
+            'years' => $value->y,
+            'months' => $value->m,
+            'days' => $value->d,
+            'hours' => $value->h,
+            'minutes' => $value->i,
+            'seconds' => $value->s,
+        ];
     }
 
     return $value;
@@ -729,18 +752,13 @@ function api_get_person_name(
     if (empty($language)) {
         // Do not set $setParentLanguageName because this function is called before
         // the main language is loaded in global.inc.php
-        $language = api_get_interface_language(false, true, false);
+        $language = api_get_language_isocode();
     }
-
     if (!isset($valid[$format][$language])) {
         if (is_int($format)) {
             switch ($format) {
                 case PERSON_NAME_COMMON_CONVENTION:
                     $valid[$format][$language] = _api_get_person_name_convention($language, 'format');
-                    $usernameOrderFromDatabase = api_get_setting('user_name_order');
-                    if (isset($usernameOrderFromDatabase) && !empty($usernameOrderFromDatabase)) {
-                        $valid[$format][$language] = $usernameOrderFromDatabase;
-                    }
                     break;
                 case PERSON_NAME_WESTERN_ORDER:
                     $valid[$format][$language] = '%t %f %l';
@@ -950,15 +968,13 @@ function api_to_system_encoding($string, $from_encoding = null, $check_utf8_vali
  *
  * @param string $string      the input string
  * @param int    $quote_style (optional)    The quote style - ENT_COMPAT (default), ENT_QUOTES, ENT_NOQUOTES
- * @param string $encoding    (optional)    The encoding (of the input string) used in conversion.
- *                            If it is omitted, the platform character set is assumed.
  *
  * @return string Returns the converted string.
  *                This function is aimed at replacing the function htmlentities() for human-language strings.
  *
  * @see http://php.net/manual/en/function.htmlentities
  */
-function api_htmlentities($string, $quote_style = ENT_COMPAT, $encoding = 'UTF-8')
+function api_htmlentities($string, $quote_style = ENT_COMPAT)
 {
     switch ($quote_style) {
         case ENT_COMPAT:
@@ -1016,7 +1032,7 @@ function api_html_entity_decode($string, $quote_style = ENT_COMPAT, $encoding = 
  */
 function api_xml_http_response_encode($string, $from_encoding = 'UTF8')
 {
-    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 'xmlhttprequest' == strtolower($_SERVER['HTTP_X_REQUESTED_WITH'])) {
         if (empty($from_encoding)) {
             $from_encoding = _api_mb_internal_encoding();
         }
@@ -1066,7 +1082,7 @@ function api_transliterate($string, $unknown = '?', $from_encoding = null)
  */
 function api_ord($character, $encoding = 'UTF-8')
 {
-    return Utf8::ord(api_utf8_encode($character, $encoding));
+    return ord(api_utf8_encode($character, $encoding));
 }
 
 /**
@@ -1103,7 +1119,7 @@ function api_ord($character, $encoding = 'UTF-8')
  */
 function api_str_ireplace($search, $replace, $subject, &$count = null, $encoding = null)
 {
-    return Utf8::str_ireplace($search, $replace, $subject, $count);
+    return str_ireplace($search, $replace, $subject, $count);
 }
 
 /**
@@ -1126,7 +1142,7 @@ function api_str_ireplace($search, $replace, $subject, &$count = null, $encoding
  */
 function api_str_split($string, $split_length = 1, $encoding = null)
 {
-    return Utf8::str_split($string, $split_length);
+    return str_split($string, $split_length);
 }
 
 /**
@@ -1149,7 +1165,7 @@ function api_str_split($string, $split_length = 1, $encoding = null)
  */
 function api_stripos($haystack, $needle, $offset = 0, $encoding = null)
 {
-    return Utf8::stripos($haystack, $needle, $offset);
+    return stripos($haystack, $needle, $offset);
 }
 
 /**
@@ -1177,7 +1193,7 @@ function api_stripos($haystack, $needle, $offset = 0, $encoding = null)
  */
 function api_stristr($haystack, $needle, $before_needle = false, $encoding = null)
 {
-    return Utf8::stristr($haystack, $needle, $before_needle);
+    return stristr($haystack, $needle, $before_needle);
 }
 
 /**
@@ -1199,7 +1215,7 @@ function api_stristr($haystack, $needle, $before_needle = false, $encoding = nul
  */
 function api_strlen($string, $encoding = null)
 {
-    return Utf8::strlen($string);
+    return strlen($string);
 }
 
 /**
@@ -1219,7 +1235,7 @@ function api_strlen($string, $encoding = null)
  */
 function api_strpos($haystack, $needle, $offset = 0, $encoding = null)
 {
-    return Utf8::strpos($haystack, $needle, $offset);
+    return strpos($haystack, $needle, $offset);
 }
 
 /**
@@ -1242,7 +1258,7 @@ function api_strpos($haystack, $needle, $offset = 0, $encoding = null)
  */
 function api_strrchr($haystack, $needle, $before_needle = false, $encoding = null)
 {
-    return Utf8::strrchr($haystack, $needle);
+    return strrchr($haystack, $needle);
 }
 
 /**
@@ -1258,7 +1274,7 @@ function api_strrchr($haystack, $needle, $before_needle = false, $encoding = nul
  */
 function api_strrev($string, $encoding = null)
 {
-    return Utf8::strrev($string);
+    return strrev($string);
 }
 
 /**
@@ -1278,7 +1294,7 @@ function api_strrev($string, $encoding = null)
  */
 function api_strripos($haystack, $needle, $offset = 0, $encoding = null)
 {
-    return Utf8::strripos($haystack, $needle, $offset);
+    return strripos($haystack, $needle, $offset);
 }
 
 /**
@@ -1298,7 +1314,7 @@ function api_strripos($haystack, $needle, $offset = 0, $encoding = null)
  */
 function api_strrpos($haystack, $needle, $offset = 0, $encoding = null)
 {
-    return Utf8::strrpos($haystack, $needle, $offset);
+    return strrpos($haystack, $needle, $offset);
 }
 
 /**
@@ -1321,7 +1337,7 @@ function api_strrpos($haystack, $needle, $offset = 0, $encoding = null)
  */
 function api_strstr($haystack, $needle, $before_needle = false, $encoding = null)
 {
-    return Utf8::strstr($haystack, $needle, $before_needle);
+    return strstr($haystack, $needle, $before_needle);
 }
 
 /**
@@ -1338,7 +1354,7 @@ function api_strstr($haystack, $needle, $before_needle = false, $encoding = null
  */
 function api_strtolower($string, $encoding = null)
 {
-    return Utf8::strtolower($string);
+    return strtolower($string);
 }
 
 /**
@@ -1355,7 +1371,7 @@ function api_strtolower($string, $encoding = null)
  */
 function api_strtoupper($string, $encoding = null)
 {
-    return Utf8::strtoupper($string);
+    return strtoupper($string);
 }
 
 /**
@@ -1380,7 +1396,7 @@ function api_substr($string, $start, $length = null, $encoding = null)
         $length = api_strlen($string, $encoding);
     }
 
-    return Utf8::substr($string, $start, $length);
+    return substr($string, $start, $length);
 }
 
 /**
@@ -1397,7 +1413,7 @@ function api_substr($string, $start, $length = null, $encoding = null)
  */
 function api_substr_count($haystack, $needle, $encoding = null)
 {
-    return Utf8::substr_count($haystack, $needle);
+    return substr_count($haystack, $needle);
 }
 
 /**
@@ -1429,7 +1445,7 @@ function api_substr_replace($string, $replacement, $start, $length = null, $enco
         $length = api_strlen($string);
     }
 
-    return UTf8::substr_replace($string, $replacement, $start, $length);
+    return substr_replace($string, $replacement, $start, $length);
 }
 
 /**
@@ -1446,7 +1462,7 @@ function api_substr_replace($string, $replacement, $start, $length = null, $enco
  */
 function api_ucfirst($string, $encoding = null)
 {
-    return Utf8::ucfirst($string);
+    return ucfirst($string);
 }
 
 /**
@@ -1463,7 +1479,7 @@ function api_ucfirst($string, $encoding = null)
  */
 function api_ucwords($string, $encoding = null)
 {
-    return Utf8::ucwords($string);
+    return ucwords($string);
 }
 
 /**
@@ -1541,11 +1557,12 @@ function api_preg_match_all($pattern, $subject, &$matches, $flags = PREG_PATTERN
  *                                  If it is omitted, the platform character set will be used by default.
  *
  * @return array|string|null returns an array if the subject parameter is an array, or a string otherwise.
- *                           If matches are found, the new subject will be returned, otherwise subject will be returned unchanged or NULL if an error occurred.
+ *                           If matches are found, the new subject will be returned, otherwise subject will be returned
+ *                           unchanged or NULL if an error occurred.
  *
  * @see http://php.net/preg_replace
  */
-function api_preg_replace($pattern, $replacement, $subject, $limit = -1, &$count = 0, $encoding = null)
+function api_preg_replace($pattern, $replacement, $subject, $limit = -1, $count = 0, $encoding = null)
 {
     if (empty($encoding)) {
         $encoding = _api_mb_internal_encoding();
@@ -1835,7 +1852,7 @@ function api_detect_encoding($string, $language = null)
  */
 function api_is_valid_utf8($string)
 {
-    return Utf8::isUtf8($string);
+    return mb_check_encoding($string, 'UTF-8');
 }
 
 /**
@@ -1848,7 +1865,7 @@ function api_is_valid_utf8($string)
  */
 function api_is_valid_ascii(&$string)
 {
-    return mb_detect_encoding($string, 'ASCII', true) == 'ASCII' ? true : false;
+    return 'ASCII' == mb_detect_encoding($string, 'ASCII', true) ? true : false;
 }
 
 /**
@@ -1949,68 +1966,225 @@ function &_api_get_day_month_names($language = null)
 }
 
 /**
+/**
+ * The following table contains two types of conventions concerning person names:.
+ *
+ * "format" - determines how a full person name to be formatted, i.e. in what order the title, the first_name and the last_name to be placed.
+ * You might need to correct the value for your language. The possible values are:
+ * title first_name last_name  - Western order;
+ * title last_name first_name  - Eastern order;
+ * title last_name, first_name - Western libraries order.
+ * Placing the title (Dr, Mr, Miss, etc) depends on the tradition in you country.
+ *
+ * @see http://en.wikipedia.org/wiki/Personal_name#Naming_convention
+ *
+ * "sort_by" - determines you preferable way of sorting person names. The possible values are:
+ * first_name                  - sorting names with priority for the first name;
+ * last_name                   - sorting names with priority for the last name.
+ */
+function getLegacyOrderConventions()
+{
+    return [
+        'afrikaans' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'albanian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'alemannic' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'amharic' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'armenian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'ar' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'asturian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'bosnian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'brazilian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'breton' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'bulgarian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'catalan' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'croatian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'czech' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'danish' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'dari' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'dutch' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'english' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'esperanto' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'estonian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'basque' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'finnish' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'french' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'frisian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'friulian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'galician' => ['format' => 'title last_name first_name', 'sort_by' => 'last_name'],
+        'georgian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'german' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'greek' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'hawaiian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'hebrew' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'hindi' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'hungarian' => ['format' => 'title last_name first_name', 'sort_by' => 'last_name'], // Eastern order
+        'icelandic' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'indonesian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'irish' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'italian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'japanese' => ['format' => 'title last_name first_name', 'sort_by' => 'last_name'], // Eastern order
+        'korean' => ['format' => 'title last_name first_name', 'sort_by' => 'last_name'], // Eastern order
+        'latin' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'latvian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'lithuanian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'macedonian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'malay' => ['format' => 'title last_name first_name', 'sort_by' => 'last_name'], // Eastern order
+        'manx' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'marathi' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'middle_frisian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'mingo' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'nepali' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'norwegian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'occitan' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'pashto' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'persian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'polish' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'portuguese' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'quechua_cusco' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'romanian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'rumantsch' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'russian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'sanskrit' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'serbian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'serbian_cyrillic' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'simpl_chinese' => ['format' => 'title last_name first_name', 'sort_by' => 'last_name'], // Eastern order
+        'slovak' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'slovenian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'spanish' => ['format' => 'title last_name, first_name', 'sort_by' => 'last_name'], // Library order
+        'swahili' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'swedish' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'tagalog' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'tamil' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'thai' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'trad_chinese' => ['format' => 'title last_name first_name', 'sort_by' => 'last_name'], // Eastern order
+        'turkish' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'ukrainian' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'vietnamese' => ['format' => 'title last_name first_name', 'sort_by' => 'last_name'], // Eastern order
+        'welsh' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'yiddish' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+        'yoruba' => ['format' => 'title first_name last_name', 'sort_by' => 'first_name'],
+    ];
+}
+
+function getIsoToLegacy()
+{
+    return array_flip(getLegacyToIso());
+}
+
+function getLegacyToIso()
+{
+    return [
+        'asturian' => 'ast_ES',
+        'basque' => 'eu_ES',
+        'bengali' => 'bn',
+        'bosnian' => 'bs',
+        'brazilian' => 'pt_BR',
+        'bulgarian' => 'bg',
+        'catalan' => 'ca_ES',
+        'croatian' => 'hr',
+        'czech' => 'cs',
+        'danish' => 'da',
+        'dari' => 'fa_AF',
+        'dutch' => 'nl',
+        'english' => 'en',
+        'estonian' => 'et',
+        'esperanto' => 'eo',
+        'faroese' => 'fo',
+        'finnish' => 'fi',
+        'french' => 'fr',
+        'friulian' => 'fur_IT',
+        'galician' => 'gl_ES',
+        'georgian' => 'ka',
+        'german' => 'de',
+        'greek' => 'el',
+        'hebrew' => 'he',
+        'hindi' => 'hi',
+        'hungarian' => 'hu',
+        'indonesian' => 'id',
+        'italian' => 'it',
+        'japanese' => 'ja',
+        'korean' => 'ko',
+        'latvian' => 'lv',
+        'lithuanian' => 'lt',
+        'macedonian' => 'mk',
+        'malay' => 'ms',
+        'norwegian' => 'nn',
+        'occitan' => 'oc_FR',
+        'pashto' => 'ps',
+        'persian' => 'fa',
+        'polish' => 'pl',
+        'portuguese' => 'pt',
+        'quechua_cusco' => 'qu',
+        'romanian' => 'ro',
+        'russian' => 'ru',
+        'serbian' => 'sr',
+        'simpl_chinese' => 'zh_CN',
+        'slovak' => 'sk',
+        'slovenian' => 'sl',
+        'somali' => 'so',
+        'spanish' => 'es',
+        'spanish_latin' => 'es_MX',
+        'swahili' => 'sw',
+        'swedish' => 'sv',
+        'tagalog' => 'tl',
+        'thai' => 'th',
+        'tibetan' => 'bo',
+        'trad_chinese' => 'zh_TW',
+        'turkish' => 'tr',
+        'ukrainian' => 'uk',
+        'vietnamese' => 'vi',
+        'xhosa' => 'xh',
+        'yoruba' => 'yo',
+    ];
+}
+
+/**
  * Returns returns person name convention for a given language.
  *
- * @param string $language the input language
- * @param string $type     The type of the requested convention.
- *                         It may be 'format' for name order convention or 'sort_by' for name sorting convention.
+ * @param string $iso
+ * @param string $type The type of the requested convention.
+ *                     It may be 'format' for name order convention or 'sort_by' for name sorting convention.
  *
  * @return mixed Depending of the requested type,
  *               the returned result may be string or boolean; null is returned on error;
  */
-function _api_get_person_name_convention($language, $type)
+function _api_get_person_name_convention($iso, $type)
 {
-    static $conventions;
-
-    $language = api_get_language_from_iso($language);
-    $languageName = 'english';
-    if (!empty($language)) {
-        $languageName = $language->getEnglishName();
+    $conventions = getLegacyOrderConventions();
+    $languageName = '';
+    if (isset(getIsoToLegacy()[$iso])) {
+        $languageName = getIsoToLegacy()[$iso];
     }
 
-    if (!isset($conventions)) {
-        $file = __DIR__.'/internationalization_database/name_order_conventions.php';
-        if (file_exists($file)) {
-            $conventions = include $file;
-        } else {
-            $conventions = [
-                'english' => [
-                    'format' => 'title first_name last_name',
-                    'sort_by' => 'first_name',
-                ],
-            ];
+    // Overwrite classic conventions
+    $customConventions = api_get_configuration_value('name_order_conventions');
+    if (!empty($customConventions)) {
+        foreach ($customConventions as $key => $data) {
+            $conventions[$key] = $data;
         }
-        // Overwrite classic conventions
-        $customConventions = api_get_configuration_value('name_order_conventions');
-
-        if (!empty($customConventions)) {
-            foreach ($customConventions as $key => $data) {
-                $conventions[$key] = $data;
-            }
-        }
-
-        $search1 = ['FIRST_NAME', 'LAST_NAME', 'TITLE'];
-        $replacement1 = ['%F', '%L', '%T'];
-        $search2 = ['first_name', 'last_name', 'title'];
-        $replacement2 = ['%f', '%l', '%t'];
-        foreach (array_keys($conventions) as $key) {
-            $conventions[$key]['format'] = str_replace($search1, $replacement1, $conventions[$key]['format']);
-            $conventions[$key]['format'] = _api_validate_person_name_format(
-                _api_clean_person_name(
-                    str_replace(
-                        '%',
-                        ' %',
-                        str_ireplace(
-                            $search2,
-                            $replacement2,
-                            $conventions[$key]['format']
-                        )
+    }
+    $search1 = ['FIRST_NAME', 'LAST_NAME', 'TITLE'];
+    $replacement1 = ['%F', '%L', '%T'];
+    $search2 = ['first_name', 'last_name', 'title'];
+    $replacement2 = ['%f', '%l', '%t'];
+    foreach (array_keys($conventions) as $key) {
+        $conventions[$key]['format'] = str_replace($search1, $replacement1, $conventions[$key]['format']);
+        $conventions[$key]['format'] = _api_validate_person_name_format(
+            _api_clean_person_name(
+                str_replace(
+                    '%',
+                    ' %',
+                    str_ireplace(
+                        $search2,
+                        $replacement2,
+                        $conventions[$key]['format']
                     )
                 )
-            );
-            $conventions[$key]['sort_by'] = strtolower($conventions[$key]['sort_by']) != 'last_name' ? true : false;
-        }
+            )
+        );
+        $conventions[$key]['sort_by'] = 'last_name' !== strtolower($conventions[$key]['sort_by']) ? true : false;
     }
+
     switch ($type) {
         case 'format':
             return is_string($conventions[$languageName]['format']) ? $conventions[$languageName]['format'] : '%t %f %l';
@@ -2030,7 +2204,7 @@ function _api_get_person_name_convention($language, $type)
  */
 function _api_validate_person_name_format($format)
 {
-    if (empty($format) || stripos($format, '%f') === false || stripos($format, '%l') === false) {
+    if (empty($format) || false === stripos($format, '%f') || false === stripos($format, '%l')) {
         return '%t %f %l';
     }
 
@@ -2161,7 +2335,7 @@ function _api_iconv_supports($encoding)
     if (!isset($supported[$encoding])) {
         if (ICONV_INSTALLED) {
             $enc = api_refine_encoding_id($encoding);
-            if ($enc != 'HTML-ENTITIES') {
+            if ('HTML-ENTITIES' != $enc) {
                 $test_string = '';
                 for ($i = 32; $i < 128; $i++) {
                     $test_string .= chr($i);
@@ -2184,7 +2358,7 @@ function _api_convert_encoding_supports($encoding)
 {
     static $supports = [];
     if (!isset($supports[$encoding])) {
-        $supports[$encoding] = _api_get_character_map_name(api_refine_encoding_id($encoding)) != '';
+        $supports[$encoding] = '' != _api_get_character_map_name(api_refine_encoding_id($encoding));
     }
 
     return $supports[$encoding];

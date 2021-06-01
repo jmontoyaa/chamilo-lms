@@ -6,8 +6,6 @@ use ChamiloSession as Session;
 /**
  * This file allows creating new svg and png documents with an online editor.
  *
- * @package chamilo.document
- *
  * @todo used the document_id instead of the curdirpath
  *
  * @author Juan Carlos Raña Trabado
@@ -63,15 +61,15 @@ if (strstr($dir, '..')) {
     $dir = '/';
 }
 
-if ($dir[0] == '.') {
+if ('.' == $dir[0]) {
     $dir = substr($dir, 1);
 }
 
-if ($dir[0] != '/') {
+if ('/' != $dir[0]) {
     $dir = '/'.$dir;
 }
 
-if ($dir[strlen($dir) - 1] != '/') {
+if ('/' != $dir[strlen($dir) - 1]) {
     $dir .= '/';
 }
 
@@ -148,7 +146,7 @@ $target = $target_path;
 $locktarget = "true";
 $locktitle = "false";
 
-if ($_SERVER['HTTP_HOST'] == "localhost") {
+if ("localhost" == $_SERVER['HTTP_HOST']) {
     $path_and_file = api_get_path(SYS_PATH).'/crossdomain.xml';
     if (!file_exists($path_and_file)) {
         $crossdomain = '<?xml version="1.0"?>
@@ -212,7 +210,7 @@ $pixlr_url = '//pixlr.com/editor/?title='.$title.'&image='.$image.'&loc='.$loc.'
 //make frame an send image
 ?>
 <script>
-document.write ('<iframe id="frame" frameborder="0" scrolling="no" src="<?php echo  $pixlr_url; ?>" width="100%" height="100%"><noframes><p>Sorry, your browser does not handle frames</p></noframes></iframe>');
+document.write ('<iframe id="frame" frameborder="0" scrolling="no" src="<?php echo $pixlr_url; ?>" width="100%" height="100%"><noframes><p>Sorry, your browser does not handle frames</p></noframes></iframe>');
 function resizeIframe() {
     var height = window.innerHeight;
     //max lower size

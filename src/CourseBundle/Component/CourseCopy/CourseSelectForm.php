@@ -338,21 +338,21 @@ class CourseSelectForm
                         foreach ($resources as $id => $resource) {
                             $forum_categories[$id] = $resource;
                         }
-                        ++$element_count;
+                        $element_count++;
 
                         break;
                     case RESOURCE_FORUM:
                         foreach ($resources as $id => $resource) {
                             $forums[$resource->obj->forum_category][$id] = $resource;
                         }
-                        ++$element_count;
+                        $element_count++;
 
                         break;
                     case RESOURCE_FORUMTOPIC:
                         foreach ($resources as $id => $resource) {
                             $forum_topics[$resource->obj->forum_id][$id] = $resource;
                         }
-                        ++$element_count;
+                        $element_count++;
 
                         break;
                     case RESOURCE_LINKCATEGORY:
@@ -397,6 +397,14 @@ class CourseSelectForm
                             }
                         }
 
+                        if (RESOURCE_QUIZ == $type) {
+                            echo Display::return_message(
+                                get_lang(
+                                    'IfYourQuizHaveHotspotQuestionsIncludedYouShouldSelectTheImagesFromTheDocuments'
+                                ),
+                                'warning'
+                            );
+                        }
                         if ($showItems) {
                             echo '<div class="well">';
                             echo '<div class="btn-group">';
@@ -431,7 +439,7 @@ class CourseSelectForm
                             echo '</div>';
                             echo '<script language="javascript">exp('."'$type'".')</script>';
                         }
-                        ++$element_count;
+                        $element_count++;
                 }
             }
         }
@@ -772,6 +780,7 @@ class CourseSelectForm
 
         echo '<script src="'.api_get_path(WEB_CODE_PATH).'inc/lib/javascript/upload.js" type="text/javascript"></script>';
 
+        $icon = Display::returnIconPath('progress_bar.gif');
         echo '<div class="tool-backups-options">';
         echo '<form method="post" id="upload_form" name="course_select_form">';
         echo '<input type="hidden" name="action" value="course_select_form"/>';

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
@@ -7,54 +9,48 @@ namespace Chamilo\CoreBundle\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * SessionRelCourse.
+ * Course subscriptions to a session.
  *
- * @ORM\Table(name="session_rel_course", indexes={@ORM\Index(name="idx_session_rel_course_course_id", columns={"c_id"})})
+ * @ORM\Table(name="session_rel_course", indexes={
+ *     @ORM\Index(name="idx_session_rel_course_course_id", columns={"c_id"})
+ * })
  * @ORM\Entity
  */
 class SessionRelCourse
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="nbr_users", type="integer")
-     */
-    protected $nbrUsers;
+    protected int $id;
 
     /**
      * @ORM\ManyToOne(targetEntity="Session", inversedBy="courses", cascade={"persist"})
      * @ORM\JoinColumn(name="session_id", referencedColumnName="id", nullable=false)
      */
-    protected $session;
+    protected ?Session $session = null;
 
     /**
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course", inversedBy="sessions", cascade={"persist"})
      * @ORM\JoinColumn(name="c_id", referencedColumnName="id", nullable=false)
      */
-    protected $course;
+    protected ?Course $course = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="position", type="integer", nullable=false)
      */
-    protected $position;
+    protected int $position;
 
     /**
-     * Constructor.
+     * @ORM\Column(name="nbr_users", type="integer")
      */
+    protected int $nbrUsers;
+
     public function __construct()
     {
         $this->nbrUsers = 0;
+        $this->position = 0;
     }
 
     /**
@@ -67,86 +63,48 @@ class SessionRelCourse
         return $this->id;
     }
 
-    /**
-     * @param Session $session
-     *
-     * @return $this
-     */
-    public function setSession($session)
+    public function setSession(Session $session): self
     {
         $this->session = $session;
 
         return $this;
     }
 
-    /**
-     * Get course.
-     *
-     * @return Course
-     */
-    public function getCourse()
+    public function getCourse(): Course
     {
         return $this->course;
     }
 
-    /**
-     * @param Course $course
-     *
-     * @return $this
-     */
-    public function setCourse($course)
+    public function setCourse(Course $course): self
     {
         $this->course = $course;
 
         return $this;
     }
 
-    /**
-     * Get Session.
-     *
-     * @return Session
-     */
-    public function getSession()
+    public function getSession(): Session
     {
         return $this->session;
     }
 
-    /**
-     * Set nbrUsers.
-     *
-     * @param int $nbrUsers
-     *
-     * @return SessionRelCourse
-     */
-    public function setNbrUsers($nbrUsers)
+    public function setNbrUsers(int $nbrUsers): self
     {
         $this->nbrUsers = $nbrUsers;
 
         return $this;
     }
 
-    /**
-     * Get nbrUsers.
-     *
-     * @return int
-     */
-    public function getNbrUsers()
+    public function getNbrUsers(): int
     {
         return $this->nbrUsers;
     }
 
-    /**
-     * @return int
-     */
-    public function getPosition()
+    public function getPosition(): int
     {
         return $this->position;
     }
 
-    /**
-     * @param int $position
-     */
-    public function setPosition($position)
+    public function setPosition(int $position): void
     {
         $this->position = $position;
     }

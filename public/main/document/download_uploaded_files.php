@@ -16,6 +16,7 @@ $courseInfo = api_get_course_info($courseCode);
 if (empty($courseInfo)) {
     $courseInfo = api_get_course_info();
 }
+$type = preg_replace("/[^a-zA-Z_]+/", '', $type);
 if (empty($courseInfo) || empty($type) || empty($file)) {
     api_not_allowed(true);
 }
@@ -29,7 +30,7 @@ if (!is_dir($toolPath)) {
 if (Security::check_abs_path($toolPath.$file, $toolPath.'/')) {
     $fullFilePath = $toolPath.$file;
     $result = DocumentManager::file_send_for_download($fullFilePath, false, '');
-    if ($result === false) {
+    if (false === $result) {
         api_not_allowed(true);
     }
 }

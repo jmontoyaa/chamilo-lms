@@ -1,47 +1,47 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Traits\UserTrait;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * AccessUrlRelUser.
- *
  * @ORM\Table(
  *     name="access_url_rel_user",
  *     indexes={
- *      @ORM\Index(name="idx_access_url_rel_user_user", columns={"user_id"}),
- *      @ORM\Index(name="idx_access_url_rel_user_access_url", columns={"access_url_id"}),
- *      @ORM\Index(name="idx_access_url_rel_user_access_url_user", columns={"user_id", "access_url_id"})
+ *         @ORM\Index(name="idx_access_url_rel_user_user", columns={"user_id"}),
+ *         @ORM\Index(name="idx_access_url_rel_user_access_url", columns={"access_url_id"}),
+ *         @ORM\Index(name="idx_access_url_rel_user_access_url_user", columns={"user_id", "access_url_id"})
  *     }
  * )
  * @ORM\Entity
  */
 class AccessUrlRelUser
 {
+    use UserTrait;
+
     /**
-     * @var int
-     *
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(name="id", type="integer")
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @ORM\ManyToOne(targetEntity="Chamilo\UserBundle\Entity\User", inversedBy="portals")
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="portals")
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $user;
+    protected User $user;
 
     /**
      * @ORM\ManyToOne(targetEntity="AccessUrl", inversedBy="user", cascade={"persist"})
      * @ORM\JoinColumn(name="access_url_id", referencedColumnName="id")
      */
-    protected $url;
+    protected AccessUrl $url;
 
     /**
      * @return string
@@ -54,30 +54,6 @@ class AccessUrlRelUser
     public function getId(): int
     {
         return $this->id;
-    }
-
-    public function setId(int $id): self
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    public function getUser(): User
-    {
-        return $this->user;
-    }
-
-    /**
-     * @param User $user
-     *
-     * @return $this
-     */
-    public function setUser($user)
-    {
-        $this->user = $user;
-
-        return $this;
     }
 
     public function getUrl(): AccessUrl

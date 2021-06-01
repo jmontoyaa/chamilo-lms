@@ -1,18 +1,17 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Framework\Container;
 
 require_once __DIR__.'/../inc/global.inc.php';
 $current_course_tool = TOOL_STUDENTPUBLICATION;
 
 api_protect_course_script(true);
 
-// Including necessary files
-require_once 'work.lib.php';
-
 $this_section = SECTION_COURSES;
-
-$work_id = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : null;
-$documentId = isset($_REQUEST['document_id']) ? intval($_REQUEST['document_id']) : null;
+$work_id = isset($_REQUEST['id']) ? (int) ($_REQUEST['id']) : null;
+$documentId = isset($_REQUEST['document_id']) ? (int) ($_REQUEST['document_id']) : null;
 
 $is_allowed_to_edit = api_is_allowed_to_edit();
 $course_id = api_get_course_int_id();
@@ -32,15 +31,14 @@ protectWork($course_info, $work_id);
 
 $workInfo = get_work_data_by_id($work_id);
 
-$is_course_member = CourseManager::is_user_subscribed_in_real_or_linked_course(
-    $user_id,
-    $course_id,
-    $session_id
-);
-
+if (empty($session_id)) {
+    $is_course_member = CourseManager::is_user_subscribed_in_course($user_id, $course_code);
+} else {
+    $is_course_member = CourseManager::is_user_subscribed_in_course($user_id, $course_code, true, $session_id);
+}
 $is_course_member = $is_course_member || api_is_platform_admin();
 
-if ($is_course_member == false) {
+if (false == $is_course_member) {
     api_not_allowed(true);
 }
 
@@ -65,9 +63,9 @@ $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Upload from template')];
 $form = new FormValidator(
     'form',
     'POST',
-    api_get_self()."?".api_get_cidreq()."&id=".$work_id,
+    api_get_self().'?'.api_get_cidreq().'&id='.$work_id,
     '',
-    ['enctype' => "multipart/form-data"]
+    ['enctype' => 'multipart/form-data']
 );
 setWorkUploadForm($form, $workInfo['allow_text_assignment']);
 $form->addElement('hidden', 'document_id', $documentId);
@@ -75,11 +73,16 @@ $form->addElement('hidden', 'id', $work_id);
 $form->addElement('hidden', 'sec_token', $token);
 
 $documentTemplateData = getDocumentTemplateFromWork($work_id, $course_info, $documentId);
-
 $defaults = [];
 if (!empty($documentTemplateData)) {
-    $defaults['title'] = $userInfo['complete_name'].'_'.$documentTemplateData['title'].'_'.substr(api_get_utc_datetime(), 0, 10);
-    $defaults['description'] = $documentTemplateData['file_content'];
+    $defaults['title'] = $userInfo['complete_name'].'_'.
+        $documentTemplateData->getTitle().'_'.substr(
+        api_get_utc_datetime(),
+        0,
+        10
+    );
+    $docRepo = Container::getDocumentRepository();
+    $defaults['description'] = $docRepo->getResourceFileContent($documentTemplateData);
 }
 
 $form->setDefaults($defaults);
@@ -124,7 +127,7 @@ if (!empty($work_id)) {
         } else {
             $form->display();
         }
-    } elseif ($student_can_edit_in_session && $validationStatus['has_ended'] == false) {
+    } elseif ($student_can_edit_in_session && false == $validationStatus['has_ended']) {
         $form->display();
     } else {
         api_not_allowed();

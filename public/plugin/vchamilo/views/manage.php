@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 $cidReset = true;
@@ -20,7 +21,7 @@ if ($action) {
     require_once api_get_path(SYS_PLUGIN_PATH).'vchamilo/views/manage.controller.php';
 }
 
-$query = "SELECT * FROM vchamilo";
+$query = 'SELECT * FROM vchamilo';
 $result = Database::query($query);
 $instances = [];
 while ($instance = Database::fetch_object($result)) {

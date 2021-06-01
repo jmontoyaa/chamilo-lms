@@ -4,7 +4,7 @@
 /**
  * Class SubLanguageManager.
  *
- * @package chamilo.admin.sublanguage
+ * @deprecated
  */
 class SubLanguageManager
 {
@@ -32,7 +32,7 @@ class SubLanguageManager
         $rs = Database::query($sql);
         $all_languages = [];
         while ($row = Database::fetch_array($rs, 'ASSOC')) {
-            $all_languages[$row['dokeos_folder']] = $row;
+            $all_languages[$row['english_name']] = $row;
         }
 
         return $all_languages;
@@ -51,10 +51,10 @@ class SubLanguageManager
         $content_dir = [];
         if (is_dir($path)) {
             if ($dh = opendir($path)) {
-                while (($file = readdir($dh)) !== false) {
-                    if ($file[0] != '.' && substr($file, -4, strlen($file)) == '.php') {
+                while (false !== ($file = readdir($dh))) {
+                    if ('.' != $file[0] && '.php' == substr($file, -4, strlen($file))) {
                         if ($only_main_name) {
-                            if ($file != '' && strpos($file, '.inc.php')) {
+                            if ('' != $file && strpos($file, '.inc.php')) {
                                 $content_dir[] = substr($file, 0, strpos($file, '.inc.php'));
                             }
                         } else {
@@ -82,7 +82,7 @@ class SubLanguageManager
         $table = Database::get_main_table(TABLE_MAIN_LANGUAGE);
         $parent_id = intval($parent_id);
         $sub_language_id = intval($sub_language_id);
-        $sql = "SELECT * FROM $table 
+        $sql = "SELECT * FROM $table
                 WHERE
                     parent_id = $parent_id AND
                     id = $sub_language_id";
@@ -131,7 +131,7 @@ class SubLanguageManager
         }
         $info_file = file($system_path_file);
         foreach ($info_file as $line) {
-            if (substr($line, 0, 1) != '$') {
+            if ('$' != substr($line, 0, 1)) {
                 continue;
             }
             list($var, $val) = explode('=', $line, 2);
@@ -175,7 +175,7 @@ class SubLanguageManager
         $new_data = $new_variable.'='.$new_term;
         $resource = @fopen($path_file, "a");
         if (file_exists($path_file) && $resource) {
-            if (fwrite($resource, $new_data.PHP_EOL) === false) {
+            if (false === fwrite($resource, $new_data.PHP_EOL)) {
                 //not allow to write
                 $return_value = false;
             } else {
@@ -211,6 +211,8 @@ class SubLanguageManager
      * Delete sub-language.
      * In order to avoid deletion of main laguages, we check the existence of a parent.
      *
+     * @deprecated
+     *
      * @param int  $parent_id       The parent id
      * @param bool $sub_language_id
      *
@@ -229,12 +231,12 @@ class SubLanguageManager
         $sql = 'SELECT dokeos_folder FROM '.$table.'
                 WHERE parent_id = '.$parent_id.' and id = '.$sub_language_id;
         $res = Database::query($sql);
-        if ($res === false or Database::num_rows($res) < 1) {
+        if (false === $res or Database::num_rows($res) < 1) {
             return false;
         }
         $row = Database::fetch_assoc($res);
         $res = self::remove_language_directory($row['dokeos_folder']);
-        if ($res === false) {
+        if (false === $res) {
             return false;
         } //can't delete dir, so do not delete language record
         $sql = 'DELETE FROM '.$table.'
@@ -289,7 +291,7 @@ class SubLanguageManager
                 WHERE id="'.intval($language_id).'"';
         $rs = Database::query($sql);
         if (Database::num_rows($rs) > 0) {
-            if (Database::result($rs, 0, 'count') == 1) {
+            if (1 == Database::result($rs, 0, 'count')) {
                 return true;
             } else {
                 return false;
@@ -335,7 +337,7 @@ class SubLanguageManager
                 WHERE id = '.intval($language_id).' AND NOT ISNULL(parent_id)';
         $rs = Database::query($sql);
 
-        if (Database::num_rows($rs) > 0 && Database::result($rs, '0', 'count') == 1) {
+        if (Database::num_rows($rs) > 0 && 1 == Database::result($rs, '0', 'count')) {
             return true;
         } else {
             return false;
@@ -375,7 +377,7 @@ class SubLanguageManager
                 WHERE parent_id= '.intval($language_id).' AND NOT ISNULL(parent_id);';
         $rs = Database::query($sql);
 
-        if (Database::num_rows($rs) > 0 && Database::result($rs, '0', 'count') == 1) {
+        if (Database::num_rows($rs) > 0 && 1 == Database::result($rs, '0', 'count')) {
             return true;
         } else {
             return false;
@@ -396,7 +398,7 @@ class SubLanguageManager
                 WHERE id = ".intval($language_id)."";
         $result = Database::query($sql);
 
-        return $result !== false; //only return false on sql error
+        return false !== $result; //only return false on sql error
     }
 
     /**
@@ -413,7 +415,7 @@ class SubLanguageManager
                 WHERE id = ".intval($language_id)."";
         $result = Database::query($sql);
 
-        return $result !== false; //only return false on sql error
+        return false !== $result; //only return false on sql error
     }
 
     /**
@@ -444,7 +446,7 @@ class SubLanguageManager
             $lang['english_name']
         );
 
-        return $result_2 !== false;
+        return false !== $result_2;
     }
 
     /**
@@ -469,6 +471,8 @@ class SubLanguageManager
     /**
      * Get parent language path (or null if no parent).
      *
+     * @deprecated
+     *
      * @param string $language_path Children language path
      *
      * @return string Parent language path or null
@@ -484,7 +488,7 @@ class SubLanguageManager
                 )
                 ";
         $result = Database::query($sql);
-        if (Database::num_rows($result) == 0) {
+        if (0 == Database::num_rows($result)) {
             return null;
         }
         $row = Database::fetch_array($result);
@@ -545,7 +549,7 @@ class SubLanguageManager
                 }
                 $name = self::getLanguageFromIsocode($code);
 
-                if ($name !== false) {
+                if (false !== $name) {
                     return $name;
                 }
             }

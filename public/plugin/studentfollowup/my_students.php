@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Doctrine\Common\Collections\Criteria;
@@ -64,7 +65,7 @@ if (!empty($userList) || $isAdmin) {
         $criteria->where(Criteria::expr()->in('user', $userList));
     }
 
-    if ($showPrivate === false) {
+    if (false === $showPrivate) {
         $criteria->andWhere(Criteria::expr()->eq('private', false));
     }
 

@@ -1,14 +1,16 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CoreBundle\Component\Editor\Editor;
 
 /**
  * A html editor field to use with QuickForm.
  */
 class HtmlEditor extends HTML_QuickForm_textarea
 {
-    /** @var \Chamilo\CoreBundle\Component\Editor\Editor */
+    /** @var Editor */
     public $editor;
 
     /**
@@ -17,8 +19,6 @@ class HtmlEditor extends HTML_QuickForm_textarea
     public $fullPage;
 
     /**
-     * Class Constructor.
-     *
      * @param string       $name
      * @param string|array $label      HTML editor  label
      * @param array        $attributes Attributes for the textarea
@@ -58,7 +58,7 @@ class HtmlEditor extends HTML_QuickForm_textarea
         if ($this->editor) {
             if ($this->editor->getConfigAttribute('fullPage')) {
                 $value = $this->getValue();
-                if (strlen(trim($value)) == 0) {
+                if (0 == strlen(trim($value))) {
                     // TODO: To be considered whether here to add
                     // language and character set declarations.
                     $value = '<!DOCTYPE html><html><head><title></title></head><body></body></html>';
@@ -82,28 +82,20 @@ class HtmlEditor extends HTML_QuickForm_textarea
 
     /**
      * Returns the html area content in HTML.
-     *
-     * @return string
      */
-    public function getFrozenHtml()
+    public function getFrozenHtml(): string
     {
         return Security::remove_XSS($this->getValue());
     }
 
-    /**
-     * @param bool $style
-     *
-     * @return string
-     */
-    public function buildEditor($style = false)
+    public function buildEditor(bool $style = false): string
     {
         $result = '';
         if ($this->editor) {
             $value = $this->getCleanValue();
-
             $this->editor->setName($this->getName());
             $this->editor->setTextareaId($this->getAttribute('id'));
-            if ($style === true) {
+            if ($style) {
                 $result = $this->editor->createHtmlStyle($value);
             } else {
                 $result = $this->editor->createHtml($value);

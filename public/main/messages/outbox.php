@@ -1,15 +1,13 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.messages
- */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 
 api_block_anonymous_users();
 
-if (api_get_setting('allow_message_tool') != 'true') {
+if ('true' != api_get_setting('allow_message_tool')) {
     api_not_allowed(true);
 }
 
@@ -19,12 +17,12 @@ $logInfo = [
 ];
 Event::registerLog($logInfo);
 
-$allowSocial = api_get_setting('allow_social_tool') == 'true';
-$allowMessage = api_get_setting('allow_message_tool') == 'true';
+$allowSocial = 'true' == api_get_setting('allow_social_tool');
+$allowMessage = 'true' == api_get_setting('allow_message_tool');
 
 if (isset($_GET['messages_page_nr'])) {
     if ($allowSocial && $allowMessage) {
-        header('Location:outbox.php?pager='.intval($_GET['messages_page_nr']));
+        header('Location:outbox.php?pager='.(int) ($_GET['messages_page_nr']));
         exit;
     }
 }
@@ -69,31 +67,29 @@ if ($allowSocial) {
         $keyword = $values['keyword'];
     }
     $actionsRight = $form->returnForm();
-    $social_right_content .= Display::toolbarAction(
-        'toolbar',
-        [$actionsLeft, $actionsRight]
-    );
+    $social_right_content .= Display::toolbarAction('toolbar', [$actionsLeft, $actionsRight]);
 }
 
 $social_right_content .= MessageManager::outBoxDisplay($keyword);
 
 $tpl = new Template(get_lang('Outbox'));
 // Block Social Avatar
-SocialManager::setSocialUserBlock($tpl, api_get_user_id(), 'messages');
+//SocialManager::setSocialUserBlock($tpl, api_get_user_id(), 'messages');
 
-if ($allowSocial) {
+/*if ($allowSocial) {
     $tpl->assign('social_menu_block', $social_menu_block);
     $tpl->assign('social_right_content', $social_right_content);
     $social_layout = $tpl->get_template('social/inbox.tpl');
     $tpl->display($social_layout);
 } else {
-    $content = $social_right_content;
-    if ($actions) {
-        $tpl->assign(
-            'actions',
-            Display::toolbarAction('toolbar', [$actions])
-        );
-    }
-    $tpl->assign('content', $content);
-    $tpl->display_one_col_template();
+
+}*/
+$content = $social_right_content;
+if ($actions) {
+    $tpl->assign(
+        'actions',
+        Display::toolbarAction('toolbar', [$actions])
+    );
 }
+$tpl->assign('content', $content);
+$tpl->display_one_col_template();

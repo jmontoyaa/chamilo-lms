@@ -1,22 +1,12 @@
-{% import '@ChamiloTheme/Macros/box.html.twig' as macro %}
+{% import '@ChamiloCore/Macros/box.html.twig' as macro %}
+{% extends "@ChamiloCore/Layout/layout_one_col.html.twig" %}
+
 {% block content %}
 {% autoescape false %}
-
-<div class="row" xmlns="http://www.w3.org/1999/html">
-    <div class="col-md-4">
-
-        {% set avatar %}
-            {% include '@ChamiloTheme/Social/user_block.html.twig' %}
-        {% endset %}
-
-        {{ macro.panel('', avatar ) }}
-
-    </div>
+<div class="row">
     <div class="col-md-8">
         <div class="sm-groups-content">
-
             {{ create_link }}
-
             {% if is_group_member == false %}
                 <div class="social-group-details-info">
                     {{ 'Privacy' | get_lang }}
@@ -59,9 +49,9 @@
 
         {{ social_right_content }}
 
-        <div id="display_response_id" class="col-md-12"></div>
-        {{ social_auto_extend_link }}
-        </div>
+{#        <div id="display_response_id" class="col-md-12"></div>#}
+{#        {{ social_auto_extend_link }}#}
+{#        </div>#}
 
     </div>
 </div>

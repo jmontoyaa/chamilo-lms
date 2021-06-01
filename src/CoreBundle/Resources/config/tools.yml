@@ -15,14 +15,14 @@ services:
             - 'global'
             - ''
             - ''
-            - ''
+            - ~
             -
                 urls:
-                    repository: Chamilo\CoreBundle\Repository\AccessUrlRepository
+                    repository: Chamilo\CoreBundle\Repository\Node\AccessUrlRepository
                 courses:
-                    repository: Chamilo\CoreBundle\Repository\CourseRepository
+                    repository: Chamilo\CoreBundle\Repository\Node\CourseRepository
                 users:
-                    repository: Chamilo\UserBundle\Repository\UserRepository
+                    repository: Chamilo\CoreBundle\Repository\Node\UserRepository
         tags:
             - {name: chamilo_core.tool}
 
@@ -32,10 +32,10 @@ services:
             - 'asset'
             - ''
             - ''
-            - ''
+            - ~
             -
                 illustrations:
-                    repository: Chamilo\CoreBundle\Repository\IllustrationRepository
+                    repository: Chamilo\CoreBundle\Repository\Node\IllustrationRepository
         tags:
             - {name: chamilo_core.tool}
 
@@ -85,6 +85,8 @@ services:
                     repository: Chamilo\CourseBundle\Repository\CStudentPublicationAssignmentRepository
                 student_publications_comments:
                     repository: Chamilo\CourseBundle\Repository\CStudentPublicationCommentRepository
+                student_publications_corrections:
+                    repository: Chamilo\CourseBundle\Repository\CStudentPublicationCorrectionRepository
         tags:
             - {name: chamilo_core.tool}
 
@@ -133,7 +135,7 @@ services:
             - 'course_tool'
             - 'admin'
             - '/resources/course_tool/links'
-            - ''
+            - ~
             -
                 links:
                     repository: Chamilo\CourseBundle\Repository\CToolRepository
@@ -145,9 +147,11 @@ services:
         arguments:
             - 'chat'
             - 'interaction'
-            - '/main/chat/chat.php'
+            - '/resources/chat/'
             - '@chamilo_course.settings.chat'
-            - ~
+            -
+                conversations:
+                    repository: Chamilo\CourseBundle\Repository\CChatConversationRepository
         tags:
             - {name: chamilo_core.tool}
 
@@ -161,10 +165,6 @@ services:
             -
                 thematics:
                     repository: Chamilo\CourseBundle\Repository\CThematicRepository
-                thematic_advance:
-                    repository: Chamilo\CourseBundle\Repository\CThematicAdvanceRepository
-                thematic_plans:
-                    repository: Chamilo\CourseBundle\Repository\CThematicPlanRepository
         tags:
             - {name: chamilo_core.tool}
 
@@ -173,7 +173,7 @@ services:
         arguments:
             - 'document'
             - 'authoring'
-            - '/resources/document/files'
+            - '/resources/document/'
             - '@chamilo_course.settings.document'
             -
                 files:
@@ -242,7 +242,7 @@ services:
             - '/main/glossary/index.php'
             - '@chamilo_course.settings.glossary'
             -
-                glossaries:
+                words:
                     repository: Chamilo\CourseBundle\Repository\CGlossaryRepository
         tags:
             - {name: chamilo_core.tool}
@@ -273,7 +273,7 @@ services:
             - '@chamilo_course.settings.group'
             -
                 groups:
-                    repository: Chamilo\CourseBundle\Repository\CGroupInfoRepository
+                    repository: Chamilo\CourseBundle\Repository\CGroupRepository
                 group_categories:
                     repository: Chamilo\CourseBundle\Repository\CGroupCategoryRepository
                 gradebook_evaluations:
@@ -307,7 +307,7 @@ services:
                 links:
                     repository: Chamilo\CourseBundle\Repository\CLinkRepository
                 link_categories:
-                    repository: Chamilo\CourseBundle\Repository\CLinkRepository
+                    repository: Chamilo\CourseBundle\Repository\CLinkCategoryRepository
         tags:
             - {name: chamilo_core.tool}
 
@@ -362,7 +362,7 @@ services:
             - 'shortcut'
             - ''
             - ''
-            - ''
+            -  ~
             -
                 shortcuts:
                     repository: Chamilo\CourseBundle\Repository\CShortcutRepository
@@ -400,11 +400,26 @@ services:
         arguments:
             - 'user'
             - 'interaction'
-            - ~
+            - '/resources/user/'
             - ~
             -
                 files:
-                    repository: Chamilo\CoreBundle\Repository\PersonalFileRepository
+                    repository: Chamilo\CoreBundle\Repository\Node\PersonalFileRepository
+                message_attachments:
+                    repository: Chamilo\CoreBundle\Repository\Node\MessageAttachmentRepository
+        tags:
+            - {name: chamilo_core.tool}
+
+    chamilo_core.tool.usergroup:
+        class: Chamilo\CoreBundle\Tool\UserGroup
+        arguments:
+            - 'usergroup'
+            - ''
+            - '/resources/usergroup/'
+            - ~
+            -
+                usergroups:
+                    repository: Chamilo\CoreBundle\Repository\Node\UsergroupRepository
         tags:
             - {name: chamilo_core.tool}
 

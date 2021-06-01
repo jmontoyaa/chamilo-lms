@@ -1,17 +1,10 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * This script displays an area where teachers can edit the group properties and member list.
- * Groups are also often called "teams" in the Dokeos code.
- *
- * @author various contributors
- * @author Roan Embrechts (VUB), partial code cleanup, initial virtual course support
- *
- * @package chamilo.group
- *
- * @todo course admin functionality to create groups based on who is in which course (or class).
- */
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CGroup;
+
 require_once __DIR__.'/../inc/global.inc.php';
 $this_section = SECTION_COURSES;
 $current_course_tool = TOOL_GROUP;
@@ -20,13 +13,15 @@ $current_course_tool = TOOL_GROUP;
 api_protect_course_script(true);
 
 $group_id = api_get_group_id();
+$groupRepo = Container::getGroupRepository();
+$groupEntity = api_get_group_entity($group_id);
 $current_group = GroupManager::get_group_properties($group_id);
 
 $nameTools = get_lang('Edit this group');
 $interbreadcrumb[] = ['url' => 'group.php?'.api_get_cidreq(), 'name' => get_lang('Groups')];
-$interbreadcrumb[] = ['url' => 'group_space.php?'.api_get_cidreq(), 'name' => $current_group['name']];
+$interbreadcrumb[] = ['url' => 'group_space.php?'.api_get_cidreq(), 'name' => $groupEntity->getName()];
 
-$is_group_member = GroupManager::is_tutor_of_group(api_get_user_id(), $current_group);
+$is_group_member = GroupManager::isTutorOfGroup(api_get_user_id(), $groupEntity);
 
 if (!api_is_allowed_to_edit(false, true) && !$is_group_member) {
     api_not_allowed(true);
@@ -39,13 +34,13 @@ if (!api_is_allowed_to_edit(false, true) && !$is_group_member) {
 function sort_users($user_a, $user_b)
 {
     $orderListByOfficialCode = api_get_setting('order_user_list_by_official_code');
-    if ($orderListByOfficialCode === 'true') {
+    if ('true' === $orderListByOfficialCode) {
         $cmp = api_strcmp($user_a['official_code'], $user_b['official_code']);
-        if ($cmp !== 0) {
+        if (0 !== $cmp) {
             return $cmp;
         } else {
             $cmp = api_strcmp($user_a['lastname'], $user_b['lastname']);
-            if ($cmp !== 0) {
+            if (0 !== $cmp) {
                 return $cmp;
             } else {
                 return api_strcmp($user_a['username'], $user_b['username']);
@@ -55,11 +50,11 @@ function sort_users($user_a, $user_b)
 
     if (api_sort_by_first_name()) {
         $cmp = api_strcmp($user_a['firstname'], $user_b['firstname']);
-        if ($cmp !== 0) {
+        if (0 !== $cmp) {
             return $cmp;
         } else {
             $cmp = api_strcmp($user_a['lastname'], $user_b['lastname']);
-            if ($cmp !== 0) {
+            if (0 !== $cmp) {
                 return $cmp;
             } else {
                 return api_strcmp($user_a['username'], $user_b['username']);
@@ -67,11 +62,11 @@ function sort_users($user_a, $user_b)
         }
     } else {
         $cmp = api_strcmp($user_a['lastname'], $user_b['lastname']);
-        if ($cmp !== 0) {
+        if (0 !== $cmp) {
             return $cmp;
         } else {
             $cmp = api_strcmp($user_a['firstname'], $user_b['firstname']);
-            if ($cmp !== 0) {
+            if (0 !== $cmp) {
                 return $cmp;
             } else {
                 return api_strcmp($user_a['username'], $user_b['username']);
@@ -93,11 +88,11 @@ $form = new FormValidator('group_edit', 'post', api_get_self().'?'.api_get_cidre
 $form->addElement('hidden', 'action');
 
 // Group tutors
-$group_tutor_list = GroupManager::get_subscribed_tutors($current_group);
+$group_tutor_list = $groupEntity->getTutors();
 
 $selected_tutors = [];
-foreach ($group_tutor_list as $index => $user) {
-    $selected_tutors[] = $user['user_id'];
+foreach ($group_tutor_list as $user) {
+    $selected_tutors[] = $user->getUser()->getId();
 }
 
 $complete_user_list = CourseManager::get_user_list_from_course_code(
@@ -108,7 +103,7 @@ $complete_user_list = CourseManager::get_user_list_from_course_code(
 $possible_users = [];
 $userGroup = new UserGroup();
 
-$subscribedUsers = GroupManager::get_subscribed_users($current_group);
+$subscribedUsers = GroupManager::get_subscribed_users($groupEntity);
 if ($subscribedUsers) {
     $subscribedUsers = array_column($subscribedUsers, 'user_id');
 }
@@ -122,7 +117,7 @@ if (!empty($complete_user_list)) {
         }
 
         //prevent invitee users add to groups or tutors - see #8091
-        if ($user['status'] != INVITEE) {
+        if (INVITEE != $user['status']) {
             $officialCode = !empty($user['official_code']) ? ' - '.$user['official_code'] : null;
 
             $groups = $userGroup->getUserGroupListByUser($user['user_id']);
@@ -137,8 +132,8 @@ if (!empty($complete_user_list)) {
                 $user['lastname']
             ).' ('.$user['username'].')'.$officialCode;
 
-            if ($orderUserListByOfficialCode === 'true') {
-                $officialCode = !empty($user['official_code']) ? $user['official_code']." - " : '? - ';
+            if ('true' === $orderUserListByOfficialCode) {
+                $officialCode = !empty($user['official_code']) ? $user['official_code'].' - ' : '? - ';
                 $name = $officialCode.' '.api_get_person_name(
                     $user['firstname'],
                     $user['lastname']
@@ -155,7 +150,6 @@ $group_tutors_element = $form->addElement(
     'group_tutors',
     get_lang('Coaches'),
     $possible_users,
-    'style="width: 280px;"'
 );
 
 // submit button
@@ -165,23 +159,36 @@ if ($form->validate()) {
     $values = $form->exportValues();
 
     // Storing the tutors (we first remove all the tutors and then add only those who were selected)
-    GroupManager :: unsubscribe_all_tutors($current_group['iid']);
+    GroupManager::unsubscribe_all_tutors($group_id);
     if (isset($_POST['group_tutors']) && count($_POST['group_tutors']) > 0) {
-        GroupManager::subscribe_tutors($values['group_tutors'], $current_group);
+        GroupManager::subscribeTutors($values['group_tutors'], $groupEntity);
     }
 
     // Returning to the group area (note: this is inconsistent with the rest of chamilo)
-    $cat = GroupManager::get_category_from_group($current_group['iid']);
+    $cat = GroupManager::get_category_from_group($group_id);
+    $categoryId = null;
+    $max_member = null;
+    if (!empty($cat)) {
+        $categoryId = $cat['iid'];
+        $max_member = $cat['max_student'];
+    }
 
     if (isset($_POST['group_members']) &&
         count($_POST['group_members']) > $max_member &&
-        $max_member != GroupManager::MEMBER_PER_GROUP_NO_LIMIT
+        GroupManager::MEMBER_PER_GROUP_NO_LIMIT != $max_member
     ) {
-        Display::addFlash(Display::return_message(get_lang('Number proposed exceeds max. that you allowed (you can modify in the group settings). Group composition has not been modified'), 'warning'));
+        Display::addFlash(
+            Display::return_message(
+                get_lang(
+                    'Number proposed exceeds max. that you allowed (you can modify in the group settings). Group composition has not been modified'
+                ),
+                'warning'
+            )
+        );
         header('Location: group.php?'.api_get_cidreq(true, false));
     } else {
         Display::addFlash(Display::return_message(get_lang('Group settings modified'), 'success'));
-        header('Location: group.php?'.api_get_cidreq(true, false).'&category='.$cat['id']);
+        header('Location: group.php?'.api_get_cidreq(true, false).'&category='.$categoryId);
     }
     exit;
 }

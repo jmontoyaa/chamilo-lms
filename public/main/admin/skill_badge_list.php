@@ -6,8 +6,6 @@
  *
  * @author Angel Fernando Quiroz Campos <angel.quiroz@beeznest.com>
  *
- * @package chamilo.admin.openbadges
- *
  * @deprecated use skill_list.php
  */
 $cidReset = true;
@@ -15,12 +13,12 @@ $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 
 api_protect_admin_script();
-Skill::isAllowed();
+SkillModel::isAllowed();
 
 $this_section = SECTION_PLATFORM_ADMIN;
 
-$objSkill = new Skill();
-$skills = $objSkill->get_all();
+$objSkill = new SkillModel();
+$skills = $objSkill->getAllSkills();
 
 $interbreadcrumb = [
     [

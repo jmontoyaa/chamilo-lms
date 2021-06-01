@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Framework\Container;
@@ -36,7 +37,9 @@ switch ($action) {
         $is_allowed_to_edit = api_is_allowed_to_edit(null, true);
         $sessionId = api_get_session_id();
 
-        if (!$is_allowed_to_edit && $sessionId && $_REQUEST['curdirpath'] == "/basic-course-documents__{$sessionId}__0") {
+        if (!$is_allowed_to_edit && $sessionId &&
+            $_REQUEST['curdirpath'] === "/basic-course-documents__{$sessionId}__0"
+        ) {
             $session = SessionManager::fetch($sessionId);
 
             if (!empty($session) && $session['session_admin_id'] == api_get_user_id()) {
@@ -46,10 +49,10 @@ switch ($action) {
 
         // This needs cleaning!
         if (api_get_group_id()) {
-            $groupInfo = GroupManager::get_group_properties(api_get_group_id());
+            $group = api_get_group_entity(api_get_group_id());
             // Only course admin or group members allowed
-            if ($is_allowed_to_edit || GroupManager::is_user_in_group(api_get_user_id(), $groupInfo)) {
-                if (!GroupManager::allowUploadEditDocument(api_get_user_id(), api_get_course_int_id(), $groupInfo)) {
+            if ($is_allowed_to_edit || GroupManager::isUserInGroup(api_get_user_id(), $group)) {
+                if (!GroupManager::allowUploadEditDocument(api_get_user_id(), api_get_course_int_id(), $group)) {
                     exit;
                 }
             } else {
@@ -64,18 +67,8 @@ switch ($action) {
             exit;
         }
 
-        $directoryParentId = isset($_REQUEST['directory_parent_id']) ? $_REQUEST['directory_parent_id'] : 0;
-        $currentDirectory = '';
-        if (empty($directoryParentId)) {
-            $currentDirectory = isset($_REQUEST['curdirpath']) ? $_REQUEST['curdirpath'] : '';
-        } else {
-            $documentData = DocumentManager::get_document_data_by_id($directoryParentId, api_get_course_id());
-            if ($documentData) {
-                $currentDirectory = $documentData['path'];
-            }
-        }
-
-        $ifExists = isset($_POST['if_exists']) ? $_POST['if_exists'] : '';
+        $directoryParentId = $_REQUEST['directory_parent_id'] ?? 0;
+        $ifExists = $_POST['if_exists'] ?? '';
         $unzip = isset($_POST['unzip']) ? 1 : 0;
 
         if (empty($ifExists)) {
@@ -105,7 +98,7 @@ switch ($action) {
                 $globalFile['files'] = $file;
                 $document = DocumentManager::upload_document(
                     $globalFile,
-                    $currentDirectory,
+                    null,
                     '',
                     '', // comment
                     $unzip,
@@ -121,11 +114,15 @@ switch ($action) {
                 if (!empty($document)) {
                     $json['name'] = Display::url(
                         api_htmlentities($document->getTitle()),
-                        $repo->getDocumentUrl($document),
+                        $repo->getResourceFileUrl($document).'&'.api_get_cidreq(),
                         ['target' => '_blank']
                     );
                     $json['url'] = '#';
-                    $json['size'] = format_file_size($document->getSize());
+                    $json['size'] = 0;
+                    if ($document->getResourceNode()->hasResourceFile()) {
+                        $json['size'] = format_file_size($document->getResourceNode()->getResourceFile()->getSize());
+                    }
+
                     $json['type'] = '';
                     $json['result'] = Display::return_icon(
                         'accept.png',

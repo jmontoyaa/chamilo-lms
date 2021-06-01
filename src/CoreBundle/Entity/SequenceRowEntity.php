@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
@@ -15,47 +17,37 @@ use Doctrine\ORM\Mapping as ORM;
 class SequenceRowEntity
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue()
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="session_id", type="integer")
      */
-    protected $sessionId;
+    protected int $sessionId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="row_id", type="integer")
      */
-    protected $rowId;
+    protected int $rowId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="name", type="string", length=255, nullable=false)
      */
-    protected $name;
+    protected string $name;
 
     /**
      * @ORM\ManyToOne(targetEntity="SequenceTypeEntity")
      * @ORM\JoinColumn(name="sequence_type_entity_id", referencedColumnName="id")
      */
-    protected $type;
+    protected ?SequenceTypeEntity $type = null;
 
     /**
      * Get id.
@@ -76,11 +68,9 @@ class SequenceRowEntity
     }
 
     /**
-     * @param int $cId
-     *
      * @return SequenceRowEntity
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
@@ -96,11 +86,9 @@ class SequenceRowEntity
     }
 
     /**
-     * @param int $sessionId
-     *
      * @return SequenceRowEntity
      */
-    public function setSessionId($sessionId)
+    public function setSessionId(int $sessionId)
     {
         $this->sessionId = $sessionId;
 
@@ -116,11 +104,9 @@ class SequenceRowEntity
     }
 
     /**
-     * @param int $rowId
-     *
      * @return SequenceRowEntity
      */
-    public function setRowId($rowId)
+    public function setRowId(int $rowId)
     {
         $this->rowId = $rowId;
 
@@ -136,11 +122,9 @@ class SequenceRowEntity
     }
 
     /**
-     * @param string $name
-     *
      * @return SequenceRowEntity
      */
-    public function setName($name)
+    public function setName(string $name)
     {
         $this->name = $name;
 
@@ -155,7 +139,7 @@ class SequenceRowEntity
     /**
      * @return SequenceRowEntity
      */
-    public function setType($type)
+    public function setType(?SequenceTypeEntity $type)
     {
         $this->type = $type;
 

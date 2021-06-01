@@ -7,8 +7,6 @@
  *
  *  @todo the table constants have all to start with TABLE_
  *  This is because of the analogy with the tool constants TOOL_
- *
- *	@package chamilo.library
  */
 
 //See #3910 defines the default prefix for the single course database
@@ -25,6 +23,7 @@ define('TABLE_MAIN_COURSE_USER', 'course_rel_user');
 define('TABLE_MAIN_COURSE_CATALOGUE_USER', 'course_rel_user_catalogue');
 define('TABLE_MAIN_CLASS_USER', 'class_user');
 define('TABLE_MAIN_CATEGORY', 'course_category');
+define('TABLE_MAIN_COURSE_REL_CATEGORY', 'course_rel_category');
 define('TABLE_MAIN_SYSTEM_ANNOUNCEMENTS', 'sys_announcement');
 define('TABLE_MAIN_SYSTEM_ANNOUNCEMENTS_GROUPS', 'announcement_rel_group');
 define('TABLE_MAIN_LANGUAGE', 'language');
@@ -36,9 +35,6 @@ define('TABLE_MAIN_SESSION_COURSE', 'session_rel_course');
 define('TABLE_MAIN_SESSION_USER', 'session_rel_user');
 define('TABLE_MAIN_SESSION_CLASS', 'session_rel_class');
 define('TABLE_MAIN_SESSION_COURSE_USER', 'session_rel_course_rel_user');
-define('TABLE_MAIN_SHARED_SURVEY', 'shared_survey');
-define('TABLE_MAIN_SHARED_SURVEY_QUESTION', 'shared_survey_question');
-define('TABLE_MAIN_SHARED_SURVEY_QUESTION_OPTION', 'shared_survey_question_option');
 define('TABLE_MAIN_TEMPLATES', 'templates');
 define('TABLE_MAIN_SYSTEM_TEMPLATE', 'system_template');
 define('TABLE_MAIN_COURSE_REQUEST', 'course_request');
@@ -54,6 +50,7 @@ define('TABLE_MAIN_GRADEBOOK_SCORE_DISPLAY', 'gradebook_score_display');
 define('TABLE_MAIN_GRADEBOOK_CERTIFICATE', 'gradebook_certificate');
 define('TABLE_MAIN_GRADEBOOK_SCORE_LOG', 'gradebook_score_log');
 define('TABLE_MAIN_GRADEBOOK_RESULT_ATTEMPT', 'gradebook_result_attempt');
+define('TABLE_MAIN_GRADEBOOK_COMMENT', 'gradebook_comment');
 
 // Profiling
 define('TABLE_EXTRA_FIELD', 'extra_field');
@@ -131,7 +128,7 @@ define('TABLE_STATISTIC_TRACK_E_ATTEMPT_RECORDING', 'track_e_attempt_recording')
 define('TABLE_STATISTIC_TRACK_E_DEFAULT', 'track_e_default');
 define('TABLE_STATISTIC_TRACK_E_UPLOADS', 'track_e_uploads');
 define('TABLE_STATISTIC_TRACK_E_HOTSPOT', 'track_e_hotspot');
-define('TABLE_STATISTIC_TRACK_E_ITEM_PROPERTY', 'track_e_item_property');
+//define('TABLE_STATISTIC_TRACK_E_ITEM_PROPERTY', 'track_e_item_property');
 define('TABLE_STATISTIC_TRACK_FILTERED_TERMS', 'track_filtered_terms');
 
 // Course catalog stats see #4191
@@ -148,7 +145,7 @@ define('TABLE_ANNOUNCEMENT_ATTACHMENT', 'announcement_attachment');
 define('TABLE_CHAT_CONNECTED', 'chat_connected');
 define('TABLE_COURSE_DESCRIPTION', 'course_description');
 define('TABLE_DOCUMENT', 'document');
-define('TABLE_ITEM_PROPERTY', 'item_property');
+//define('TABLE_ITEM_PROPERTY', 'item_property');
 define('TABLE_LINK', 'link');
 define('TABLE_LINK_CATEGORY', 'link_category');
 define('TABLE_TOOL_LIST', 'tool');
@@ -204,6 +201,8 @@ define('TABLE_LP_ITEM_VIEW', 'lp_item_view');
 define('TABLE_LP_IV_INTERACTION', 'lp_iv_interaction'); // IV = Item View
 define('TABLE_LP_IV_OBJECTIVE', 'lp_iv_objective'); // IV = Item View
 define('TABLE_LP_CATEGORY', 'lp_category');
+define('TABLE_LP_REL_USERGROUP', 'lp_rel_usergroup');
+define('TABLE_LP_CATEGORY_REL_USERGROUP', 'lp_category_rel_usergroup');
 
 // Smartblogs (Kevin Van Den Haute::kevin@develop-it.be)
 // Permission tables
@@ -229,15 +228,11 @@ define('TABLE_BLOGS_TASKS_PERMISSIONS', 'permission_task');
 // Course settings table
 define('TABLE_COURSE_SETTING', 'course_setting');
 
-// Course online tables
-define('TABLE_ONLINE_LINK', 'online_link');
-define('TABLE_ONLINE_CONNECTED', 'online_connected');
-
 // User database
 define('TABLE_PERSONAL_AGENDA', 'personal_agenda');
 define('TABLE_PERSONAL_AGENDA_REPEAT', 'personal_agenda_repeat');
 define('TABLE_PERSONAL_AGENDA_REPEAT_NOT', 'personal_agenda_repeat_not');
-define('TABLE_USER_COURSE_CATEGORY', 'user_course_category');
+//define('TABLE_USER_COURSE_CATEGORY', 'user_course_category');
 
 // Survey
 // @TODO: Are these MAIN tables or course tables?

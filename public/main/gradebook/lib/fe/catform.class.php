@@ -1,19 +1,21 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CourseBundle\Entity\CDocument;
 
 /**
  * Class CatForm.
  *
  * @author Stijn Konings
- *
- * @package chamilo.gradebook
  */
 class CatForm extends FormValidator
 {
-    const TYPE_ADD = 1;
-    const TYPE_EDIT = 2;
-    const TYPE_MOVE = 3;
-    const TYPE_SELECT_COURSE = 4;
+    public const TYPE_ADD = 1;
+    public const TYPE_EDIT = 2;
+    public const TYPE_MOVE = 3;
+    public const TYPE_SELECT_COURSE = 4;
+
     /** @var Category */
     private $category_object;
 
@@ -73,20 +75,20 @@ class CatForm extends FormValidator
             '"'.$this->category_object->get_name().'" '
         );
         $this->addElement('static', null, null, get_lang('Move to').' : ');
-        $select = $this->addElement('select', 'move_cat', null, null);
+        $select = $this->addSelect('move_cat', null);
         $line = null;
         foreach ($this->category_object->get_target_categories() as $cat) {
             for ($i = 0; $i < $cat[2]; $i++) {
                 $line .= '--';
             }
             if ($cat[0] != $this->category_object->get_parent_id()) {
-                $select->addoption($line.' '.$cat[1], $cat[0]);
+                $select->addOption($line.' '.$cat[1], $cat[0]);
             } else {
-                $select->addoption($line.' '.$cat[1], $cat[0], 'disabled');
+                $select->addOption($line.' '.$cat[1], $cat[0], 'disabled');
             }
             $line = '';
         }
-        $this->addElement('submit', null, get_lang('Validate'));
+        $this->addButtonSave(get_lang('Validate'));
     }
 
     /**
@@ -97,7 +99,7 @@ class CatForm extends FormValidator
     {
         // check if we are a root category
         // if so, you can only choose between courses
-        if ($this->category_object->get_parent_id() == '0') {
+        if ('0' == $this->category_object->get_parent_id()) {
             $this->setDefaults(
                 [
                     'select_course' => $this->category_object->get_course_code(),
@@ -154,7 +156,7 @@ class CatForm extends FormValidator
         $category_name = $this->category_object->get_name();
 
         // The main course category:
-        if (isset($this->category_object) && $this->category_object->get_parent_id() == 0) {
+        if (!empty($this->category_object) && 0 == $this->category_object->get_parent_id()) {
             if (empty($category_name)) {
                 $category_name = $course_code;
             }
@@ -191,8 +193,7 @@ class CatForm extends FormValidator
      */
     protected function build_select_course_form()
     {
-        $select = $this->addElement(
-            'select',
+        $select = $this->addSelect(
             'select_course',
             [get_lang('Pick a course'), 'test'],
             null
@@ -200,7 +201,7 @@ class CatForm extends FormValidator
         $courses = Category::get_all_courses(api_get_user_id());
         //only return courses that are not yet created by the teacher
         foreach ($courses as $row) {
-            $select->addoption($row[1], $row[0]);
+            $select->addOption($row[1], $row[0]);
         }
         $this->setDefaults([
             'hid_user_id' => $this->category_object->get_user_id(),
@@ -208,7 +209,7 @@ class CatForm extends FormValidator
         ]);
         $this->addElement('hidden', 'hid_user_id');
         $this->addElement('hidden', 'hid_parent_id');
-        $this->addElement('submit', null, get_lang('Validate'));
+        $this->addButtonSave(get_lang('Validate'));
     }
 
     private function build_basic_form()
@@ -221,9 +222,7 @@ class CatForm extends FormValidator
         );
         $this->addRule('name', get_lang('Required field'), 'required');
 
-        if (isset($this->category_object) &&
-            $this->category_object->get_parent_id() == 0
-        ) {
+        if (!empty($this->category_object) && 0 == $this->category_object->get_parent_id()) {
             // we can't change the root category
             $this->freeze('name');
         }
@@ -253,9 +252,8 @@ class CatForm extends FormValidator
         }
 
         if ($allowSkillEdit) {
-            if (Skill::isToolAvailable()) {
-                $skillSelect = $this->addElement(
-                    'select_ajax',
+            if (SkillModel::isToolAvailable()) {
+                $skillSelect = $this->addSelectAjax(
                     'skills',
                     [
                         get_lang('Skills'),
@@ -284,7 +282,7 @@ class CatForm extends FormValidator
         }
 
         if (isset($this->category_object) &&
-            $this->category_object->get_parent_id() == 0
+            0 == $this->category_object->get_parent_id()
         ) {
             $model = ExerciseLib::getCourseScoreModel();
             if (empty($model)) {
@@ -344,8 +342,8 @@ class CatForm extends FormValidator
         );
 
         if (isset($this->category_object) &&
-            $this->category_object->get_parent_id() == 0 &&
-            (api_is_platform_admin() || api_get_setting('teachers_can_change_grade_model_settings') == 'true')
+            0 == $this->category_object->get_parent_id() &&
+            (api_is_platform_admin() || 'true' === api_get_setting('teachers_can_change_grade_model_settings'))
         ) {
             // Getting grade models
             $obj = new GradeModel();
@@ -373,7 +371,7 @@ class CatForm extends FormValidator
             }
 
             if (count($test_cats) > 1 || !empty($links)) {
-                if (api_get_setting('gradebook_enable_grade_model') == 'true') {
+                if ('true' === api_get_setting('gradebook_enable_grade_model')) {
                     $this->freeze('grade_model_id');
                 }
             }
@@ -392,16 +390,14 @@ class CatForm extends FormValidator
             );
         }
 
-        if (!empty($session_id)) {
-            $isRequirementCheckbox = $this->addCheckBox(
-                'is_requirement',
-                [
-                    null,
-                    get_lang('Consider this gradebook as a requirement to complete the course (influences the sessions sequences)'),
-                ],
-                get_lang('Is requirement')
-            );
-        }
+        $isRequirementCheckbox = $this->addCheckBox(
+            'is_requirement',
+            [
+                null,
+                get_lang('Consider this gradebook as a requirement to complete the course (influences the sessions sequences)'),
+            ],
+            get_lang('Is requirement')
+        );
 
         if ($this->category_object->getIsRequirement()) {
             $isRequirementCheckbox->setChecked(true);
@@ -409,23 +405,25 @@ class CatForm extends FormValidator
 
         $documentId = $this->category_object->getDocumentId();
         if (!empty($documentId)) {
-            $documentData = DocumentManager::get_document_data_by_id($documentId, api_get_course_id());
+            $repo = \Chamilo\CoreBundle\Framework\Container::getDocumentRepository();
+            /** @var CDocument $documentData */
+            $documentData = $repo->find($documentId);
 
             if (!empty($documentData)) {
-                $this->addLabel(get_lang('Certificate'), $documentData['title']);
+                $this->addLabel(get_lang('Certificate'), $documentData->getTitle());
             }
         }
 
-        if ($this->form_type == self::TYPE_ADD) {
+        if (self::TYPE_ADD == $this->form_type) {
             $this->addButtonCreate(get_lang('Add category'));
         } else {
-            $this->addElement('hidden', 'editcat', intval($_GET['editcat']));
+            $this->addElement('hidden', 'editcat', (int) $_GET['editcat']);
             $this->addButtonUpdate(get_lang('Edit this category'));
         }
 
         $setting = api_get_setting('tool_visible_by_default_at_creation');
         $visibility_default = 1;
-        if (isset($setting['gradebook']) && $setting['gradebook'] == 'false') {
+        if (isset($setting['gradebook']) && 'false' === $setting['gradebook']) {
             $visibility_default = 0;
         }
 

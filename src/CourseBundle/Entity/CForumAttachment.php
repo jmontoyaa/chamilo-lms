@@ -1,90 +1,86 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * CForumAttachment.
  *
  * @ORM\Table(
- *  name="c_forum_attachment",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_forum_attachment",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"})
+ *     }
  * )
  * @ORM\Entity
  */
-class CForumAttachment
+class CForumAttachment extends AbstractResource implements ResourceInterface
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="path", type="string", length=255, nullable=false)
      */
-    protected $path;
+    protected string $path;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="comment", type="text", nullable=true)
      */
-    protected $comment;
+    protected ?string $comment = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="size", type="integer", nullable=false)
      */
-    protected $size;
+    protected int $size;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="post_id", type="integer", nullable=false)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CForumPost", cascade={"persist"}, inversedBy="attachments")
+     * @ORM\JoinColumn(name="post_id", referencedColumnName="iid", onDelete="CASCADE")
      */
-    protected $postId;
+    protected CForumPost $post;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="filename", type="string", length=255, nullable=false)
      */
-    protected $filename;
+    protected string $filename;
+
+    public function __construct()
+    {
+    }
+
+    public function __toString(): string
+    {
+        return (string) $this->getFilename();
+    }
 
     /**
-     * Set path.
+     * Get iid.
      *
-     * @param string $path
-     *
-     * @return CForumAttachment
+     * @return int
      */
-    public function setPath($path)
+    public function getIid()
+    {
+        return $this->iid;
+    }
+
+    public function setPath(string $path): self
     {
         $this->path = $path;
 
@@ -101,14 +97,7 @@ class CForumAttachment
         return $this->path;
     }
 
-    /**
-     * Set comment.
-     *
-     * @param string $comment
-     *
-     * @return CForumAttachment
-     */
-    public function setComment($comment)
+    public function setComment(string $comment): self
     {
         $this->comment = $comment;
 
@@ -125,14 +114,7 @@ class CForumAttachment
         return $this->comment;
     }
 
-    /**
-     * Set size.
-     *
-     * @param int $size
-     *
-     * @return CForumAttachment
-     */
-    public function setSize($size)
+    public function setSize(int $size): self
     {
         $this->size = $size;
 
@@ -149,38 +131,7 @@ class CForumAttachment
         return $this->size;
     }
 
-    /**
-     * Set postId.
-     *
-     * @param int $postId
-     *
-     * @return CForumAttachment
-     */
-    public function setPostId($postId)
-    {
-        $this->postId = $postId;
-
-        return $this;
-    }
-
-    /**
-     * Get postId.
-     *
-     * @return int
-     */
-    public function getPostId()
-    {
-        return $this->postId;
-    }
-
-    /**
-     * Set filename.
-     *
-     * @param string $filename
-     *
-     * @return CForumAttachment
-     */
-    public function setFilename($filename)
+    public function setFilename(string $filename): self
     {
         $this->filename = $filename;
 
@@ -198,37 +149,11 @@ class CForumAttachment
     }
 
     /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CForumAttachment
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CForumAttachment
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
@@ -243,5 +168,32 @@ class CForumAttachment
     public function getCId()
     {
         return $this->cId;
+    }
+
+    public function getPost(): CForumPost
+    {
+        return $this->post;
+    }
+
+    public function setPost(CForumPost $post): self
+    {
+        $this->post = $post;
+
+        return $this;
+    }
+
+    public function getResourceIdentifier(): int
+    {
+        return $this->getIid();
+    }
+
+    public function getResourceName(): string
+    {
+        return $this->getFilename();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setFilename($name);
     }
 }

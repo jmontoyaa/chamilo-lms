@@ -1,7 +1,11 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Entity\Course;
+use Chamilo\CoreBundle\Entity\CourseRelUser;
 use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CGroupCategory;
 use Chamilo\CourseBundle\Entity\CToolIntro;
 
 /**
@@ -83,124 +87,6 @@ class AddCourse
     }
 
     /**
-     * Initializes a file repository for a newly created course.
-     *
-     * @param string Course repository
-     * @param string Course code
-     *
-     * @return int
-     * @assert (null,null) === false
-     */
-    public static function prepare_course_repository($course_repository)
-    {
-        return true;
-
-        $perm = api_get_permissions_for_new_directories();
-        $perm_file = api_get_permissions_for_new_files();
-        $htmlpage = "<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\">\n    <title>Not authorized</title>\n  </head>\n  <body>\n  </body>\n</html>";
-        $cp = api_get_path(SYS_COURSE_PATH).$course_repository;
-
-        //Creating document folder
-        mkdir($cp, $perm);
-        mkdir($cp.'/document', $perm);
-        $cpt = $cp.'/document/index.html';
-        $fd = fopen($cpt, 'w');
-        fwrite($fd, $htmlpage);
-        fclose($fd);
-
-        /*
-        @chmod($cpt, $perm_file);
-        @copy($cpt, $cp . '/document/index.html');
-        mkdir($cp . '/document/images', $perm);
-        @copy($cpt, $cp . '/document/images/index.html');
-        mkdir($cp . '/document/images/gallery/', $perm);
-        @copy($cpt, $cp . '/document/images/gallery/index.html');
-        mkdir($cp . '/document/shared_folder/', $perm);
-        @copy($cpt, $cp . '/document/shared_folder/index.html');
-        mkdir($cp . '/document/audio', $perm);
-        @copy($cpt, $cp . '/document/audio/index.html');
-        mkdir($cp . '/document/flash', $perm);
-        @copy($cpt, $cp . '/document/flash/index.html');
-        mkdir($cp . '/document/video', $perm);
-        @copy($cpt, $cp . '/document/video/index.html');    */
-
-        //Creatind dropbox folder
-        mkdir($cp.'/dropbox', $perm);
-        $cpt = $cp.'/dropbox/index.html';
-        $fd = fopen($cpt, 'w');
-        fwrite($fd, $htmlpage);
-        fclose($fd);
-        @chmod($cpt, $perm_file);
-        mkdir($cp.'/group', $perm);
-        @copy($cpt, $cp.'/group/index.html');
-        mkdir($cp.'/page', $perm);
-        @copy($cpt, $cp.'/page/index.html');
-        mkdir($cp.'/scorm', $perm);
-        @copy($cpt, $cp.'/scorm/index.html');
-        mkdir($cp.'/upload', $perm);
-        @copy($cpt, $cp.'/upload/index.html');
-        mkdir($cp.'/upload/forum', $perm);
-        @copy($cpt, $cp.'/upload/forum/index.html');
-        mkdir($cp.'/upload/forum/images', $perm);
-        @copy($cpt, $cp.'/upload/forum/images/index.html');
-        mkdir($cp.'/upload/test', $perm);
-        @copy($cpt, $cp.'/upload/test/index.html');
-        mkdir($cp.'/upload/blog', $perm);
-        @copy($cpt, $cp.'/upload/blog/index.html');
-        mkdir($cp.'/upload/learning_path', $perm);
-        @copy($cpt, $cp.'/upload/learning_path/index.html');
-        mkdir($cp.'/upload/learning_path/images', $perm);
-        @copy($cpt, $cp.'/upload/learning_path/images/index.html');
-        mkdir($cp.'/upload/calendar', $perm);
-        @copy($cpt, $cp.'/upload/calendar/index.html');
-        mkdir($cp.'/upload/calendar/images', $perm);
-        @copy($cpt, $cp.'/upload/calendar/images/index.html');
-        mkdir($cp.'/work', $perm);
-        @copy($cpt, $cp.'/work/index.html');
-        mkdir($cp.'/upload/announcements', $perm);
-        @copy($cpt, $cp.'/upload/announcements/index.html');
-        mkdir($cp.'/upload/announcements/images', $perm);
-        @copy($cpt, $cp.'/upload/announcements/images/index.html');
-
-        //Oral expression question type
-        mkdir($cp.'/exercises', $perm);
-        @copy($cpt, $cp.'/exercises/index.html');
-
-        // Create .htaccess in the dropbox directory.
-        $fp = fopen($cp.'/dropbox/.htaccess', 'w');
-        fwrite(
-            $fp,
-            "AuthName AllowLocalAccess
-                       AuthType Basic
-
-                       order deny,allow
-                       deny from all
-
-                       php_flag zlib.output_compression off"
-        );
-        fclose($fp);
-
-        // Build index.php of the course.
-        /*$fd = fopen($cp . '/index.php', 'w');
-
-        // str_replace() removes \r that cause squares to appear at the end of each line
-        //@todo fix the harcoded include
-        $string = str_replace(
-            "\r",
-            "",
-            "<?" . "php
-        \$cidReq = \"$course_code\";
-        \$dbname = \"$course_code\";
-
-        include(\"" . api_get_path(SYS_CODE_PATH) . "course_home/course_home.php\");
-        ?>"
-        );
-        fwrite($fd, $string);
-        @chmod($cp . '/index.php', $perm_file);*/
-        return 0;
-    }
-
-    /**
      * Gets an array with all the course tables (deprecated?).
      *
      * @return array
@@ -210,7 +96,7 @@ class AddCourse
     public static function get_course_tables()
     {
         $tables = [];
-        $tables[] = 'item_property';
+        //$tables[] = 'item_property';
         $tables[] = 'tool';
         $tables[] = 'tool_intro';
         $tables[] = 'group_info';
@@ -230,7 +116,7 @@ class AddCourse
         $tables[] = 'student_publication';
         $tables[] = 'student_publication_assignment';
         $tables[] = 'document';
-        $tables[] = 'forum_category';
+        /*$tables[] = 'forum_category';
         $tables[] = 'forum_forum';
         $tables[] = 'forum_thread';
         $tables[] = 'forum_post';
@@ -238,7 +124,7 @@ class AddCourse
         $tables[] = 'forum_attachment';
         $tables[] = 'forum_notification';
         $tables[] = 'forum_thread_qualify';
-        $tables[] = 'forum_thread_qualify_log';
+        $tables[] = 'forum_thread_qualify_log';*/
         $tables[] = 'link';
         $tables[] = 'link_category';
         $tables[] = 'online_connected';
@@ -329,7 +215,7 @@ class AddCourse
     {
         $pictures = [];
         foreach ($files as $value) {
-            if (isset($value[$type]) && $value[$type] != '') {
+            if (isset($value[$type]) && '' != $value[$type]) {
                 $pictures[][$type] = $value[$type];
             }
         }
@@ -357,7 +243,7 @@ class AddCourse
         $authorId = 0
     ) {
         if (is_null($fill_with_exemplary_content)) {
-            $fill_with_exemplary_content = api_get_setting('example_material_course_creation') !== 'false';
+            $fill_with_exemplary_content = 'false' !== api_get_setting('example_material_course_creation');
         }
 
         $course_id = (int) $courseInfo['real_id'];
@@ -371,15 +257,13 @@ class AddCourse
         $TABLESETTING = Database::get_course_table(TABLE_COURSE_SETTING);
         $TABLEGRADEBOOK = Database::get_main_table(TABLE_MAIN_GRADEBOOK_CATEGORY);
         $TABLEGRADEBOOKLINK = Database::get_main_table(TABLE_MAIN_GRADEBOOK_LINK);
-        $visible_for_course_admin = 0;
-        $em = Database::getManager();
         $course = api_get_course_entity($course_id);
-        $settingsManager = CourseManager::getCourseSettingsManager();
+        $settingsManager = Container::getCourseSettingsManager();
         $settingsManager->setCourse($course);
 
         $alert = api_get_setting('email_alert_manager_on_new_quiz');
         $defaultEmailExerciseAlert = 0;
-        if ($alert === 'true') {
+        if ('true' === $alert) {
             $defaultEmailExerciseAlert = 1;
         }
 
@@ -403,7 +287,7 @@ class AddCourse
             'enable_document_auto_launch' => ['default' => 0, 'category' => 'document'],
             'pdf_export_watermark_text' => ['default' => '', 'category' => 'learning_path'],
             'allow_public_certificates' => [
-                'default' => api_get_setting('allow_public_certificates') === 'true' ? 1 : '',
+                'default' => 'true' === api_get_setting('allow_public_certificates') ? 1 : '',
                 'category' => 'certificates',
             ],
             'documents_default_visibility' => ['default' => 'visible', 'category' => 'document'],
@@ -415,41 +299,31 @@ class AddCourse
         foreach ($settings as $variable => $setting) {
             $title = $setting['title'] ?? '';
             Database::query(
-                "INSERT INTO $TABLESETTING (id, c_id, title, variable, value, category)
-                      VALUES ($counter, $course_id, '".$title."', '".$variable."', '".$setting['default']."', '".$setting['category']."')"
+                "INSERT INTO $TABLESETTING (c_id, title, variable, value, category)
+                      VALUES ($course_id, '".$title."', '".$variable."', '".$setting['default']."', '".$setting['category']."')"
             );
             $counter++;
         }
 
         /* Course homepage tools for platform admin only */
         /* Group tool */
-        Database::insert(
-            $TABLEGROUPCATEGORIES,
-            [
-                'c_id' => $course_id,
-                'id' => 2,
-                'title' => get_lang('Default groups'),
-                'description' => '',
-                'max_student' => 0,
-                'self_reg_allowed' => 0,
-                'self_unreg_allowed' => 0,
-                'groups_per_user' => 0,
-                'display_order' => 0,
-                'doc_state' => 1,
-                'calendar_state' => 1,
-                'work_state' => 1,
-                'announcements_state' => 1,
-                'forum_state' => 1,
-                'wiki_state' => 1,
-                'chat_state' => 1,
-            ]
-        );
+        $groupCategory = new CGroupCategory();
+        $groupCategory
+            ->setTitle(get_lang('Default groups'))
+            ->setParent($course)
+            ->addCourseLink($course)
+        ;
+        Database::getManager()->persist($groupCategory);
 
         $now = api_get_utc_datetime();
-
-        $files = [
+        /*$files = [
             ['path' => '/shared_folder', 'title' => get_lang('Folders of users'), 'filetype' => 'folder', 'size' => 0],
-            ['path' => '/chat_files', 'title' => get_lang('Chat conversations history'), 'filetype' => 'folder', 'size' => 0],
+            [
+                'path' => '/chat_files',
+                'title' => get_lang('Chat conversations history'),
+                'filetype' => 'folder',
+                'size' => 0,
+            ],
             ['path' => '/certificates', 'title' => get_lang('Certificates'), 'filetype' => 'folder', 'size' => 0],
         ];
 
@@ -457,52 +331,61 @@ class AddCourse
         foreach ($files as $file) {
             self::insertDocument($courseInfo, $counter, $file, $authorId);
             $counter++;
-        }
+        }*/
 
         $certificateId = 'NULL';
-
         /*    Documents   */
         if ($fill_with_exemplary_content) {
             $files = [
+                ['path' => '/audio', 'title' => get_lang('Audio'), 'filetype' => 'folder', 'size' => 0],
+                //['path' => '/flash', 'title' => get_lang('Flash'), 'filetype' => 'folder', 'size' => 0],
                 ['path' => '/images', 'title' => get_lang('Images'), 'filetype' => 'folder', 'size' => 0],
                 ['path' => '/images/gallery', 'title' => get_lang('Gallery'), 'filetype' => 'folder', 'size' => 0],
-                ['path' => '/audio', 'title' => get_lang('Audio'), 'filetype' => 'folder', 'size' => 0],
-                ['path' => '/flash', 'title' => get_lang('Flash'), 'filetype' => 'folder', 'size' => 0],
                 ['path' => '/video', 'title' => get_lang('Video'), 'filetype' => 'folder', 'size' => 0],
+                //['path' => '/video/flv', 'title' => 'flv', 'filetype' => 'folder', 'size' => 0],
             ];
-
+            $paths = [];
             foreach ($files as $file) {
-                self::insertDocument($courseInfo, $counter, $file, $authorId);
+                $doc = self::insertDocument($courseInfo, $counter, $file, $authorId);
+                $paths[$file['path']] = $doc->getIid();
                 $counter++;
             }
 
             $finder = new Symfony\Component\Finder\Finder();
             $defaultPath = api_get_path(SYS_PUBLIC_PATH).'img/document';
             $finder->in($defaultPath);
+
             /** @var SplFileInfo $file */
             foreach ($finder as $file) {
-                $path = str_replace($defaultPath, '', $file->getRealPath());
                 $parentName = dirname(str_replace($defaultPath, '', $file->getRealPath()));
-                $title = $file->getFilename();
-                if ($file->isDir()) {
-                    create_unexisting_directory(
-                        $courseInfo,
-                        api_get_user_id(),
-                        0,
-                        0,
-                        0,
-                        $path,
-                        $path,
-                        $title
-                    );
-                } else {
-                    $parent = DocumentManager::getDocumentByPathInCourse($courseInfo, $parentName);
-                    $parentId = 0;
-                    if (!empty($parent)) {
-                        $parent = $parent[0];
-                        $parentId = $parent['iid'];
-                    }
+                if ('/' === $parentName || '/certificates' === $parentName) {
+                    continue;
+                }
 
+                $title = $file->getFilename();
+                $parentId = $paths[$parentName];
+
+                if ($file->isDir()) {
+                    $realPath = str_replace($defaultPath, '', $file->getRealPath());
+                    $document = DocumentManager::addDocument(
+                        $courseInfo,
+                        $realPath,
+                        'folder',
+                        null,
+                        $title,
+                        '',
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        false,
+                        null,
+                        $parentId,
+                        $file->getRealPath()
+                    );
+                    $paths[$realPath] = $document->getIid();
+                } else {
                     $realPath = str_replace($defaultPath, '', $file->getRealPath());
                     $document = DocumentManager::addDocument(
                         $courseInfo,
@@ -522,7 +405,7 @@ class AddCourse
                         $file->getRealPath()
                     );
 
-                    if ($document && $document->getTitle() === 'default.html') {
+                    if ($document && 'default.html' === $document->getTitle()) {
                         $certificateId = $document->getIid();
                     }
                 }
@@ -565,7 +448,7 @@ class AddCourse
             ];
 
             foreach ($links as $params) {
-                $link->save($params);
+                $link->save($params, false, false);
             }
 
             /* Announcement tool */
@@ -591,7 +474,6 @@ class AddCourse
             $toolIntro = new CToolIntro();
             $toolIntro
                 ->setCId($course_id)
-                ->setId(TOOL_COURSE_HOMEPAGE)
                 ->setSessionId(0)
                 ->setIntroText($intro_text);
             $manager->persist($toolIntro);
@@ -599,7 +481,6 @@ class AddCourse
             $toolIntro = new CToolIntro();
             $toolIntro
                 ->setCId($course_id)
-                ->setId(TOOL_STUDENTPUBLICATION)
                 ->setSessionId(0)
                 ->setIntroText(get_lang('This page allows users and groups to publish documents.'));
             $manager->persist($toolIntro);
@@ -607,7 +488,6 @@ class AddCourse
             $toolIntro = new CToolIntro();
             $toolIntro
                 ->setCId($course_id)
-                ->setId(TOOL_WIKI)
                 ->setSessionId(0)
                 ->setIntroText(get_lang('The word Wiki is short for WikiWikiWeb. Wikiwiki is a Hawaiian word, meaning "fast" or "speed". In a wiki, people write pages together. If one person writes something wrong, the next person can correct it. The next person can also add something new to the page. Because of this, the pages improve continuously.'));
             $manager->persist($toolIntro);
@@ -634,6 +514,7 @@ class AddCourse
             $exercise_id = $exercise->id;
 
             $question = new MultipleAnswer();
+            $question->course = $courseInfo;
             $question->question = get_lang('Socratic irony is...');
             $question->description = get_lang('(more than one answer can be true)');
             $question->weighting = 10;
@@ -643,17 +524,12 @@ class AddCourse
             $questionId = $question->id;
 
             $answer = new Answer($questionId, $courseInfo['real_id']);
-
             $answer->createAnswer(get_lang('Ridiculise one\'s interlocutor in order to have him concede he is wrong.'), 0, get_lang('No. Socratic irony is not a matter of psychology, it concerns argumentation.'), -5, 1);
             $answer->createAnswer(get_lang('Admit one\'s own errors to invite one\'s interlocutor to do the same.'), 0, get_lang('No. Socratic irony is not a seduction strategy or a method based on the example.'), -5, 2);
             $answer->createAnswer(get_lang('Compell one\'s interlocutor, by a series of questions and sub-questions, to admit he doesn\'t know what he claims to know.'), 1, get_lang('Indeed'), 5, 3);
             $answer->createAnswer(get_lang('Use the Principle of Non Contradiction to force one\'s interlocutor into a dead end.'), 1, get_lang('This answer is not false. It is true that the revelation of the interlocutor\'s ignorance means showing the contradictory conclusions where lead his premisses.'), 5, 4);
             $answer->save();
-
-            /* Forum tool */
-
-            require_once api_get_path(SYS_CODE_PATH).'forum/forumfunction.inc.php';
-
+            // Forums.
             $params = [
                 'forum_category_title' => get_lang('Example Forum Category'),
                 'forum_category_comment' => '',
@@ -669,8 +545,8 @@ class AddCourse
             ];
 
             $forumId = store_forum($params, $courseInfo, true);
-
-            $forumInfo = get_forum_information($forumId, $courseInfo['real_id']);
+            $repo = Container::getForumRepository();
+            $forumEntity = $repo->find($forumId);
 
             $params = [
                 'post_title' => get_lang('Example Thread'),
@@ -683,7 +559,7 @@ class AddCourse
                 'thread_peer_qualify' => 0,
             ];
 
-            store_thread($forumInfo, $params, $courseInfo, false);
+            saveThread($forumEntity, $params, $courseInfo, false);
 
             /* Gradebook tool */
             $course_code = $courseInfo['code'];
@@ -692,7 +568,7 @@ class AddCourse
                 "INSERT INTO $TABLEGRADEBOOK (name, locked, generate_certificates, description, user_id, c_id, parent_id, weight, visible, certif_min_score, session_id, document_id)
                 VALUES ('$course_code','0',0,'',1,$course_id,0,100,0,75,NULL,$certificateId)"
             );
-            $gbid = Database:: insert_id();
+            $gbid = Database::insert_id();
             Database::query(
                 "INSERT INTO $TABLEGRADEBOOK (name, locked, generate_certificates, description, user_id, c_id, parent_id, weight, visible, certif_min_score, session_id, document_id)
                 VALUES ('$course_code','0',0,'',1,$course_id,$gbid,100,1,75,NULL,$certificateId)"
@@ -719,7 +595,7 @@ class AddCourse
      */
     public static function insertDocument($courseInfo, $counter, $file, $authorId = 0)
     {
-        DocumentManager::addDocument(
+        return DocumentManager::addDocument(
             $courseInfo,
             $file['path'],
             $file['filetype'],
@@ -751,10 +627,10 @@ class AddCourse
      */
     public static function string2binary($variable)
     {
-        if ($variable == 'true') {
+        if ('true' == $variable) {
             return true;
         }
-        if ($variable == 'false') {
+        if ('false' == $variable) {
             return false;
         }
     }
@@ -780,19 +656,15 @@ class AddCourse
         $visual_code = $params['visual_code'];
         $directory = $params['directory'];
         $tutor_name = isset($params['tutor_name']) ? $params['tutor_name'] : null;
-        $categoryId = isset($params['category_id']) ? (int) $params['category_id'] : '';
         $course_language = isset($params['course_language']) && !empty($params['course_language']) ? $params['course_language'] : api_get_setting(
             'platformLanguage'
         );
-        $user_id = empty($params['user_id']) ? api_get_user_id() : intval($params['user_id']);
         $department_name = isset($params['department_name']) ? $params['department_name'] : null;
         $department_url = isset($params['department_url']) ? $params['department_url'] : null;
         $disk_quota = isset($params['disk_quota']) ? $params['disk_quota'] : null;
 
         if (!isset($params['visibility'])) {
-            $default_course_visibility = api_get_setting(
-                'courses_default_creation_visibility'
-            );
+            $default_course_visibility = api_get_setting('courses_default_creation_visibility');
             if (isset($default_course_visibility)) {
                 $visibility = $default_course_visibility;
             } else {
@@ -802,13 +674,20 @@ class AddCourse
             $visibility = $params['visibility'];
         }
 
-        $subscribe = isset($params['subscribe']) ? (int) $params['subscribe'] : $visibility == COURSE_VISIBILITY_OPEN_PLATFORM ? 1 : 0;
+        $subscribe = false;
+        if (isset($params['subscribe'])) {
+            $subscribe = 1 === (int) $params['subscribe'];
+        } else {
+            if (COURSE_VISIBILITY_OPEN_PLATFORM == $visibility) {
+                $subscribe = true;
+            }
+        }
+
+        //$subscribe = isset($params['subscribe']) ? (int) $params['subscribe'] : COURSE_VISIBILITY_OPEN_PLATFORM == $visibility ? 1 : 0;
         $unsubscribe = isset($params['unsubscribe']) ? (int) $params['unsubscribe'] : 0;
         $expiration_date = isset($params['expiration_date']) ? $params['expiration_date'] : null;
         $teachers = isset($params['teachers']) ? $params['teachers'] : null;
-        $status = isset($params['status']) ? $params['status'] : null;
-
-        $TABLECOURSUSER = Database::get_main_table(TABLE_MAIN_COURSE_USER);
+        $categories = isset($params['course_categories']) ? $params['course_categories'] : null;
         $ok_to_register_course = true;
 
         // Check whether all the needed parameters are present.
@@ -847,60 +726,66 @@ class AddCourse
             $disk_quota = api_get_setting('default_document_quotum');
         }
 
-        if (stripos($department_url, 'http://') === false && stripos(
+        if (false === stripos($department_url, 'http://') && false === stripos(
                 $department_url,
                 'https://'
-            ) === false
+            )
         ) {
             $department_url = 'http://'.$department_url;
         }
 
         // just in case
-        if ($department_url == 'http://') {
+        if ('http://' === $department_url) {
             $department_url = '';
         }
         $course_id = 0;
 
+        $userId = empty($params['user_id']) ? api_get_user_id() : (int) $params['user_id'];
+        $user = api_get_user_entity($userId);
+        if (null === $user) {
+            error_log(sprintf('user_id "%s" is invalid', $userId));
+
+            return 0;
+        }
+
+        $em = Database::getManager();
         if ($ok_to_register_course) {
             $repo = Container::getCourseRepository();
-            $course = new \Chamilo\CoreBundle\Entity\Course();
-            /** @var \Chamilo\CoreBundle\Entity\CourseCategory $courseCategory */
-            $courseCategory = Container::getCourseCategoryRepository()->find($categoryId);
-            $urlId = 1;
-            if (api_get_current_access_url_id() !== -1) {
-                $urlId = api_get_current_access_url_id();
-            }
+            $categoryRepo = Container::getCourseCategoryRepository();
 
-            $url = api_get_url_entity($urlId);
+            $course = new Course();
             $course
                 ->setCode($code)
-                ->setDirectory($directory)
                 ->setCourseLanguage($course_language)
                 ->setTitle($title)
                 ->setDescription(get_lang('Course Description'))
-                ->setCategory($courseCategory)
                 ->setVisibility($visibility)
                 ->setShowScore(1)
                 ->setDiskQuota($disk_quota)
-                ->setCreationDate(new \DateTime())
                 ->setExpirationDate(new \DateTime($expiration_date))
                 ->setDepartmentName($department_name)
                 ->setDepartmentUrl($department_url)
                 ->setSubscribe($subscribe)
                 ->setUnsubscribe($unsubscribe)
                 ->setVisualCode($visual_code)
-                ->addUrl($url)
             ;
-            $repo->addResourceNode(
-                $course,
-                api_get_user_entity(api_get_user_id()),
-                $url
-            );
 
-            $repo->getEntityManager()->persist($course);
+            if (!empty($categories)) {
+                if (!is_array($categories)) {
+                    $categories = [$categories];
+                }
 
-            $repo->getEntityManager()->persist($course);
-            $repo->getEntityManager()->flush();
+                foreach ($categories as $key) {
+                    if (empty($key)) {
+                        continue;
+                    }
+
+                    $category = $categoryRepo->find($key);
+                    $course->addCategory($category);
+                }
+            }
+
+            $repo->create($course);
 
             $course_id = $course->getId();
             if ($course_id) {
@@ -908,65 +793,68 @@ class AddCourse
                 // Default true
                 $addTeacher = isset($params['add_user_as_teacher']) ? $params['add_user_as_teacher'] : true;
                 if ($addTeacher) {
-                    $i_course_sort = CourseManager::userCourseSort(
-                        $user_id,
-                        $code
-                    );
-                    if (!empty($user_id)) {
-                        $sql = "INSERT INTO ".$TABLECOURSUSER." SET
-                                c_id     = '".$course_id."',
-                                user_id         = '".intval($user_id)."',
-                                status          = '1',
-                                is_tutor        = '0',
-                                sort            = '".($i_course_sort)."',
-                                relation_type = 0,
-                                user_course_cat = '0'";
-                        Database::query($sql);
-                    }
+                    $iCourseSort = CourseManager::userCourseSort($userId, $code);
+                    $courseRelTutor = (new CourseRelUser())
+                        ->setCourse($course)
+                        ->setUser($user)
+                        ->setStatus(true)
+                        ->setTutor(true)
+                        ->setSort($iCourseSort)
+                        ->setRelationType(0)
+                        ->setUserCourseCat(0)
+                    ;
+                    $em->persist($courseRelTutor);
                 }
 
                 if (!empty($teachers)) {
+                    $sort = $user->getMaxSortValue();
                     if (!is_array($teachers)) {
                         $teachers = [$teachers];
                     }
                     foreach ($teachers as $key) {
-                        //just in case
-                        if ($key == $user_id) {
+                        // Just in case.
+                        if ($key == $userId) {
                             continue;
                         }
                         if (empty($key)) {
                             continue;
                         }
-                        $sql = "INSERT INTO ".$TABLECOURSUSER." SET
-                            c_id     = '".Database::escape_string($course_id)."',
-                            user_id         = '".Database::escape_string($key)."',
-                            status          = '1',
-                            is_tutor        = '0',
-                            sort            = '".($sort + 1)."',
-                            relation_type = 0,
-                            user_course_cat = '0'";
-                        Database::query($sql);
+                        $teacher = api_get_user_entity($key);
+                        if (is_null($teacher)) {
+                            continue;
+                        }
+                        $courseRelTeacher = (new CourseRelUser())
+                            ->setCourse($course)
+                            ->setUser($teacher)
+                            ->setStatus(true)
+                            ->setTutor(false)
+                            ->setSort($sort + 1)
+                            ->setRelationType(0)
+                            ->setUserCourseCat(0)
+                        ;
+                        $em->persist($courseRelTeacher);
                     }
                 }
 
+                $em->flush();
+
                 // Adding the course to an URL.
-                UrlManager::add_course_to_url($course_id, $accessUrlId);
+                //UrlManager::add_course_to_url($course_id, $accessUrlId);
 
                 // Add event to the system log.
-                $user_id = api_get_user_id();
                 Event::addEvent(
                     LOG_COURSE_CREATE,
                     LOG_COURSE_CODE,
                     $code,
                     api_get_utc_datetime(),
-                    $user_id,
+                    $userId,
                     $course_id
                 );
 
                 $send_mail_to_admin = api_get_setting('send_email_to_admin_when_create_course');
 
                 // @todo Improve code to send to all current portal administrators.
-                if ($send_mail_to_admin === 'true') {
+                if ('true' === $send_mail_to_admin) {
                     $siteName = api_get_setting('siteName');
                     $recipient_email = api_get_setting('emailAdministrator');
                     $recipient_name = api_get_person_name(
@@ -984,21 +872,19 @@ class AddCourse
                         ).' '.$siteName.' - '.$iname."\n";
                     $message .= get_lang('Course name').' '.$title."\n";
 
-                    if ($courseCategory) {
-                        $message .= get_lang(
-                                'Category'
-                            ).' '.$courseCategory->getCode()."\n";
+                    if ($course->getCategories()->count() > 0) {
+                        foreach ($course->getCategories() as $category) {
+                            $message .= get_lang('Category').': '.$category->getCode()."\n";
+                        }
                     }
                     $message .= get_lang('Coach').' '.$tutor_name."\n";
                     $message .= get_lang('Language').' '.$course_language;
 
-                    $userInfo = api_get_user_info($user_id);
-
                     $additionalParameters = [
                         'smsType' => SmsPlugin::NEW_COURSE_BEEN_CREATED,
-                        'userId' => $user_id,
+                        'userId' => $userId,
                         'courseName' => $title,
-                        'creatorUsername' => $userInfo['username'],
+                        'creatorUsername' => $user->getUsername(),
                     ];
 
                     api_mail_html(
@@ -1040,7 +926,7 @@ class AddCourse
             'first'
         );
 
-        if ($newIdResultData === false) {
+        if (false === $newIdResultData) {
             return 1;
         }
 

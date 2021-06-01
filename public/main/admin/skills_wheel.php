@@ -1,9 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
 
-/**
- *  @package chamilo.admin
- */
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -11,7 +8,7 @@ require_once __DIR__.'/../inc/global.inc.php';
 $this_section = SECTION_PLATFORM_ADMIN;
 
 api_protect_admin_script(false, true);
-Skill::isAllowed();
+SkillModel::isAllowed();
 
 //Adds the JS needed to use the jqgrid
 $htmlHeadXtra[] = api_get_js('d3/d3.v3.5.4.min.js');
@@ -26,10 +23,12 @@ if (isset($_GET['load_user'])) {
 }
 
 $skill_condition = '';
-if (isset($_GET['skill_id'])) {
-    $skill_condition = '&skill_id='.intval($_GET['skill_id']);
-    $tpl->assign('skill_id_to_load', $_GET['skill_id']);
+$skillId = isset($_REQUEST['skill_id']) ? (int) $_REQUEST['skill_id'] : 0;
+if (!empty($skillId)) {
+    $skill_condition = '&skill_id='.$skillId;
+
 }
+$tpl->assign('skill_id_to_load', $skillId);
 
 $url = api_get_path(WEB_AJAX_PATH)."skill.ajax.php?a=get_skills_tree_json&load_user=$load_user";
 $tpl->assign('wheel_url', $url);

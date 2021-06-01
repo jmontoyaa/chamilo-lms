@@ -1,11 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * Script.
- *
- * @package chamilo.gradebook
- */
 require_once __DIR__.'/../inc/global.inc.php';
 
 api_block_anonymous_users();
@@ -23,13 +19,11 @@ $interbreadcrumb[] = [
 ];
 $interbreadcrumb[] = [
     'url' => 'gradebook_showlog_link.php?visiblelink='.Security::remove_XSS($_GET['visiblelink']).'&selectcat='.$selectCat,
-    'name' => get_lang('AssessmentsQualifyLog'),
+    'name' => get_lang('Assessment history'),
 ];
 $this_section = SECTION_COURSES;
 Display::display_header('');
-echo '<div class="actions">';
-api_display_tool_title(get_lang('AssessmentsQualifyLog'));
-echo '</div>';
+echo Display::toolbarAction('toolbar', [api_display_tool_title(get_lang('Assessment history'))]);
 
 $t_user = Database::get_main_table(TABLE_MAIN_USER);
 $t_link_log = Database::get_main_table(TABLE_MAIN_GRADEBOOK_LINKEVAL_LOG);
@@ -37,7 +31,7 @@ $visible_link = Security::remove_XSS($_GET['visiblelink']);
 $evaledit = EvalLink:: load($visible_link);
 $sql = "SELECT lk.name,lk.description,lk.weight,lk.visible,lk.type,lk.created_at,us.username
         FROM ".$t_link_log." lk inner join ".$t_user." us
-        ON lk.user_id_log=us.user_id
+        ON lk.user_id_log=us.id
         WHERE lk.id_linkeval_log=".$evaledit[0]->get_id()." AND lk.type='link';";
 $result = Database::query($sql);
 $list_info = [];
@@ -47,7 +41,7 @@ while ($row = Database::fetch_row($result)) {
 
 foreach ($list_info as $key => $info_log) {
     $list_info[$key][5] = ($info_log[5]) ? api_convert_and_format_date($info_log[5]) : 'N/A';
-    $list_info[$key][3] = ($info_log[3] == 1) ? get_lang('AssessmentsVisible') : get_lang('AssessmentsInvisible');
+    $list_info[$key][3] = (1 == $info_log[3]) ? get_lang('AssessmentsVisible') : get_lang('AssessmentsInvisible');
 }
 
 $parameters = [

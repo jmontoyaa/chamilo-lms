@@ -1,15 +1,11 @@
 <?php
-/* For licensing terms, see /license.txt */
 
-use Symfony\Component\Finder\Finder;
+/* For licensing terms, see /license.txt */
 
 require_once __DIR__.'/../inc/global.inc.php';
 $current_course_tool = TOOL_STUDENTPUBLICATION;
 
 api_protect_course_script(true);
-
-// Including necessary files
-require_once 'work.lib.php';
 
 $this_section = SECTION_COURSES;
 
@@ -37,7 +33,7 @@ if (empty($workInfo)) {
 
 $student_can_edit_in_session = api_is_allowed_to_session_edit(false, true);
 
-$homework = get_work_assignment_by_id($workInfo['id']);
+$homework = get_work_assignment_by_id($workInfo['iid']);
 $validationStatus = getWorkDateValidationStatus($homework);
 
 $interbreadcrumb[] = [
@@ -55,9 +51,9 @@ $downloadLink = api_get_path(WEB_CODE_PATH).'work/downloadfolder.inc.php?id='.$w
 $form = new FormValidator(
     'form',
     'POST',
-    api_get_self()."?".api_get_cidreq()."&id=".$workId,
+    api_get_self().'?'.api_get_cidreq().'&id='.$workId,
     '',
-    ['enctype' => "multipart/form-data"]
+    ['enctype' => 'multipart/form-data']
 );
 
 $form->addElement('header', get_lang('Upload corrections'));
@@ -81,6 +77,8 @@ if ($form->validate()) {
     $upload = process_uploaded_file($_FILES['file'], false);
 
     if ($upload) {
+        throw new Exception('upload corrections');
+        /*
         $zip = new PclZip($_FILES['file']['tmp_name']);
         // Check the zip content (real size and file extension)
         $zipFileList = (array) $zip->listContent();
@@ -99,9 +97,9 @@ if ($form->validate()) {
                     'warning'
                 )
             );
-        }
+        }*/
 
-        $folder = api_get_unique_id();
+        /*$folder = api_get_unique_id();
         $destinationDir = api_get_path(SYS_ARCHIVE_PATH).$folder;
         mkdir($destinationDir, api_get_permissions_for_new_directories(), true);
 
@@ -141,11 +139,8 @@ if ($form->validate()) {
         $finder = new Finder();
         $finder->files()->in($destinationDir);
         $table = Database::get_course_table(TABLE_STUDENT_PUBLICATION);
-        //var_dump($finalResult);
-        /** @var SplFileInfo $file */
         foreach ($finder as $file) {
             $fileName = $file->getBasename();
-
             if (isset($finalResult[$fileName])) {
                 $workStudentId = $finalResult[$fileName];
                 $workStudent = get_work_data_by_id($workStudentId);
@@ -184,7 +179,7 @@ if ($form->validate()) {
                     }
                 }
             }
-        }
+        }*/
 
         Display::addFlash(
             Display::return_message(

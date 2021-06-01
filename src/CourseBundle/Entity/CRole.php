@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
@@ -10,67 +12,53 @@ use Doctrine\ORM\Mapping as ORM;
  * CRole.
  *
  * @ORM\Table(
- *  name="c_role",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_role",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CRole
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="role_name", type="string", length=250, nullable=false)
      */
-    protected $roleName;
+    protected string $roleName;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="role_comment", type="text", nullable=true)
      */
-    protected $roleComment;
+    protected ?string $roleComment = null;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="default_role", type="boolean", nullable=true)
      */
-    protected $defaultRole;
+    protected ?bool $defaultRole = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="role_id", type="integer")
      */
-    protected $roleId;
+    protected int $roleId;
 
     /**
      * Set roleName.
      *
-     * @param string $roleName
-     *
      * @return CRole
      */
-    public function setRoleName($roleName)
+    public function setRoleName(string $roleName)
     {
         $this->roleName = $roleName;
 
@@ -90,11 +78,9 @@ class CRole
     /**
      * Set roleComment.
      *
-     * @param string $roleComment
-     *
      * @return CRole
      */
-    public function setRoleComment($roleComment)
+    public function setRoleComment(string $roleComment)
     {
         $this->roleComment = $roleComment;
 
@@ -114,11 +100,9 @@ class CRole
     /**
      * Set defaultRole.
      *
-     * @param bool $defaultRole
-     *
      * @return CRole
      */
-    public function setDefaultRole($defaultRole)
+    public function setDefaultRole(bool $defaultRole)
     {
         $this->defaultRole = $defaultRole;
 
@@ -138,11 +122,9 @@ class CRole
     /**
      * Set roleId.
      *
-     * @param int $roleId
-     *
      * @return CRole
      */
-    public function setRoleId($roleId)
+    public function setRoleId(int $roleId)
     {
         $this->roleId = $roleId;
 
@@ -162,11 +144,9 @@ class CRole
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CRole
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 

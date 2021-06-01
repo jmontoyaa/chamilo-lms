@@ -1,8 +1,8 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Entity\Skill;
-use Skill as SkillManager;
 
 /**
  * Page for assign skills to a user.
@@ -17,7 +17,7 @@ if (empty($userId)) {
     api_not_allowed(true);
 }
 
-SkillManager::isAllowed($userId);
+SkillModel::isAllowed($userId);
 
 $user = api_get_user_entity($userId);
 
@@ -26,11 +26,11 @@ if (!$user) {
 }
 
 $entityManager = Database::getManager();
-$skillManager = new SkillManager();
-$skillRepo = $entityManager->getRepository('ChamiloCoreBundle:Skill');
-$skillRelSkill = $entityManager->getRepository('ChamiloCoreBundle:SkillRelSkill');
-$skillLevelRepo = $entityManager->getRepository('ChamiloSkillBundle:Level');
-$skillUserRepo = $entityManager->getRepository('ChamiloCoreBundle:SkillRelUser');
+$skillManager = new SkillModel();
+$skillRepo = $entityManager->getRepository(Skill::class);
+$skillRelSkill = $entityManager->getRepository(\Chamilo\CoreBundle\Entity\SkillRelSkill::class);
+$skillLevelRepo = $entityManager->getRepository(\Chamilo\CoreBundle\Entity\Level::class);
+$skillUserRepo = $entityManager->getRepository(\Chamilo\CoreBundle\Entity\SkillRelUser::class);
 
 $skillLevels = api_get_configuration_value('skill_levels_names');
 
@@ -120,7 +120,7 @@ if (!$profile) {
             break;
         }
 
-        if (!$profile && $parent['parent_id'] == 0) {
+        if (!$profile && 0 == $parent['parent_id']) {
             $profile = $skillLevelRepo->findAll();
             $profile = isset($profile[0]) ? $profile[0] : false;
         }
@@ -227,7 +227,7 @@ $form->addHidden('user', $user->getId());
 $form->addHidden('id', $skillId);
 $form->addRule('skill', get_lang('Required field'), 'required');
 
-$showLevels = api_get_configuration_value('hide_skill_levels') === false;
+$showLevels = false === api_get_configuration_value('hide_skill_levels');
 
 if ($showLevels) {
     $form->addSelect('acquired_level', get_lang('Level acquired'), $acquiredLevel);
@@ -364,7 +364,7 @@ if (api_is_drh()) {
         'url' => api_get_path(WEB_CODE_PATH).'mySpace/index.php',
         "name" => get_lang('Reporting'),
     ];
-    if ($user->getStatus() == COURSEMANAGER) {
+    if (COURSEMANAGER == $user->getStatus()) {
         $interbreadcrumb[] = [
             "url" => api_get_path(WEB_CODE_PATH).'mySpace/teachers.php',
             'name' => get_lang('Trainers'),

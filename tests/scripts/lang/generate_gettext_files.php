@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -7,8 +8,8 @@
  * @author Yannick Warnier <yannick.warnier@beeznest.com>
  */
 
-die(); //remove before execution
-require_once __DIR__.'/../../../main/inc/global.inc.php';
+exit(); //remove before execution
+//require_once __DIR__.'/../../../public/main/inc/global.inc.php';
 ini_set('memory_limit', '600M');
 $partial = false; //if set to true, do not add empty strings to .po files
 $destinationDir = '/tmp/gettext'; //where to put the generated files
@@ -16,7 +17,7 @@ $destinationDir = '/tmp/gettext'; //where to put the generated files
 /**
  * Get list of languages.
  */
-$langPath = api_get_path(SYS_LANG_PATH);
+$langPath = __DIR__.'/../../../public/main/lang/';
 $languagesListFull = scandir($langPath);
 $languagesList = [];
 foreach ($languagesListFull as $language) {
@@ -28,7 +29,7 @@ foreach ($languagesListFull as $language) {
         $languagesList[] = $language;
     }
 }
-
+require __DIR__.'/../../../public/main/inc/lib/sub_language.class.php';
 /**
  * Get English language terms (the main source of terms)
  */
@@ -198,9 +199,9 @@ foreach ($languagesList as $language) {
     $file = $langPath.$language.'/trad4all.inc.php';
     $languageCode = $langToIso639v1[$language];
     $languageFilename = $langToPOFilename[$language];
-    $destinationFile = $destinationDir.'/'.$baseFilename.'/'.$languageFilename.'.po';
+    $destinationFile = $destinationDir.'/'.$baseFilename.'/messages.'.$languageFilename.'.po';
     $header = 'msgid ""'."\n".'msgstr ""'."\n".
-        '"Project-Id-Version: chamilo-lms\n"'."\n".
+        '"Project-Id-Version: chamilo\n"'."\n".
         '"Language: '.$languageCode.'\n"'."\n".
         '"Content-Type: text/plain; charset=UTF-8\n"'."\n".
         '"Content-Transfer-Encoding: 8bit\n"'."\n\n";

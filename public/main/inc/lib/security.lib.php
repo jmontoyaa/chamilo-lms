@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Component\HTMLPurifier\Filter\AllowIframes;
@@ -21,8 +22,6 @@ use ChamiloSession as Session;
  * For Cross-Site Request Forgeries, use get_token() and check_tocken()
  * For basic filtering, use filter()
  * For files inclusions (using dynamic paths) use check_rel_path() and check_abs_path()
- *
- * @package chamilo.library
  *
  * @author Yannick Warnier <ywarnier@beeznest.org>
  */
@@ -59,6 +58,8 @@ class Security
             return false;
         }
 
+        // Clean $abs_path.
+        $abs_path = str_replace(['//', '../'], ['/', ''], $abs_path);
         $true_path = str_replace("\\", '/', realpath($abs_path));
         $checker_path = str_replace("\\", '/', realpath($checker_path));
 
@@ -68,13 +69,13 @@ class Security
 
         $found = strpos($true_path.'/', $checker_path);
 
-        if ($found === 0) {
+        if (0 === $found) {
             return true;
         } else {
             // Code specific to Windows and case-insensitive behaviour
             if (api_is_windows_os()) {
                 $found = stripos($true_path.'/', $checker_path);
-                if ($found === 0) {
+                if (0 === $found) {
                     return true;
                 }
             }
@@ -100,13 +101,13 @@ class Security
             return false;
         }
         $current_path = getcwd(); // No trailing slash.
-        if (substr($rel_path, -1, 1) != '/') {
+        if ('/' != substr($rel_path, -1, 1)) {
             $rel_path = '/'.$rel_path;
         }
         $abs_path = $current_path.$rel_path;
         $true_path = str_replace("\\", '/', realpath($abs_path));
         $found = strpos($true_path.'/', $checker_path);
-        if ($found === 0) {
+        if (0 === $found) {
             return true;
         }
 
@@ -143,7 +144,7 @@ class Security
      *
      * @return bool True if it's the right token, false otherwise
      */
-    public static function check_token($request_type = 'post')
+    public static function check_token($request_type = 'post', FormValidator $form = null)
     {
         $sessionToken = Session::read('sec_token');
         switch ($request_type) {
@@ -161,6 +162,14 @@ class Security
                 return false;
             case 'post':
                 if (!empty($sessionToken) && isset($_POST['sec_token']) && $sessionToken === $_POST['sec_token']) {
+                    return true;
+                }
+
+                return false;
+            case 'form':
+                $token = $form->getSubmitValue('protect_token');
+
+                if (!empty($sessionToken) && !empty($token) && $sessionToken === $token) {
                     return true;
                 }
 
@@ -187,7 +196,7 @@ class Security
         $security = Session::read('sec_ua');
         $securitySeed = Session::read('sec_ua_seed');
 
-        if ($security === $_SERVER['HTTP_USER_AGENT'].$securitySeed) {
+        if ($_SERVER['HTTP_USER_AGENT'].$securitySeed === $security) {
             return true;
         }
 
@@ -289,7 +298,7 @@ class Security
      * @param int The user status,constant allowed (STUDENT, COURSEMANAGER, ANONYMOUS, COURSEMANAGERLOWSECURITY)
      * @param bool $filter_terms
      *
-     * @return mixed Filtered string or array
+     * @return string|array Filtered string or array
      */
     public static function remove_XSS($var, $user_status = null, $filter_terms = false)
     {
@@ -309,7 +318,7 @@ class Security
             }
         }
 
-        if ($user_status == COURSEMANAGERLOWSECURITY) {
+        if (COURSEMANAGERLOWSECURITY == $user_status) {
             return $var; // No filtering.
         }
 
@@ -329,21 +338,21 @@ class Security
             $config->set('Core.ConvertDocumentToFragment', false);
             $config->set('Core.RemoveProcessingInstructions', true);
 
-            if (api_get_setting('enable_iframe_inclusion') == 'true') {
+            if ('true' == api_get_setting('enable_iframe_inclusion')) {
                 $config->set('Filter.Custom', [new AllowIframes()]);
             }
 
             // Shows _target attribute in anchors
             $config->set('Attr.AllowedFrameTargets', ['_blank', '_top', '_self', '_parent']);
 
-            if ($user_status == STUDENT) {
+            if (STUDENT == $user_status) {
                 global $allowed_html_student;
                 $config->set('HTML.SafeEmbed', true);
                 $config->set('HTML.SafeObject', true);
                 $config->set('Filter.YouTube', true);
                 $config->set('HTML.FlashAllowFullScreen', true);
                 $config->set('HTML.Allowed', $allowed_html_student);
-            } elseif ($user_status == COURSEMANAGER) {
+            } elseif (COURSEMANAGER == $user_status) {
                 global $allowed_html_teacher;
                 $config->set('HTML.SafeEmbed', true);
                 $config->set('HTML.SafeObject', true);
@@ -478,8 +487,6 @@ class Security
      * this method encourages a safe practice for generating icon paths, without using heavy solutions
      * based on HTMLPurifier for example.
      *
-     * @param string $img_path the input path of the image, it could be relative or absolute URL
-     *
      * @return string returns sanitized image path or an empty string when the image path is not secure
      *
      * @author Ivan Tcholakov, March 2011
@@ -489,12 +496,12 @@ class Security
         static $allowed_extensions = ['png', 'gif', 'jpg', 'jpeg', 'svg', 'webp'];
         $image_path = htmlspecialchars(trim($image_path)); // No html code is allowed.
         // We allow static images only, query strings are forbidden.
-        if (strpos($image_path, '?') !== false) {
+        if (false !== strpos($image_path, '?')) {
             return '';
         }
-        if (($pos = strpos($image_path, ':')) !== false) {
+        if (false !== ($pos = strpos($image_path, ':'))) {
             // Protocol has been specified, let's check it.
-            if (stripos($image_path, 'javascript:') !== false) {
+            if (false !== stripos($image_path, 'javascript:')) {
                 // Javascript everywhere in the path is not allowed.
                 return '';
             }
@@ -502,7 +509,7 @@ class Security
             //if (!preg_match('/^https?:\/\//i', $image_path)) {
             //    return '';
             //}
-            if (stripos($image_path, 'http://') !== 0 && stripos($image_path, 'https://') !== 0) {
+            if (0 !== stripos($image_path, 'http://') && 0 !== stripos($image_path, 'https://')) {
                 return '';
             }
         }
@@ -510,7 +517,7 @@ class Security
         //if (!preg_match('/.+\.(png|gif|jpg|jpeg)$/i', $image_path)) {
         //    return '';
         //}
-        if (($pos = strrpos($image_path, '.')) !== false) {
+        if (false !== ($pos = strrpos($image_path, '.'))) {
             if (!in_array(strtolower(substr($image_path, $pos + 1)), $allowed_extensions)) {
                 return '';
             }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Settings;
@@ -8,12 +10,9 @@ use Chamilo\CoreBundle\Form\Type\YesNoType;
 use Sylius\Bundle\SettingsBundle\Schema\AbstractSettingsBuilder;
 use Symfony\Component\Form\FormBuilderInterface;
 
-/**
- * Class SkillSettingsSchema.
- */
 class SkillSettingsSchema extends AbstractSettingsSchema
 {
-    public function buildSettings(AbstractSettingsBuilder $builder)
+    public function buildSettings(AbstractSettingsBuilder $builder): void
     {
         $builder
             ->setDefaults(
@@ -22,14 +21,15 @@ class SkillSettingsSchema extends AbstractSettingsSchema
                     'allow_hr_skills_management' => 'true',
                     'show_full_skill_name_on_skill_wheel' => 'false',
                 ]
-            );
+            )
+        ;
         $allowedTypes = [
             'allow_skills_tool' => ['string'],
         ];
         $this->setMultipleAllowedTypes($allowedTypes, $builder);
     }
 
-    public function buildForm(FormBuilderInterface $builder)
+    public function buildForm(FormBuilderInterface $builder): void
     {
         $builder
             ->add('allow_skills_tool', YesNoType::class)

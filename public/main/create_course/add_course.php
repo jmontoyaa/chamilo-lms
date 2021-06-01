@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Entity\CourseCategory;
@@ -10,10 +11,6 @@ use Chamilo\CoreBundle\Repository\CourseCategoryRepository;
  *
  * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University
  * @author Roan Embrechts, refactoring
- *
- * @package chamilo.create_course
- * "Course validation" feature:
- *
  * @author Jose Manuel Abuin Mosquera <chema@cesga.es>, Centro de Supercomputacion de Galicia
  * "Course validation" feature, technical adaptation for Chamilo 1.8.8:
  * @author Ivan Tcholakov <ivantcholakov@gmail.com>
@@ -35,7 +32,7 @@ $this_section = SECTION_COURSES;
 
 $em = Database::getManager();
 /** @var CourseCategoryRepository $courseCategoriesRepo */
-$courseCategoriesRepo = $em->getRepository('ChamiloCoreBundle:CourseCategory');
+$courseCategoriesRepo = $em->getRepository(CourseCategory::class);
 // Get all possible teachers.
 $accessUrlId = api_get_current_access_url_id();
 
@@ -43,7 +40,7 @@ $accessUrlId = api_get_current_access_url_id();
 // true  - the new course is requested only and it is created after approval;
 // false - the new course is created immediately, after filling this form.
 $course_validation_feature = false;
-if (api_get_setting('course_validation') === 'true' &&
+if ('true' === api_get_setting('course_validation') &&
     !api_is_platform_admin()
 ) {
     $course_validation_feature = true;
@@ -132,11 +129,19 @@ if ($countCategories >= 100) {
         $accessUrlId,
         api_get_configuration_value('allow_base_course_category')
     );
-    $categoriesOptions = [null => get_lang('none')];
+    $categoriesOptions = [null => get_lang('None')];
+    $categoryToAvoid = '';
+    if (!api_is_platform_admin()) {
+        $categoryToAvoid = api_get_configuration_value('course_category_code_to_use_as_model');
+    }
 
     /** @var CourseCategory $category */
     foreach ($categories as $category) {
-        $categoriesOptions[$category->getCode()] = $category->__toString();
+        $categoryCode = $category->getCode();
+        if (!empty($categoryToAvoid) && $categoryToAvoid == $categoryCode) {
+            continue;
+        }
+        $categoriesOptions[$categoryCode] = $category->__toString();
     }
 
     $form->addSelect(
@@ -169,7 +174,7 @@ $form->addRule(
 );
 
 // The teacher
-$titular = &$form->addElement('hidden', 'tutor_name', '');
+$form->addElement('hidden', 'tutor_name', '');
 if ($course_validation_feature) {
     // Description of the requested course.
     $form->addElement(
@@ -198,7 +203,7 @@ if ($course_validation_feature) {
 
 // Course language.
 $languages = api_get_languages();
-if (count($languages) === 1) {
+if (1 === count($languages)) {
     // If there's only one language available, there's no point in asking
     $form->addElement('hidden', 'course_language', $languages['folder'][0]);
 } else {
@@ -229,7 +234,7 @@ if ($course_validation_feature) {
     // then we may get the URL from Chamilo's module "Terms and conditions",
     // if it is activated.
     if (empty($terms_and_conditions_url)) {
-        if (api_get_setting('allow_terms_conditions') === 'true') {
+        if ('true' === api_get_setting('allow_terms_conditions')) {
             $terms_and_conditions_url = api_get_path(WEB_CODE_PATH).'auth/inscription.php?legal';
         }
     }
@@ -269,7 +274,7 @@ if ($course_validation_feature) {
 $obj = new GradeModel();
 $obj->fill_grade_model_select_in_form($form);
 
-if (api_get_setting('teacher_can_select_course_template') === 'true') {
+if ('true' === api_get_setting('teacher_can_select_course_template')) {
     $form->addElement(
         'select_ajax',
         'course_template',
@@ -291,7 +296,7 @@ $form->addButtonCreate($course_validation_feature ? get_lang('Create this course
 $form->addProgress();
 
 // Set default values.
-if (isset($_user['language']) && $_user['language'] != '') {
+if (isset($_user['language']) && '' != $_user['language']) {
     $values['course_language'] = $_user['language'];
 } else {
     $values['course_language'] = api_get_setting('platformLanguage');
@@ -317,7 +322,7 @@ if ($form->validate()) {
         $target_audience = $course_values['target_audience'];
     }
 
-    if ($wanted_code == '') {
+    if ('' == $wanted_code) {
         $wanted_code = CourseManager::generate_course_code(
             api_substr($title, 0, CourseManager::MAX_COURSE_LENGTH_CODE)
         );
@@ -363,7 +368,7 @@ if ($form->validate()) {
                 }
 
                 $splash = api_get_setting('course_creation_splash_screen');
-                if ($splash === 'true') {
+                if ('true' === $splash) {
                     $url = Container::getRouter()->generate(
                         'chamilo_core_course_welcome',
                         ['cid' => $course_info['real_id']]
@@ -437,6 +442,13 @@ if ($form->validate()) {
 } else {
     if (!$course_validation_feature) {
         $message = Display::return_message(get_lang('Once you click on "Create a course", a course is created with a section for Tests, Project based learning, Assessments, Courses, Dropbox, Agenda and much more. Logging in as teacher provides you with editing privileges for this course.'));
+        // If the donation feature is enabled, show a message with a donate button
+        if (true == api_get_configuration_value('course_creation_donate_message_show')) {
+            $button = api_get_configuration_value('course_creation_donate_link');
+            if (!empty($button)) {
+                $message .= Display::return_message(get_lang('DonateToTheProject').'<br /><br /><div style="display:block; margin-left:42%;">'.$button.'</div>', 'warning', false);
+            }
+        }
     }
     // Display the form.
     $formContent = $form->returnForm();

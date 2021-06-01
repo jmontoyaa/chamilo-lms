@@ -1,17 +1,17 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
  * Implements the edition of course-session settings.
- *
- * @package chamilo.admin
  */
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
 
 $id_session = isset($_GET['id_session']) ? (int) $_GET['id_session'] : 0;
-SessionManager::protectSession($id_session);
+$session = api_get_session_entity($id_session);
+SessionManager::protectSession($session);
 $course_code = $_GET['course_code'];
 $course_info = api_get_course_info($_REQUEST['course_code']);
 
@@ -114,17 +114,17 @@ $order_clause = api_sort_by_first_name() ? ' ORDER BY firstname, lastname, usern
 if (api_is_multiple_url_enabled()) {
     $tbl_access_rel_user = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
     $access_url_id = api_get_current_access_url_id();
-    $sql = "SELECT u.user_id,lastname,firstname,username
+    $sql = "SELECT u.id as user_id,lastname,firstname,username
             FROM $tbl_user u
             LEFT JOIN $tbl_access_rel_user  a
-            ON(u.user_id= a.user_id)
+            ON(u.id= a.user_id)
             WHERE
                 status='1' AND
                 active = 1 AND
                 access_url_id = $access_url_id ".
             $order_clause;
 } else {
-    $sql = "SELECT user_id,lastname,firstname,username
+    $sql = "SELECT id as user_id,lastname,firstname,username
             FROM $tbl_user
             WHERE
                 status = '1' AND
@@ -166,3 +166,4 @@ $form->setDefaults(['id_coach' => $selected]);
 $form->display();
 
 Display::display_footer();
+

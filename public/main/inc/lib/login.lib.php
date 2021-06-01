@@ -1,7 +1,7 @@
 <?php
 /* For licensing terms, see /license.txt */
 
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\User;
 use ChamiloSession as Session;
 
 /**
@@ -11,8 +11,6 @@ use ChamiloSession as Session;
  *
  * @author Olivier Cauberghe <olivier.cauberghe@UGent.be>, Ghent University
  * @author Julio Montoya <gugli100@gmail.com>
- *
- * @package chamilo.login
  */
 class Login
 {
@@ -31,7 +29,7 @@ class Login
 
         if (api_is_multiple_url_enabled()) {
             $access_url_id = api_get_current_access_url_id();
-            if ($access_url_id != -1) {
+            if (-1 != $access_url_id) {
                 $url = api_get_access_url($access_url_id);
                 $portal_url = $url['url'];
             }
@@ -109,7 +107,7 @@ class Login
         $portal_url = api_get_path(WEB_PATH);
         if (api_is_multiple_url_enabled()) {
             $access_url_id = api_get_current_access_url_id();
-            if ($access_url_id != -1) {
+            if (-1 != $access_url_id) {
                 $url = api_get_access_url($access_url_id);
                 $portal_url = $url['url'];
             }
@@ -125,7 +123,7 @@ class Login
         );
         $email_admin = api_get_setting('emailAdministrator');
 
-        if (api_mail_html('', $email_to, $email_subject, $email_body, $sender_name, $email_admin) == 1) {
+        if (1 == api_mail_html('', $email_to, $email_subject, $email_body, $sender_name, $email_admin)) {
             return get_lang('Your password has been reset');
         } else {
             $admin_email = Display:: encrypted_mailto_link(
@@ -193,7 +191,7 @@ class Login
             $email_admin
         );
 
-        if ($result == 1) {
+        if (1 == $result) {
             return get_lang('Your password has been emailed to you.');
         } else {
             $admin_email = Display:: encrypted_mailto_link(
@@ -257,7 +255,7 @@ class Login
         $tbl_user = Database::get_main_table(TABLE_MAIN_USER);
         $id = intval($id);
         $sql = "SELECT
-                    user_id AS uid,
+                    id AS uid,
                     lastname AS lastName,
                     firstname AS firstName,
                     username AS loginName,
@@ -265,14 +263,14 @@ class Login
                     email,
                     auth_source
                 FROM ".$tbl_user."
-                WHERE user_id = $id";
+                WHERE id = $id";
         $result = Database::query($sql);
         $num_rows = Database::num_rows($result);
 
         if ($result && $num_rows > 0) {
             $user = Database::fetch_array($result);
 
-            if ($user['auth_source'] == 'extldap') {
+            if ('extldap' == $user['auth_source']) {
                 return get_lang('Could not reset password');
             }
         } else {
@@ -344,7 +342,7 @@ class Login
                     $_user['status'] = $uData['status'];
 
                     $is_platformAdmin = (bool) (!is_null($uData['is_admin']));
-                    $is_allowedCreateCourse = (bool) (($uData['status'] == 1) or (api_get_setting('drhCourseManagerRights') and $uData['status'] == 4));
+                    $is_allowedCreateCourse = (bool) ((1 == $uData['status']) or (api_get_setting('drhCourseManagerRights') and 4 == $uData['status']));
                     ConditionalLogin::check_conditions($uData);
 
                     Session::write('_user', $_user);
@@ -393,17 +391,17 @@ class Login
         }
 
         $tbl_user = Database::get_main_table(TABLE_MAIN_USER);
-        $query = "SELECT 
-                    user_id AS uid, 
-		            lastname AS lastName, 
-		            firstname AS firstName, 
-		            username AS loginName, 
-		            password, 
+        $query = "SELECT
+                    id AS uid,
+		            lastname AS lastName,
+		            firstname AS firstName,
+		            username AS loginName,
+		            password,
 		            email,
-                    status AS status, 
-                    official_code, 
-                    phone, 
-                    picture_uri, 
+                    status AS status,
+                    official_code,
+                    phone,
+                    picture_uri,
                     creator_id,
                     auth_source
 				 FROM $tbl_user

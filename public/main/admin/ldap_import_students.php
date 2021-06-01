@@ -3,9 +3,6 @@
 
 /**
  * Script to import students from LDAP.
- *
- * @package chamilo.admin
- * Copyright (c) 2007 Mustapha Alouani (supervised by Michel Moreau-Belliard)
  */
 // resetting the course id
 $cidReset = true;
@@ -88,7 +85,7 @@ if (empty($annee) && empty($course)) {
     echo '<br />';
     echo '<h3>'.Display::return_icon('group.gif', get_lang('Select learners')).' '.get_lang('Select learners').'</h3>';
     //echo "Connection ...";
-    $ds = ldap_connect($ldap_host, $ldap_port) or die(get_lang('LDAP Connection Error'));
+    $ds = ldap_connect($ldap_host, $ldap_port) or exit(get_lang('LDAP Connection Error'));
     ldap_set_version($ds);
 
     if ($ds) {
@@ -127,7 +124,7 @@ if (empty($annee) && empty($course)) {
     echo '<a href="ldap_import_students.php?annee=&composante=&etape=">'.get_lang('Back to start new search').'</a>';
     echo '<br /><br />';
     echo '</div>';
-} elseif (!empty($annee) && !empty($course) && ($_POST['confirmed'] == 'yes')) {
+} elseif (!empty($annee) && !empty($course) && ('yes' == $_POST['confirmed'])) {
     $id = $_POST['username_form'];
     $UserList = [];
     $userid_match_login = [];
@@ -140,7 +137,8 @@ if (empty($annee) && empty($course)) {
     }
     if (!empty($_POST['course'])) {
         foreach ($UserList as $user_id) {
-            CourseManager::subscribeUser($user_id, $_POST['course']);
+            $courseInfo = api_get_course_info($_POST['course']);
+            CourseManager::subscribeUser($user_id, $courseInfo['real_id']);
         }
         header('Location: course_information.php?code='.Security::remove_XSS($_POST['course']));
         exit;

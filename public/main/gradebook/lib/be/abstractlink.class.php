@@ -1,6 +1,7 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Entity\GradebookCategory;
 use Chamilo\CoreBundle\Entity\GradebookLink;
 
 /**
@@ -12,8 +13,6 @@ use Chamilo\CoreBundle\Entity\GradebookLink;
  *
  * @author Bert Steppé
  * @author Julio Montoya <gugli100@gmail.com> security improvements
- *
- * @package chamilo.gradebook
  */
 abstract class AbstractLink implements GradebookItem
 {
@@ -176,7 +175,7 @@ abstract class AbstractLink implements GradebookItem
 
     public function is_locked()
     {
-        return isset($this->locked) && $this->locked == 1 ? true : false;
+        return isset($this->locked) && 1 == $this->locked ? true : false;
     }
 
     public function is_visible()
@@ -306,7 +305,7 @@ abstract class AbstractLink implements GradebookItem
             $paramcount++;
         }
         if (isset($type)) {
-            if ($paramcount != 0) {
+            if (0 != $paramcount) {
                 $sql .= ' AND';
             } else {
                 $sql .= ' WHERE';
@@ -315,7 +314,7 @@ abstract class AbstractLink implements GradebookItem
             $paramcount++;
         }
         if (isset($ref_id)) {
-            if ($paramcount != 0) {
+            if (0 != $paramcount) {
                 $sql .= ' AND';
             } else {
                 $sql .= ' WHERE';
@@ -324,7 +323,7 @@ abstract class AbstractLink implements GradebookItem
             $paramcount++;
         }
         if (isset($user_id)) {
-            if ($paramcount != 0) {
+            if (0 != $paramcount) {
                 $sql .= ' AND';
             } else {
                 $sql .= ' WHERE';
@@ -333,7 +332,7 @@ abstract class AbstractLink implements GradebookItem
             $paramcount++;
         }
         if (isset($course_code)) {
-            if ($paramcount != 0) {
+            if (0 != $paramcount) {
                 $sql .= ' AND';
             } else {
                 $sql .= ' WHERE';
@@ -345,7 +344,7 @@ abstract class AbstractLink implements GradebookItem
             }
         }
         if (isset($category_id)) {
-            if ($paramcount != 0) {
+            if (0 != $paramcount) {
                 $sql .= ' AND';
             } else {
                 $sql .= ' WHERE';
@@ -354,7 +353,7 @@ abstract class AbstractLink implements GradebookItem
             $paramcount++;
         }
         if (isset($visible)) {
-            if ($paramcount != 0) {
+            if (0 != $paramcount) {
                 $sql .= ' AND';
             } else {
                 $sql .= ' WHERE';
@@ -374,13 +373,11 @@ abstract class AbstractLink implements GradebookItem
     public function add()
     {
         $this->add_linked_data();
-        if (isset($this->type) &&
-            isset($this->ref_id) &&
-            isset($this->user_id) &&
-            isset($this->course_code) &&
-            isset($this->category) &&
-            isset($this->weight) &&
-            isset($this->visible)
+        if (!empty($this->type) &&
+            !empty($this->ref_id) &&
+            !empty($this->user_id) &&
+            !empty($this->course_code) &&
+            !empty($this->category)
         ) {
             $table = Database::get_main_table(TABLE_MAIN_GRADEBOOK_LINK);
             $sql = "SELECT count(*) count FROM $table
@@ -393,18 +390,23 @@ abstract class AbstractLink implements GradebookItem
             $result = Database::query($sql);
             $row = Database::fetch_array($result, 'ASSOC');
 
-            if ($row['count'] == 0) {
+            if (0 == $row['count']) {
                 $em = Database::getManager();
+                $category = null;
+                if (!empty($this->get_category_id())) {
+                    $category = $em->getRepository(GradebookCategory::class)->find($this->get_category_id());
+                }
+
                 $link = new GradebookLink();
                 $link
                     ->setType($this->get_type())
                     ->setVisible($this->is_visible())
                     ->setWeight(api_float_val($this->get_weight()))
-                    ->setUserId($this->get_user_id())
+                    ->setUser(api_get_user_entity($this->get_user_id()))
                     ->setRefId($this->get_ref_id())
-                    ->setCategoryId($this->get_category_id())
+                    ->setCategory($category)
                     ->setCourse(api_get_course_entity())
-                    ->setCategoryId($this->get_category_id());
+                ;
                 $em->persist($link);
                 $em->flush();
 
@@ -423,29 +425,32 @@ abstract class AbstractLink implements GradebookItem
     public function save()
     {
         $em = Database::getManager();
-
-        $link = $em->find('ChamiloCoreBundle:GradebookLink', $this->id);
+        $link = $em->find(GradebookLink::class, $this->id);
 
         if (!$link) {
             return;
         }
 
         self::add_link_log($this->id);
-
         $this->save_linked_data();
-
         $course = api_get_course_entity($this->getCourseId());
+
+        $category = null;
+        if (!empty($this->get_category_id())) {
+            $category = $em->getRepository(GradebookCategory::class)->find($this->get_category_id());
+        }
 
         $link
             ->setType($this->get_type())
             ->setRefId($this->get_ref_id())
-            ->setUserId($this->get_user_id())
+            ->setUser(api_get_user_entity($this->get_user_id()))
             ->setCourse($course)
-            ->setCategoryId($this->get_category_id())
+            ->setCategory($category)
             ->setWeight($this->get_weight())
-            ->setVisible($this->is_visible());
+            ->setVisible($this->is_visible())
+        ;
 
-        $em->merge($link);
+        $em->persist($link);
         $em->flush();
     }
 
@@ -545,13 +550,13 @@ abstract class AbstractLink implements GradebookItem
      *
      * @return array
      */
-    public function find_links($name_mask, $selectcat)
+    public static function find_links($name_mask, $selectcat)
     {
         $rootcat = Category::load($selectcat);
         $links = $rootcat[0]->get_links((api_is_allowed_to_edit() ? null : api_get_user_id()), true);
         $foundlinks = [];
         foreach ($links as $link) {
-            if (!(api_strpos(api_strtolower($link->get_name()), api_strtolower($name_mask)) === false)) {
+            if (!(false === api_strpos(api_strtolower($link->get_name()), api_strtolower($name_mask)))) {
                 $foundlinks[] = $link;
             }
         }
@@ -658,7 +663,7 @@ abstract class AbstractLink implements GradebookItem
             }
 
             // If no ranking was detected.
-            if ($ranking == 0) {
+            if (0 == $ranking) {
                 return [];
             }
 
@@ -698,7 +703,7 @@ abstract class AbstractLink implements GradebookItem
                 break;
         }
 
-        $skillToString = Skill::getSkillRelItemsToString($toolType, $this->get_ref_id());
+        $skillToString = SkillModel::getSkillRelItemsToString($toolType, $this->get_ref_id());
 
         return $skillToString;
     }
@@ -725,13 +730,13 @@ abstract class AbstractLink implements GradebookItem
         $sessionCondition = api_get_session_condition($sessionId, true, false, 'c.session_id');
         $courseCode = Database::escape_string($courseCode);
 
-        $sql = "SELECT DISTINCT l.* 
-                FROM $table l INNER JOIN $tableCategory c 
+        $sql = "SELECT DISTINCT l.*
+                FROM $table l INNER JOIN $tableCategory c
                 ON (c.course_code = l.course_code AND c.id = l.category_id)
-                WHERE 
-                    ref_id = $itemId AND 
-                    type = $linkType AND 
-                    l.course_code = '$courseCode' 
+                WHERE
+                    ref_id = $itemId AND
+                    type = $linkType AND
+                    l.course_code = '$courseCode'
                     $sessionCondition ";
 
         $result = Database::query($sql);
@@ -755,7 +760,7 @@ abstract class AbstractLink implements GradebookItem
         $allow = api_get_configuration_value('allow_gradebook_stats');
         if ($allow) {
             $em = Database::getManager();
-            $repo = $em->getRepository('ChamiloCoreBundle:GradebookLink');
+            $repo = $em->getRepository(GradebookLink::class);
         }
 
         while ($data = Database::fetch_array($result)) {

@@ -1,9 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.admin
- */
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -30,12 +28,10 @@ $courses = [];
 $courses[''] = '--';
 $sql = "SELECT code,visual_code,title FROM $course_table ORDER BY visual_code";
 
-global $_configuration;
-
 if (api_is_multiple_url_enabled()) {
     $tbl_course_rel_access_url = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE);
     $access_url_id = api_get_current_access_url_id();
-    if ($access_url_id != -1) {
+    if (-1 != $access_url_id) {
         $sql = "SELECT code,visual_code,title
             FROM $course_table as c
             INNER JOIN $tbl_course_rel_access_url as course_rel_url
@@ -53,7 +49,16 @@ $form->addElement('header', $tool_name);
 $form->addElement('radio', 'file_type', get_lang('Output file type'), 'XML', 'xml');
 $form->addElement('radio', 'file_type', null, 'CSV', 'csv');
 $form->addElement('radio', 'file_type', null, 'XLS', 'xls');
-$form->addElement('checkbox', 'addcsvheader', get_lang('Include header line?'), get_lang('YesInclude header line?'), '1');
+$form->addCheckBox(
+    'addcsvheader',
+    [
+        get_lang('Include header line?'),
+        get_lang(
+            'This will put the fields names on the first line. It is necessary when you want to import the file later on in a Chamilo portal.'
+        ),
+    ],
+    get_lang('Yes, add the headers')
+);
 $form->addElement('select', 'course_code', get_lang('Only users from the course'), $courses);
 $form->addElement('select', 'course_session', get_lang('Only users from the courseSession'), $coursesSessions);
 $form->addButtonExport(get_lang('Export'));
@@ -81,12 +86,12 @@ if ($form->validate()) {
     }
 
     $sql = "SELECT
-                u.user_id 	AS UserId,
+                u.id 	AS UserId,
                 u.lastname 	AS LastName,
                 u.firstname 	AS FirstName,
                 u.email 		AS Email,
                 u.username	AS UserName,
-                ".(($_configuration['password_encryption'] != 'none') ? " " : "u.password AS Password, ")."
+                ".(('none' != api_get_configuration_value('password_encryption')) ? " " : "u.password AS Password, ")."
                 u.auth_source	AS AuthSource,
                 u.status		AS Status,
                 u.official_code	AS OfficialCode,
@@ -95,7 +100,7 @@ if ($form->validate()) {
     if (strlen($course_code) > 0) {
         $sql .= " FROM $user_table u, $course_user_table cu
                     WHERE
-                        u.user_id = cu.user_id AND
+                        u.id = cu.user_id AND
                         cu.c_id = $courseId AND
                         cu.relation_type<>".COURSE_RELATION_TYPE_RRHH."
                     ORDER BY lastname,firstname";
@@ -103,16 +108,16 @@ if ($form->validate()) {
     } elseif (strlen($courseSessionCode) > 0) {
         $sql .= " FROM $user_table u, $session_course_user_table scu
                     WHERE
-                        u.user_id = scu.user_id AND
+                        u.id = scu.user_id AND
                         scu.c_id = $courseSessionId AND
-                        scu.session_id = $sessionId 
+                        scu.session_id = $sessionId
                     ORDER BY lastname,firstname";
         $filename = 'export_users_'.$courseSessionCode.'_'.$sessionInfo['name'].'_'.api_get_local_time();
     } else {
         if (api_is_multiple_url_enabled()) {
             $tbl_user_rel_access_url = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
             $access_url_id = api_get_current_access_url_id();
-            if ($access_url_id != -1) {
+            if (-1 != $access_url_id) {
                 $sql .= " FROM $user_table u
                           INNER JOIN $tbl_user_rel_access_url as user_rel_url
                           ON (u.user_id= user_rel_url.user_id)
@@ -128,8 +133,8 @@ if ($form->validate()) {
     $extra_fields = UserManager::get_extra_fields(0, 0, 5, 'ASC', false);
 
     if (!empty($export['addcsvheader'])) {
-        if ($export['addcsvheader'] == '1' && ($export['file_type'] == 'csv' || $export['file_type'] == 'xls')) {
-            if ($_configuration['password_encryption'] != 'none') {
+        if ('1' == $export['addcsvheader'] && ('csv' == $export['file_type'] || 'xls' == $export['file_type'])) {
+            if ('none' != api_get_configuration_value('password_encryption')) {
                 $data[] = [
                     'UserId',
                     'LastName',

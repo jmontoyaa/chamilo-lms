@@ -1,9 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.admin
- */
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -13,7 +11,8 @@ set_time_limit(0);
 $this_section = SECTION_PLATFORM_ADMIN;
 
 $session_id = isset($_GET['id_session']) ? intval($_GET['id_session']) : null;
-SessionManager::protectSession($session_id);
+$session = api_get_session_entity($session_id);
+SessionManager::protectSession($session);
 
 $form_sent = 0;
 $tool_name = get_lang('Import users');
@@ -87,8 +86,7 @@ $form->addButtonImport(get_lang('Import'));
 
 $form->display();
 
-?>
-<p><?php echo get_lang('The CSV file must look like this'); ?> :</p>
+$content = '<p>'.get_lang('The CSV file must look like this').':</p>
 <blockquote>
 <pre>
 username;
@@ -96,6 +94,8 @@ admin;
 teacher;
 jmontoya;
 </pre>
-</blockquote>
-<?php
+</blockquote>';
+
+echo Display::prose($content);
+
 Display::display_footer();

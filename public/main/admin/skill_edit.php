@@ -5,8 +5,6 @@
  * Skill edit form.
  *
  * @author Angel Fernando Quiroz Campos <angel.quiroz@beeznest.com>
- *
- * @package chamilo.admin
  */
 $cidReset = true;
 
@@ -15,7 +13,7 @@ require_once __DIR__.'/../inc/global.inc.php';
 $this_section = SECTION_PLATFORM_ADMIN;
 
 api_protect_admin_script();
-Skill::isAllowed();
+SkillModel::isAllowed();
 
 $interbreadcrumb[] = ['url' => 'index.php', 'name' => get_lang('Administration')];
 $interbreadcrumb[] = ['url' => 'skill_list.php', 'name' => get_lang('Manage skills')];
@@ -23,7 +21,7 @@ $interbreadcrumb[] = ['url' => 'skill_list.php', 'name' => get_lang('Manage skil
 /* Process data */
 $skillId = isset($_REQUEST['id']) ? (int) $_REQUEST['id'] : 0;
 
-$objSkill = new Skill();
+$objSkill = new SkillModel();
 $objGradebook = new Gradebook();
 $skillInfo = $objSkill->getSkillInfo($skillId);
 

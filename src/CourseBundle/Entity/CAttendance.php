@@ -1,209 +1,152 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Chamilo\CoreBundle\Entity\AbstractResource;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * CAttendance.
  *
  * @ORM\Table(
- *  name="c_attendance",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="session_id", columns={"session_id"}),
- *      @ORM\Index(name="active", columns={"active"})
- *  }
+ *     name="c_attendance",
+ *     indexes={
+ *         @ORM\Index(name="active", columns={"active"})
+ *     }
  * )
  * @ORM\Entity
  */
-class CAttendance
+class CAttendance extends AbstractResource implements ResourceInterface
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
-     */
-    protected $cId;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var string
-     *
+     * @Assert\NotBlank
      * @ORM\Column(name="name", type="text", nullable=false)
      */
-    protected $name;
+    protected string $name;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="description", type="text", nullable=true)
      */
-    protected $description;
+    protected ?string $description;
 
     /**
-     * @var bool
-     *
-     * @ORM\Column(name="active", type="boolean", nullable=false)
+     * @ORM\Column(name="active", type="integer", nullable=false)
      */
-    protected $active;
+    protected int $active;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="attendance_qualify_title", type="string", length=255, nullable=true)
      */
-    protected $attendanceQualifyTitle;
+    protected ?string $attendanceQualifyTitle = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="attendance_qualify_max", type="integer", nullable=false)
      */
-    protected $attendanceQualifyMax;
+    protected int $attendanceQualifyMax;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="attendance_weight", type="float", precision=6, scale=2, nullable=false)
      */
-    protected $attendanceWeight;
+    protected float $attendanceWeight;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="session_id", type="integer", nullable=false)
-     */
-    protected $sessionId;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="locked", type="integer", nullable=false)
      */
-    protected $locked;
+    protected int $locked;
 
     /**
-     * Set name.
+     * @var Collection|CAttendanceCalendar[]
      *
-     * @param string $name
-     *
-     * @return CAttendance
+     * @ORM\OneToMany(targetEntity="CAttendanceCalendar", mappedBy="attendance", cascade={"persist", "remove"})
      */
-    public function setName($name)
+    protected Collection $calendars;
+
+    /**
+     * @var Collection|CAttendanceSheetLog[]
+     *
+     * @ORM\OneToMany(targetEntity="CAttendanceSheetLog", mappedBy="attendance", cascade={"persist", "remove"})
+     */
+    protected Collection $logs;
+
+    public function __construct()
+    {
+        $this->description = '';
+        $this->active = 1;
+        $this->attendanceQualifyMax = 0;
+        $this->locked = 0;
+        $this->calendars = new ArrayCollection();
+        $this->logs = new ArrayCollection();
+    }
+
+    public function __toString(): string
+    {
+        return (string) $this->getIid();
+    }
+
+    public function setName(string $name): self
     {
         $this->name = $name;
 
         return $this;
     }
 
-    /**
-     * Get name.
-     *
-     * @return string
-     */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
 
-    /**
-     * Set description.
-     *
-     * @param string $description
-     *
-     * @return CAttendance
-     */
-    public function setDescription($description)
+    public function setDescription(string $description): self
     {
         $this->description = $description;
 
         return $this;
     }
 
-    /**
-     * Get description.
-     *
-     * @return string
-     */
-    public function getDescription()
+    public function getDescription(): ?string
     {
         return $this->description;
     }
 
-    /**
-     * Set active.
-     *
-     * @param bool $active
-     *
-     * @return CAttendance
-     */
-    public function setActive($active)
+    public function setActive(int $active): self
     {
         $this->active = $active;
 
         return $this;
     }
 
-    /**
-     * Get active.
-     *
-     * @return bool
-     */
-    public function getActive()
+    public function getActive(): int
     {
         return $this->active;
     }
 
-    /**
-     * Set attendanceQualifyTitle.
-     *
-     * @param string $attendanceQualifyTitle
-     *
-     * @return CAttendance
-     */
-    public function setAttendanceQualifyTitle($attendanceQualifyTitle)
+    public function setAttendanceQualifyTitle(string $attendanceQualifyTitle): self
     {
         $this->attendanceQualifyTitle = $attendanceQualifyTitle;
 
         return $this;
     }
 
-    /**
-     * Get attendanceQualifyTitle.
-     *
-     * @return string
-     */
-    public function getAttendanceQualifyTitle()
+    public function getAttendanceQualifyTitle(): string
     {
         return $this->attendanceQualifyTitle;
     }
 
-    /**
-     * Set attendanceQualifyMax.
-     *
-     * @param int $attendanceQualifyMax
-     *
-     * @return CAttendance
-     */
-    public function setAttendanceQualifyMax($attendanceQualifyMax)
+    public function setAttendanceQualifyMax(int $attendanceQualifyMax): self
     {
         $this->attendanceQualifyMax = $attendanceQualifyMax;
 
@@ -220,14 +163,7 @@ class CAttendance
         return $this->attendanceQualifyMax;
     }
 
-    /**
-     * Set attendanceWeight.
-     *
-     * @param float $attendanceWeight
-     *
-     * @return CAttendance
-     */
-    public function setAttendanceWeight($attendanceWeight)
+    public function setAttendanceWeight(float $attendanceWeight): self
     {
         $this->attendanceWeight = $attendanceWeight;
 
@@ -244,38 +180,7 @@ class CAttendance
         return $this->attendanceWeight;
     }
 
-    /**
-     * Set sessionId.
-     *
-     * @param int $sessionId
-     *
-     * @return CAttendance
-     */
-    public function setSessionId($sessionId)
-    {
-        $this->sessionId = $sessionId;
-
-        return $this;
-    }
-
-    /**
-     * Get sessionId.
-     *
-     * @return int
-     */
-    public function getSessionId()
-    {
-        return $this->sessionId;
-    }
-
-    /**
-     * Set locked.
-     *
-     * @param int $locked
-     *
-     * @return CAttendance
-     */
-    public function setLocked($locked)
+    public function setLocked(int $locked): self
     {
         $this->locked = $locked;
 
@@ -292,51 +197,53 @@ class CAttendance
         return $this->locked;
     }
 
-    /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CAttendance
-     */
-    public function setId($id)
+    public function getIid(): int
     {
-        $this->id = $id;
+        return $this->iid;
+    }
+
+    public function getCalendars(): Collection
+    {
+        return $this->calendars;
+    }
+
+    public function setCalendars(Collection $calendars): self
+    {
+        $this->calendars = $calendars;
 
         return $this;
     }
 
     /**
-     * Get id.
-     *
-     * @return int
+     * @return CAttendanceSheetLog[]|Collection
      */
-    public function getId()
+    public function getLogs()
     {
-        return $this->id;
+        return $this->logs;
     }
 
     /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CAttendance
+     * @param CAttendanceSheetLog[]|Collection $logs
      */
-    public function setCId($cId)
+    public function setLogs(Collection $logs): self
     {
-        $this->cId = $cId;
+        $this->logs = $logs;
 
         return $this;
     }
 
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
+    public function getResourceIdentifier(): int
     {
-        return $this->cId;
+        return $this->getIid();
+    }
+
+    public function getResourceName(): string
+    {
+        return $this->getName();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setName($name);
     }
 }

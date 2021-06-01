@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
@@ -10,60 +12,38 @@ use Doctrine\ORM\Mapping as ORM;
  * CToolIntro.
  *
  * @ORM\Table(
- *  name="c_tool_intro",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_tool_intro",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CToolIntro
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="string", nullable=false)
-     */
-    protected $id;
-
-    /**
-     * @var string
-     *
      * @ORM\Column(name="intro_text", type="text", nullable=false)
      */
-    protected $introText;
+    protected string $introText;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="session_id", type="integer")
      */
-    protected $sessionId;
+    protected int $sessionId;
 
-    /**
-     * Set introText.
-     *
-     * @param string $introText
-     *
-     * @return CToolIntro
-     */
-    public function setIntroText($introText)
+    public function setIntroText(string $introText): self
     {
         $this->introText = $introText;
 
@@ -81,37 +61,11 @@ class CToolIntro
     }
 
     /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CToolIntro
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CToolIntro
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
@@ -131,11 +85,9 @@ class CToolIntro
     /**
      * Set sessionId.
      *
-     * @param int $sessionId
-     *
      * @return CToolIntro
      */
-    public function setSessionId($sessionId)
+    public function setSessionId(int $sessionId)
     {
         $this->sessionId = $sessionId;
 

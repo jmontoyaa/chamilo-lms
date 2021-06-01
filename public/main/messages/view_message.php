@@ -1,15 +1,13 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.messages
- */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 api_block_anonymous_users();
 
-$allowSocial = api_get_setting('allow_social_tool') === 'true';
-$allowMessage = api_get_setting('allow_message_tool') === 'true';
+$allowSocial = 'true' === api_get_setting('allow_social_tool');
+$allowMessage = 'true' === api_get_setting('allow_message_tool');
 
 if (!$allowMessage) {
     api_not_allowed(true);
@@ -30,24 +28,25 @@ if ($allowSocial) {
 }
 $interbreadcrumb[] = ['url' => 'inbox.php', 'name' => get_lang('Messages')];
 
-$social_right_content = '<div class="actions">';
+
+$actions = '';
 if ($allowMessage) {
-    $social_right_content .= '<a href="'.api_get_path(WEB_PATH).'main/messages/new_message.php">'.
+    $actions .= '<a href="'.api_get_path(WEB_PATH).'main/messages/new_message.php">'.
         Display::return_icon('new-message.png', get_lang('Compose message')).'</a>';
-    $social_right_content .= '<a href="'.api_get_path(WEB_PATH).'main/messages/inbox.php">'.
+    $actions .= '<a href="'.api_get_path(WEB_PATH).'main/messages/inbox.php">'.
         Display::return_icon('inbox.png', get_lang('Inbox')).'</a>';
-    $social_right_content .= '<a href="'.api_get_path(WEB_PATH).'main/messages/outbox.php">'.
+    $actions .= '<a href="'.api_get_path(WEB_PATH).'main/messages/outbox.php">'.
         Display::return_icon('outbox.png', get_lang('Outbox')).'</a>';
 }
-$social_right_content .= '</div>';
+$social_right_content = Display::toolbarAction('toolbar', [$actions]);
+
 $type = isset($_GET['type']) ? (int) $_GET['type'] : MessageManager::MESSAGE_TYPE_INBOX;
 
 $show_menu = 'messages_inbox';
-if ($type === MessageManager::MESSAGE_TYPE_OUTBOX) {
+if (MessageManager::MESSAGE_TYPE_OUTBOX === $type) {
     $show_menu = 'messages_outbox';
 }
 
-$message = '';
 $logInfo = [
     'tool' => 'Messages',
     'tool_id' => $messageId,
@@ -57,30 +56,19 @@ $logInfo = [
 Event::registerLog($logInfo);
 
 // LEFT COLUMN
-if (api_get_setting('allow_social_tool') === 'true') {
+if ('true' === api_get_setting('allow_social_tool')) {
     // Block Social Menu
     $social_menu_block = SocialManager::show_social_menu($show_menu);
 }
-// MAIN CONTENT
-$message .= MessageManager::showMessageBox($messageId, $type);
 
-if (!empty($message)) {
-    $social_right_content .= $message;
-} else {
+$message = MessageManager::showMessageBox($messageId, $type);
+if (empty($message)) {
     api_not_allowed(true);
 }
+
+$social_right_content .= $message;
+
 $tpl = new Template(get_lang('View'));
-// Block Social Avatar
-SocialManager::setSocialUserBlock($tpl, api_get_user_id(), $show_menu);
 
-if (api_get_setting('allow_social_tool') === 'true') {
-    $tpl->assign('social_menu_block', $social_menu_block);
-    $tpl->assign('social_right_content', $social_right_content);
-    $social_layout = $tpl->get_template('social/inbox.tpl');
-    $tpl->display($social_layout);
-} else {
-    $content = $social_right_content;
-
-    $tpl->assign('content', $content);
-    $tpl->display_one_col_template();
-}
+$tpl->assign('content', $social_right_content);
+$tpl->display_one_col_template();

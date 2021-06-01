@@ -3,8 +3,6 @@
 
 /**
  * Create new Services for the Buy Courses plugin.
- *
- * @package chamilo.plugin.buycourses
  */
 $cidReset = true;
 
@@ -23,7 +21,7 @@ $users = UserManager::getRepository()->findAll();
 $userOptions = [];
 if (!empty($users)) {
     foreach ($users as $user) {
-        $userOptions[$user->getId()] = UserManager::formatUserFullName($user, true);
+        $userOptions[$user->getId()] = $user->getCompleteNameWithUsername();
     }
 }
 
@@ -48,7 +46,7 @@ $formDefaultValues = [
     'duration_days' => $service['duration_days'],
     'owner_id' => intval($service['owner_id']),
     'applies_to' => intval($service['applies_to']),
-    'visibility' => ($service['visibility'] == 1) ? true : false,
+    'visibility' => (1 == $service['visibility']) ? true : false,
     'image' => is_file(api_get_path(SYS_PLUGIN_PATH).'buycourses/uploads/services/images/simg-'.$serviceId.'.png')
             ? api_get_path(WEB_PLUGIN_PATH).'buycourses/uploads/services/images/simg-'.$serviceId.'.png'
             : api_get_path(WEB_CODE_PATH).'img/session_default.png',
@@ -74,14 +72,14 @@ $form->addElement(
 $form->addElement(
     'number',
     'duration_days',
-    [$plugin->get_lang('Duration'), null, get_lang('days')],
+    [$plugin->get_lang('Duration'), null, get_lang('Days')],
     ['step' => 1]
 );
 $form->addElement(
     'radio',
     'applies_to',
     $plugin->get_lang('AppliesTo'),
-    get_lang('none'),
+    get_lang('None'),
     0
 );
 $form->addElement(
@@ -109,7 +107,7 @@ $form->addElement(
     'radio',
     'applies_to',
     null,
-    get_lang('Certificate of completion'),
+    get_lang('TemplateTitleCertificate'),
     4
 );
 $form->addSelect(
@@ -120,10 +118,10 @@ $form->addSelect(
 $form->addCheckBox('visibility', $plugin->get_lang('VisibleInCatalog'));
 $form->addFile(
     'picture',
-    $formDefaultValues['image'] != '' ? get_lang('Update Image') : get_lang('Add image'),
+    '' != $formDefaultValues['image'] ? get_lang('UpdateImage') : get_lang('AddImage'),
     ['id' => 'picture', 'class' => 'picture-form', 'crop_image' => true, 'crop_ratio' => '16 / 9']
 );
-$form->addText('video_url', get_lang('Video URL'), false);
+$form->addText('video_url', get_lang('VideoUrl'), false);
 $form->addHtmlEditor('service_information', $plugin->get_lang('ServiceInformation'), false);
 $form->addHidden('id', $serviceId);
 $form->addButtonSave(get_lang('Edit'));

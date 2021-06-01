@@ -1,27 +1,25 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.messages
- */
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
 
 api_block_anonymous_users();
 
-if (api_get_setting('allow_message_tool') != 'true') {
+if ('true' !== api_get_setting('allow_message_tool')) {
     api_not_allowed(true);
 }
 
 $logInfo = [
     'tool' => 'Messages',
-    'action' => isset($_GET['action']) ? $_GET['action'] : 'inbox',
+    'action' => $_GET['action'] ?? 'inbox',
 ];
 Event::registerLog($logInfo);
 
-$allowSocial = api_get_setting('allow_social_tool') == 'true';
-$allowMessage = api_get_setting('allow_message_tool') == 'true';
+$allowSocial = 'true' === api_get_setting('allow_social_tool');
+$allowMessage = 'true' === api_get_setting('allow_message_tool');
 
 if ($allowSocial) {
     $this_section = SECTION_SOCIAL;
@@ -45,7 +43,7 @@ $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Inbox')];
 
 $actions = '';
 // Comes from normal profile
-if ($allowSocial === false && $allowMessage) {
+if (false === $allowSocial && $allowMessage) {
     $actions .= '<a href="'.api_get_path(WEB_PATH).'main/messages/new_message.php">'.
         Display::return_icon('message_new.png', get_lang('Compose message')).'</a>';
     $actions .= '<a href="'.api_get_path(WEB_PATH).'main/messages/inbox.php">'.
@@ -88,14 +86,15 @@ if ($actions) {
 }
 // Block Social Avatar
 SocialManager::setSocialUserBlock($tpl, api_get_user_id(), 'messages');
-if ($allowSocial) {
+
+/*if ($allowSocial) {
     $tpl->assign('social_menu_block', $social_menu_block);
     $tpl->assign('social_right_content', $social_right_content);
     $social_layout = $tpl->get_template('social/inbox.tpl');
     $tpl->display($social_layout);
 } else {
-    $content = $social_right_content;
-    $tpl->assign('message', $show_message);
-    $tpl->assign('content', $content);
+    $tpl->assign('content', $social_right_content);
     $tpl->display_one_col_template();
-}
+}*/
+$tpl->assign('content', $social_right_content);
+$tpl->display_one_col_template();

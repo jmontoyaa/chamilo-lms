@@ -1,23 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Tool;
 
 use Sylius\Bundle\SettingsBundle\Schema\SchemaInterface;
 
-/**
- * Class AbstractTool.
- */
 abstract class AbstractTool implements ToolInterface
 {
-    protected $name;
-    protected $category;
-    protected $link;
-    protected $image;
-    protected $admin;
-    protected $settings;
-    protected $resourceTypes;
+    protected string $name;
+    protected string $category;
+    protected string $link;
+    protected string $image;
+    protected string $admin;
+    protected ?SchemaInterface $settings = null;
+    protected ?array $resourceTypes;
 
     /**
      * @var string
@@ -27,17 +26,15 @@ abstract class AbstractTool implements ToolInterface
      *  10 global tool
      *  11 global or course or both
      */
-    protected $scope;
+    protected string $scope;
 
-    /**
-     * @param string          $name
-     * @param string          $category
-     * @param string          $link
-     * @param SchemaInterface $settings
-     * @param array           $resourceTypes
-     */
-    public function __construct($name, $category, $link, $settings = null, $resourceTypes = null)
-    {
+    public function __construct(
+        string $name,
+        string $category,
+        string $link,
+        ?SchemaInterface $settings = null,
+        ?array $resourceTypes = []
+    ) {
         $this->name = $name;
         $this->category = $category;
         $this->link = $link;
@@ -46,50 +43,47 @@ abstract class AbstractTool implements ToolInterface
         $this->resourceTypes = $resourceTypes;
     }
 
-    public function isCourseTool()
+    public function isCourseTool(): bool
     {
         return false;
     }
 
-    public function isGlobal()
+    public function isGlobal(): bool
     {
         return true;
     }
 
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
 
-    public function getLink()
+    public function getLink(): string
     {
         return $this->link ?: '';
     }
 
-    public function getCategory()
+    public function getCategory(): string
     {
         return $this->category;
     }
 
-    public function getTarget()
+    public function getTarget(): string
     {
         return '_self';
     }
 
-    public function getImage()
+    public function getImage(): string
     {
         return $this->image;
     }
 
-    /**
-     * @return array
-     */
-    public function getResourceTypes()
+    public function getResourceTypes(): ?array
     {
         return $this->resourceTypes;
     }
 
-    public function setResourceTypes(array $resourceTypes): self
+    public function setResourceTypes(?array $resourceTypes): self
     {
         $this->resourceTypes = $resourceTypes;
 

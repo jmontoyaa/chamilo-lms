@@ -1,18 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
-use APY\DataGridBundle\Grid\Mapping as GRID;
+use Chamilo\CoreBundle\Entity\AbstractResource;
 use Chamilo\CoreBundle\Entity\Course;
-use Chamilo\CoreBundle\Entity\Resource\AbstractResource;
-use Chamilo\CoreBundle\Entity\Resource\ResourceInterface;
+use Chamilo\CoreBundle\Entity\ResourceInterface;
 use Chamilo\CoreBundle\Entity\Session;
 use Chamilo\CoreBundle\Entity\Tool;
+use Chamilo\CourseBundle\Traits\ShowCourseResourcesInSessionTrait;
 use Doctrine\ORM\Event\LifecycleEventArgs;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
+use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -20,96 +23,87 @@ use Symfony\Component\Validator\Constraints as Assert;
  *
  * @ORM\HasLifecycleCallbacks
  * @ORM\Table(
- *  name="c_tool",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="session_id", columns={"session_id"})
- *  }
+ *     name="c_tool",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"}),
+ *         @ORM\Index(name="session_id", columns={"session_id"})
+ *     }
  * )
  * @ORM\Entity
- * @GRID\Source(columns="iid, name, resourceNode.createdAt", filterable=false, groups={"resource"})
  */
 class CTool extends AbstractResource implements ResourceInterface
 {
+    use ShowCourseResourcesInSessionTrait;
+
     /**
-     * @var int
+     * @Groups({"ctool:read"})
      *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
+    protected int $iid;
 
     /**
      * @Assert\NotBlank
      *
-     * @ORM\Column(name="name", type="string", length=255, nullable=false)
+     * @Groups({"ctool:read"})
+     *
+     * @ORM\Column(name="name", type="text", nullable=false)
      */
-    protected $name;
+    protected string $name;
 
     /**
-     * @var bool
+     * @Groups({"ctool:read"})
      *
      * @ORM\Column(name="visibility", type="boolean", nullable=true)
      */
-    protected $visibility;
+    protected ?bool $visibility = null;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(name="category", type="string", length=20, nullable=false, options={"default" = "authoring"})
-     */
-    protected $category;
-
-    /**
-     * @var Course
-     *
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course", inversedBy="tools")
      * @ORM\JoinColumn(name="c_id", referencedColumnName="id", nullable=false)
      */
-    protected $course;
+    protected Course $course;
 
     /**
-     * @var Session
-     *
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Session")
      * @ORM\JoinColumn(name="session_id", referencedColumnName="id", nullable=true)
      */
-    protected $session;
+    protected ?Session $session = null;
 
     /**
-     * @var Tool
+     * @Groups({"ctool:read"})
      *
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Tool")
      * @ORM\JoinColumn(name="tool_id", referencedColumnName="id", nullable=false)
      */
-    protected $tool;
+    protected Tool $tool;
 
     /**
      * @Gedmo\SortablePosition
      * @ORM\Column(name="position", type="integer")
      */
-    private $position;
+    protected int $position;
 
     /**
-     * Constructor.
+     * @Groups({"ctool:read"})
      */
+    protected string $nameToTranslate;
+
     public function __construct()
     {
-        // Default values
-        $this->id = 0;
+        $this->position = 0;
     }
 
     public function __toString(): string
     {
-        return (string) $this->getName();
+        return $this->getName();
+    }
+
+    public function getNameToTranslate(): string
+    {
+        return ucfirst(str_replace('_', ' ', $this->name));
     }
 
     public function getName(): string
@@ -132,22 +126,7 @@ class CTool extends AbstractResource implements ResourceInterface
         return $this->iid;
     }
 
-    /**
-     * @param int $iid
-     *
-     * @return CTool
-     */
-    public function setIid($iid)
-    {
-        $this->iid = $iid;
-
-        return $this;
-    }
-
-    /**
-     * @return $this
-     */
-    public function setCourse(Course $course)
+    public function setCourse(Course $course): self
     {
         $this->course = $course;
 
@@ -159,17 +138,11 @@ class CTool extends AbstractResource implements ResourceInterface
         return $this->course;
     }
 
-    /**
-     * @return Session
-     */
     public function getSession(): ?Session
     {
         return $this->session;
     }
 
-    /**
-     * @param Session $session
-     */
     public function setSession(Session $session = null): self
     {
         $this->session = $session;
@@ -177,14 +150,7 @@ class CTool extends AbstractResource implements ResourceInterface
         return $this;
     }
 
-    /**
-     * Set visibility.
-     *
-     * @param bool $visibility
-     *
-     * @return CTool
-     */
-    public function setVisibility($visibility)
+    public function setVisibility(bool $visibility): self
     {
         $this->visibility = $visibility;
 
@@ -199,54 +165,6 @@ class CTool extends AbstractResource implements ResourceInterface
     public function getVisibility()
     {
         return $this->visibility;
-    }
-
-    /**
-     * Set category.
-     *
-     * @param string $category
-     *
-     * @return CTool
-     */
-    public function setCategory($category)
-    {
-        $this->category = $category;
-
-        return $this;
-    }
-
-    /**
-     * Get category.
-     *
-     * @return string
-     */
-    public function getCategory()
-    {
-        return $this->category;
-    }
-
-    /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CTool
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
     }
 
     public function getTool(): Tool
@@ -264,33 +182,26 @@ class CTool extends AbstractResource implements ResourceInterface
     /**
      * @ORM\PostPersist()
      */
-    public function postPersist(LifecycleEventArgs $args)
+    public function postPersist(LifecycleEventArgs $args): void
     {
         // Update id with iid value
-        $em = $args->getEntityManager();
-        $this->setId($this->iid);
+        /*$em = $args->getEntityManager();
         $em->persist($this);
-        $em->flush($this);
+        $em->flush();*/
     }
 
-    public function getPosition()
+    public function getPosition(): int
     {
         return $this->position;
     }
 
-    /**
-     * @return CTool
-     */
-    public function setPosition($position)
+    public function setPosition(int $position): self
     {
         $this->position = $position;
 
         return $this;
     }
 
-    /**
-     * Resource identifier.
-     */
     public function getResourceIdentifier(): int
     {
         return $this->iid;
@@ -298,6 +209,11 @@ class CTool extends AbstractResource implements ResourceInterface
 
     public function getResourceName(): string
     {
-        return (string) $this->getName();
+        return $this->getName();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setName($name);
     }
 }

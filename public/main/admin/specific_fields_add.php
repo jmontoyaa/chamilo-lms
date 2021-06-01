@@ -3,8 +3,6 @@
 
 /**
  * Add form.
- *
- * @package chamilo.admin
  */
 
 // Resetting the course id.
@@ -12,7 +10,6 @@ $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
 $libpath = api_get_path(LIBRARY_PATH);
-require_once $libpath.'specific_fields_manager.lib.php';
 
 // section for the tabs
 $this_section = SECTION_PLATFORM_ADMIN;
@@ -35,7 +32,7 @@ $interbreadcrumb[] = [
 
 $tool_name = get_lang('Add a specific search field');
 
-if (isset($_GET['action']) && $_GET['action'] === 'edit') {
+if (isset($_GET['action']) && 'edit' === $_GET['action']) {
     $tool_name = get_lang('Edit specific search field');
 }
 // Create the form
@@ -63,7 +60,7 @@ $form->addButtonCreate(get_lang('Add'), 'submit');
 if ($form->validate()) {
     $field = $form->exportValues();
     $field_name = $field['field_name'];
-    if (is_numeric($field['field_id']) && $field['field_id'] != 0 && !empty($field['field_id'])) {
+    if (is_numeric($field['field_id']) && 0 != $field['field_id'] && !empty($field['field_id'])) {
         edit_specific_field($field['field_id'], $field['field_name']);
         $message = get_lang('Field added.');
     } else {

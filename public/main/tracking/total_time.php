@@ -1,11 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use ChamiloSession as Session;
 
-/**
- * @package chamilo.tracking
- */
 require_once __DIR__.'/../inc/global.inc.php';
 $current_course_tool = TOOL_TRACKING;
 
@@ -15,11 +13,11 @@ $from_myspace = false;
 $from = isset($_GET['from']) ? $_GET['from'] : null;
 
 // Starting the output buffering when we are exporting the information.
-$export_csv = isset($_GET['export']) && $_GET['export'] == 'csv' ? true : false;
+$export_csv = isset($_GET['export']) && 'csv' == $_GET['export'] ? true : false;
 $session_id = isset($_REQUEST['id_session']) ? intval($_REQUEST['id_session']) : 0;
 
 $this_section = SECTION_COURSES;
-if ($from == 'myspace') {
+if ('myspace' === $from) {
     $from_myspace = true;
     $this_section = 'session_my_space';
 }
@@ -95,7 +93,7 @@ $TABLEQUIZ = Database::get_course_table(TABLE_QUIZ_TEST);
 $sessionId = api_get_session_id();
 
 // Breadcrumbs.
-if (isset($_GET['origin']) && $_GET['origin'] == 'resume_session') {
+if (isset($_GET['origin']) && 'resume_session' == $_GET['origin']) {
     $interbreadcrumb[] = [
         'url' => '../admin/index.php',
         'name' => get_lang('Administration'),
@@ -278,7 +276,6 @@ $is_western_name_order = api_is_western_name_order();
 
 if (count($a_students) > 0) {
     $all_datas = [];
-    $course_code = $_course['id'];
     $user_ids = array_keys($a_students);
 
     $table = new SortableTable(
@@ -288,8 +285,10 @@ if (count($a_students) > 0) {
         (api_is_western_name_order() xor api_sort_by_first_name()) ? 3 : 2
     );
 
-    $parameters['cidReq'] = Security::remove_XSS($_GET['cidReq']);
-    $parameters['id_session'] = $session_id;
+    $table->setDataFunctionParams(['cid' => api_get_course_int_id(), 'sid' => $session_id]);
+
+    $parameters['cid'] = api_get_course_int_id();
+    $parameters['sid'] = $session_id;
     $parameters['from'] = isset($_GET['myspace']) ? Security::remove_XSS($_GET['myspace']) : null;
 
     $table->set_additional_parameters($parameters);
@@ -311,15 +310,27 @@ if (count($a_students) > 0) {
     $table->set_header(3, get_lang('Login'), false);
     $headers['login'] = get_lang('Login');
 
-    $table->set_header(4, get_lang('Time').'&nbsp;'.
-        Display::return_icon('info3.gif', get_lang('Time spent in the course'), ['align' => 'absmiddle', 'hspace' => '3px']),
+    $table->set_header(
+        4,
+        get_lang('Time').'&nbsp;'.
+        Display::return_icon(
+            'info3.gif',
+            get_lang('Time spent in the course'),
+            ['align' => 'absmiddle', 'hspace' => '3px']
+        ),
         false,
         ['style' => 'width:110px;']
     );
     $headers['training_time'] = get_lang('Time');
 
-    $table->set_header(5, get_lang('Total learnpath time').'&nbsp;'.
-        Display::return_icon('info3.gif', get_lang('Total learnpath time'), ['align' => 'absmiddle', 'hspace' => '3px']),
+    $table->set_header(
+        5,
+        get_lang('Total learnpath time').'&nbsp;'.
+        Display::return_icon(
+            'info3.gif',
+            get_lang('Total learnpath time'),
+            ['align' => 'absmiddle', 'hspace' => '3px']
+        ),
         false,
         ['style' => 'width:110px;']
     );

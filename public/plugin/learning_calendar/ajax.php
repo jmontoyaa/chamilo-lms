@@ -1,4 +1,5 @@
 <?php
+
 /* For license terms, see /license.txt */
 
 require_once __DIR__.'/../../main/inc/global.inc.php';
@@ -35,9 +36,11 @@ switch ($action) {
                 $plugin->toogleDayType($calendarId, $day);
             }
         }
+
         break;
     case 'get_events':
         $list = $plugin->getEvents($calendarId);
         echo json_encode($list);
+
         break;
 }

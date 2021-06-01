@@ -1,12 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-use Chamilo\CoreBundle\Entity\CourseCategory;
-use Chamilo\CoreBundle\Repository\CourseCategoryRepository;
-
-/**
- * @package chamilo.admin
- */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 $this_section = SECTION_PLATFORM_ADMIN;
@@ -18,8 +13,6 @@ $interbreadcrumb[] = ['url' => 'index.php', 'name' => get_lang('Administration')
 $interbreadcrumb[] = ['url' => 'course_list.php', 'name' => get_lang('Course list')];
 
 $em = Database::getManager();
-/** @var CourseCategoryRepository $courseCategoriesRepo */
-$courseCategoriesRepo = $em->getRepository('ChamiloCoreBundle:CourseCategory');
 // Get all possible teachers.
 $accessUrlId = api_get_current_access_url_id();
 
@@ -57,39 +50,15 @@ $form->addText(
 
 $form->applyFilter('visual_code', 'api_strtoupper');
 $form->applyFilter('visual_code', 'html_filter');
-
-$countCategories = $courseCategoriesRepo->countAllInAccessUrl(
-    $accessUrlId,
-    api_get_configuration_value('allow_base_course_category')
+$form->addSelectAjax(
+    'course_categories',
+    get_lang('Categories'),
+    null,
+    [
+        'url' => api_get_path(WEB_AJAX_PATH).'course.ajax.php?a=search_category',
+        'multiple' => 'multiple',
+    ]
 );
-
-if ($countCategories >= 100) {
-    // Category code
-    $url = api_get_path(WEB_AJAX_PATH).'course.ajax.php?a=search_category';
-
-    $form->addElement(
-        'select_ajax',
-        'category_id',
-        get_lang('Category'),
-        null,
-        ['url' => $url]
-    );
-} else {
-    $categories = $courseCategoriesRepo->findAllInAccessUrl(
-        $accessUrlId,
-        api_get_configuration_value('allow_base_course_category')
-    );
-    $categoriesOptions = [0 => get_lang('None')];
-    /** @var CourseCategory $category */
-    foreach ($categories as $category) {
-        $categoriesOptions[$category->getId()] = (string) $category;
-    }
-    $form->addSelect(
-        'category_id',
-        get_lang('Category'),
-        $categoriesOptions
-    );
-}
 
 $form->addRule(
     'visual_code',
@@ -133,7 +102,7 @@ $form->applyFilter('department_url', 'html_filter');
 
 // Course language.
 $languages = api_get_languages();
-if (count($languages) === 1) {
+if (1 === count($languages)) {
     // If there's only one language available, there's no point in asking
     $form->addElement('hidden', 'course_language', $languages[0]);
 } else {
@@ -145,7 +114,7 @@ if (count($languages) === 1) {
     );
 }
 
-if (api_get_setting('teacher_can_select_course_template') === 'true') {
+if ('true' === api_get_setting('teacher_can_select_course_template')) {
     $form->addElement(
         'select_ajax',
         'course_template',
@@ -229,8 +198,6 @@ if ($form->validate()) {
     $course['teachers'] = $course_teachers;
     $course['wanted_code'] = $course['visual_code'];
     $course['gradebook_model_id'] = isset($course['gradebook_model_id']) ? $course['gradebook_model_id'] : null;
-    // Fixing category code
-    $course['category_id'] = isset($course['category_id']) ? (int) $course['category_id'] : '';
 
     include_once api_get_path(SYS_CODE_PATH).'lang/english/trad4all.inc.php';
     $file_to_include = api_get_path(SYS_CODE_PATH).'lang/'.$course['course_language'].'/trad4all.inc.php';

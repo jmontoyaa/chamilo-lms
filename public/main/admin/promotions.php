@@ -1,9 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
 
-/**
- *  @package chamilo.admin
- */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -23,13 +20,13 @@ $action = isset($_GET['action']) ? $_GET['action'] : null;
 $check = Security::check_token('request');
 $token = Security::get_token();
 
-if ($action == 'add') {
+if ('add' == $action) {
     $interbreadcrumb[] = [
         'url' => 'promotions.php',
         'name' => get_lang('Promotions'),
     ];
     $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Add')];
-} elseif ($action == 'edit') {
+} elseif ('edit' == $action) {
     $interbreadcrumb[] = [
         'url' => 'promotions.php',
         'name' => get_lang('Promotions'),
@@ -43,14 +40,14 @@ if ($action == 'add') {
 Display::display_header('');
 
 // Tool name
-if (isset($_GET['action']) && $_GET['action'] == 'add') {
+if (isset($_GET['action']) && 'add' == $_GET['action']) {
     $tool = 'Add';
     $interbreadcrumb[] = [
         'url' => api_get_self(),
         'name' => get_lang('Promotion'),
     ];
 }
-if (isset($_GET['action']) && $_GET['action'] == 'edit') {
+if (isset($_GET['action']) && 'edit' == $_GET['action']) {
     $tool = 'Modify';
     $interbreadcrumb[] = [
         'url' => api_get_self(),
@@ -117,11 +114,10 @@ $(function() {
 </script>
 <?php
 $promotion = new Promotion();
-$token = Security::get_token();
 
 switch ($action) {
     case 'add':
-        if (api_get_session_id() != 0 && !api_is_allowed_to_session_edit(false, true)) {
+        if (0 != api_get_session_id() && !api_is_allowed_to_session_edit(false, true)) {
             api_not_allowed();
         }
 
@@ -129,7 +125,12 @@ switch ($action) {
         $career = new Career();
         $careers = $career->get_all();
         if (empty($careers)) {
-            $url = Display::url(get_lang('You will have to create a career before you can add promotions (promotions are sub-elements of a career)'), 'careers.php?action=add');
+            $url = Display::url(
+                get_lang(
+                    'You will have to create a career before you can add promotions (promotions are sub-elements of a career)'
+                ),
+                'careers.php?action=add'
+            );
             echo Display::return_message($url, 'normal', false);
             Display::display_footer();
             exit;
@@ -149,9 +150,11 @@ switch ($action) {
             }
             $promotion->display();
         } else {
-            echo '<div class="actions">';
-            echo Display::url(Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM), api_get_self());
-            echo '</div>';
+            $actions = Display::url(
+                Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM),
+                api_get_self()
+            );
+            echo Display::toolbarAction('promotion_actions', [$actions]);
             $form->addElement('hidden', 'sec_token');
             $form->setConstants(['sec_token' => $token]);
             $form->display();
@@ -174,8 +177,7 @@ switch ($action) {
             }
             $promotion->display();
         } else {
-            echo '<div class="actions">';
-            echo Display::url(
+            $actions = Display::url(
                 Display::return_icon(
                     'back.png',
                     get_lang('Back'),
@@ -184,7 +186,7 @@ switch ($action) {
                 ),
                 api_get_self()
             );
-            echo '</div>';
+            echo Display::toolbarAction('promotion_actions', [$actions]);
             $form->addElement('hidden', 'sec_token');
             $form->setConstants(['sec_token' => $token]);
             $form->display();
@@ -201,7 +203,7 @@ switch ($action) {
         $promotion->display();
         break;
     case 'copy':
-        if (api_get_session_id() != 0 && !api_is_allowed_to_session_edit(false, true)) {
+        if (0 != api_get_session_id() && !api_is_allowed_to_session_edit(false, true)) {
             api_not_allowed();
         }
         if ($check) {

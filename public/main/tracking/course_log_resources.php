@@ -1,21 +1,19 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.tracking
- */
 require_once __DIR__.'/../inc/global.inc.php';
 $current_course_tool = TOOL_TRACKING;
 
 $from_myspace = false;
 $from = isset($_GET['from']) ? $_GET['from'] : null;
 // Starting the output buffering when we are exporting the information.
-$export_csv = isset($_GET['export']) && $_GET['export'] == 'csv' ? true : false;
-$exportXls = isset($_GET['export']) && $_GET['export'] == 'xls' ? true : false;
-$session_id = intval($_REQUEST['id_session']);
+$export_csv = isset($_GET['export']) && 'csv' == $_GET['export'] ? true : false;
+$exportXls = isset($_GET['export']) && 'xls' == $_GET['export'] ? true : false;
+$session_id = api_get_session_id();
 
 $this_section = SECTION_COURSES;
-if ($from == 'myspace') {
+if ('myspace' === $from) {
     $from_myspace = true;
     $this_section = 'session_my_space';
 }
@@ -68,7 +66,7 @@ if ($export_csv || $exportXls) {
     if ($exportXls) {
         Export::arrayToXls($csvData);
     }
-    die;
+    exit;
 }
 
 if (empty($session_id)) {
@@ -76,7 +74,7 @@ if (empty($session_id)) {
 }
 
 // Breadcrumbs.
-if (isset($_GET['origin']) && $_GET['origin'] == 'resume_session') {
+if (isset($_GET['origin']) && 'resume_session' == $_GET['origin']) {
     $interbreadcrumb[] = [
         'url' => api_get_path(WEB_CODE_PATH).'admin/index.php',
         'name' => get_lang('Administration'),
@@ -95,10 +93,8 @@ $nametools = get_lang('Reporting');
 
 Display::display_header($nametools, 'Reporting');
 
-echo '<div class="actions">';
-echo TrackingCourseLog::actionsLeft('resources', api_get_session_id());
-echo '<span style="float:right; padding-top:0px;">';
-echo '<a href="javascript: void(0);" onclick="javascript: window.print();">'.
+$left = TrackingCourseLog::actionsLeft('resources', api_get_session_id(), false);
+$right = '<a href="javascript: void(0);" onclick="javascript: window.print();">'.
     Display::return_icon('printer.png', get_lang('Print'), '', ICON_SIZE_MEDIUM).
 '</a>';
 
@@ -112,12 +108,12 @@ if (isset($_GET['users_tracking_per_page'])) {
     $users_tracking_per_page = '&users_tracking_per_page='.intval($_GET['users_tracking_per_page']);
 }
 
-echo '<a href="'.api_get_self().'?'.api_get_cidreq().'&export=csv&'.$addional_param.$users_tracking_per_page.'">
+$right .= '<a href="'.api_get_self().'?'.api_get_cidreq().'&export=csv&'.$addional_param.$users_tracking_per_page.'">
 '.Display::return_icon('export_csv.png', get_lang('CSV export'), '', ICON_SIZE_MEDIUM).'</a>';
-echo '<a href="'.api_get_self().'?'.api_get_cidreq().'&export=xls&'.$addional_param.$users_tracking_per_page.'">
+$right .= '<a href="'.api_get_self().'?'.api_get_cidreq().'&export=xls&'.$addional_param.$users_tracking_per_page.'">
 '.Display::return_icon('export_excel.png', get_lang('Excel export'), '', ICON_SIZE_MEDIUM).'</a>';
-echo '</span>';
-echo '</div>';
+
+echo Display::toolbarAction('log_resource', [$left, $right]);
 
 // Create a search-box.
 $form = new FormValidator(

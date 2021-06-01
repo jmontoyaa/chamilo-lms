@@ -1,13 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Controller;
 
 use Chamilo\CoreBundle\Entity\Course;
 use Chamilo\CoreBundle\Entity\ExtraField;
+use Chamilo\CoreBundle\Entity\ExtraFieldRelTag;
 use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CoreBundle\Repository\ExtraFieldRelTagRepository;
+use Chamilo\CoreBundle\Repository\Node\IllustrationRepository;
 use Chamilo\CourseBundle\Entity\CCourseDescription;
+use CourseManager;
+use Doctrine\ORM\EntityRepository;
+use ExtraFieldValue;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Entity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,7 +38,9 @@ class CourseController extends AbstractController
      */
     public function homeRedirectAction(Course $course): Response
     {
-        return $this->redirectToRoute('chamilo_core_course_home', ['cid' => $course->getId()]);
+        return $this->redirectToRoute('chamilo_core_course_home', [
+            'cid' => $course->getId(),
+        ]);
     }
 
     /**
@@ -40,7 +50,9 @@ class CourseController extends AbstractController
      */
     public function welcomeAction(Course $course): Response
     {
-        return $this->render('@ChamiloTheme/Course/welcome.html.twig', ['course' => $course]);
+        return $this->render('@ChamiloCore/Course/welcome.html.twig', [
+            'course' => $course,
+        ]);
     }
 
     /**
@@ -48,18 +60,19 @@ class CourseController extends AbstractController
      *
      * @Entity("course", expr="repository.find(cid)")
      */
-    public function aboutAction(Course $course): Response
+    public function aboutAction(Course $course, IllustrationRepository $illustrationRepository): Response
     {
         $courseId = $course->getId();
         $userId = $this->getUser()->getId();
-
         $em = $this->getDoctrine()->getManager();
 
-        $fieldsRepo = $em->getRepository('ChamiloCoreBundle:ExtraField');
-        $fieldTagsRepo = $em->getRepository('ChamiloCoreBundle:ExtraFieldRelTag');
+        /** @var EntityRepository $fieldsRepo */
+        $fieldsRepo = $em->getRepository(ExtraField::class);
+        /** @var ExtraFieldRelTagRepository $fieldTagsRepo */
+        $fieldTagsRepo = $em->getRepository(ExtraFieldRelTag::class);
 
-        /** @var CCourseDescription $courseDescription */
-        $courseDescriptionTools = $em->getRepository('ChamiloCourseBundle:CCourseDescription')
+        /** @var CCourseDescription[] $courseDescriptionTools */
+        $courseDescriptionTools = $em->getRepository(CCourseDescription::class)
             ->findBy(
                 [
                     'cId' => $course->getId(),
@@ -69,11 +82,12 @@ class CourseController extends AbstractController
                     'id' => 'DESC',
                     'descriptionType' => 'ASC',
                 ]
-            );
+            )
+        ;
 
-        $courseValues = new \ExtraFieldValue('course');
+        $courseValues = new ExtraFieldValue('course');
 
-        $urlCourse = api_get_path(WEB_PATH)."course/$courseId/about";
+        $urlCourse = api_get_path(WEB_PATH).sprintf('course/%s/about', $courseId);
         $courseTeachers = $course->getTeachers();
         $teachersData = [];
 
@@ -81,29 +95,26 @@ class CourseController extends AbstractController
             $teacher = $teacherSubscription->getUser();
             $userData = [
                 'complete_name' => UserManager::formatUserFullName($teacher),
-                'image' => UserManager::getUserPicture(
-                    $teacher->getId(),
-                    USER_IMAGE_SIZE_ORIGINAL
-                ),
+                'image' => $illustrationRepository->getIllustrationUrl($teacher),
                 'diploma' => $teacher->getDiplomas(),
                 'openarea' => $teacher->getOpenarea(),
             ];
 
             $teachersData[] = $userData;
         }
-
+        /** @var ExtraField $tagField */
         $tagField = $fieldsRepo->findOneBy([
             'extraFieldType' => ExtraField::COURSE_FIELD_TYPE,
             'variable' => 'tags',
         ]);
 
         $courseTags = [];
-
         if (null !== $tagField) {
             $courseTags = $fieldTagsRepo->getTags($tagField, $courseId);
         }
 
-        $courseDescription = $courseObjectives = $courseTopics = $courseMethodology = $courseMaterial = $courseResources = $courseAssessment = '';
+        $courseDescription = $courseObjectives = $courseTopics = $courseMethodology = '';
+        $courseMaterial = $courseResources = $courseAssessment = '';
         $courseCustom = [];
         foreach ($courseDescriptionTools as $descriptionTool) {
             switch ($descriptionTool->getDescriptionType()) {
@@ -152,7 +163,7 @@ class CourseController extends AbstractController
             'custom' => array_reverse($courseCustom),
         ];
 
-        $subscriptionUser = \CourseManager::is_user_subscribed_in_course($userId, $course->getCode());
+        $subscriptionUser = CourseManager::is_user_subscribed_in_course($userId, $course->getCode());
 
         /*$allowSubscribe = false;
         if ($course->getSubscribe() || api_is_platform_admin()) {
@@ -193,6 +204,6 @@ class CourseController extends AbstractController
         $htmlHeadXtra[] = $metaInfo;
         $htmlHeadXtra[] = api_get_asset('readmore-js/readmore.js');
 
-        return $this->render('@ChamiloTheme/Course/about.html.twig', [$params]);
+        return $this->render('@ChamiloCore/Course/about.html.twig', [$params]);
     }
 }

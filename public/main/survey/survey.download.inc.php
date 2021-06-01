@@ -2,8 +2,6 @@
 /* For licensing terms, see /license.txt */
 
 /**
- * @package chamilo.survey
- *
  * @author Arnaud Ligot <arnaud@cblue.be>
  *
  * A small peace of code to enable user to access images included into survey
@@ -36,7 +34,7 @@ function check_download_survey($course, $invitation, $doc_url)
     $survey_invitation = Database::fetch_assoc($result);
 
     // Now we check if the user already filled the survey
-    if ($survey_invitation['answered'] == 1) {
+    if (1 == $survey_invitation['answered']) {
         echo Display::return_message(get_lang('You already filled this survey'), 'error', false);
         Display::display_footer();
         exit;
@@ -55,7 +53,11 @@ function check_download_survey($course, $invitation, $doc_url)
         if ($_POST['language']) {
             $survey_invitation['survey_id'] = $_POST['language'];
         } else {
-            echo '<form id="language" name="language" method="POST" action="'.api_get_self().'?course='.Security::remove_XSS($_GET['course']).'&invitationcode='.Security::remove_XSS($_GET['invitationcode']).'">';
+            echo '<form
+                id="language"
+                name="language"
+                method="POST"
+                action="'.api_get_self().'?course='.Security::remove_XSS($_GET['course']).'&invitationcode='.Security::remove_XSS($_GET['invitationcode']).'">';
             echo '  <select name="language">';
             while ($row = Database::fetch_assoc($result)) {
                 echo '<option value="'.$row['survey_id'].'">'.$row['lang'].'</option>';
@@ -71,6 +73,8 @@ function check_download_survey($course, $invitation, $doc_url)
         $survey_invitation['survey_id'] = $row['survey_id'];
     }
 
+    $doc_url = Database::escape_string($doc_url);
+    $survey_invitation['survey_id'] = Database::escape_string($survey_invitation['survey_id']);
     $sql = "SELECT count(*)
             FROM $table_survey
             WHERE
@@ -87,8 +91,8 @@ function check_download_survey($course, $invitation, $doc_url)
                 WHERE
                     c_id = $course_id AND
                     survey_id = ".$survey_invitation['survey_id']." AND (
-                        survey_question LIKE '%$doc_url%'
-                        or survey_question_comment LIKE '%$doc_url%'
+                        survey_question LIKE '%$doc_url%' OR
+                        survey_question_comment LIKE '%$doc_url%'
                     )
             UNION
                 SELECT count(*)
@@ -99,7 +103,7 @@ function check_download_survey($course, $invitation, $doc_url)
                         option_text LIKE '%$doc_url%'
                     )";
     $result = Database::query($sql);
-    if (Database::num_rows($result) == 0) {
+    if (0 == Database::num_rows($result)) {
         echo Display::return_message(get_lang('Wrong invitation code'), 'error', false);
         Display::display_footer();
         exit;

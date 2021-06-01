@@ -1,31 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\EventListener;
 
-use Chamilo\SettingsBundle\Manager\SettingsManager;
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Settings\SettingsManager;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
-use Symfony\Component\Security\Http\Authentication\AuthenticationSuccessHandlerInterface;
 use Symfony\Component\Security\Http\Event\InteractiveLoginEvent;
+use UserManager;
 
-/**
- * Class LoginSuccessHandler.
- */
 //class LoginSuccessHandler implements AuthenticationSuccessHandlerInterface
 class LoginSuccessHandler
 {
-    protected $router;
-    protected $checker;
-    protected $settingsManager;
+    protected UrlGeneratorInterface $router;
+    protected AuthorizationCheckerInterface $checker;
+    protected SettingsManager $settingsManager;
 
-    /**
-     * LoginSuccessHandler constructor.
-     */
     public function __construct(
         UrlGeneratorInterface $urlGenerator,
         AuthorizationCheckerInterface $checker,
@@ -37,14 +32,13 @@ class LoginSuccessHandler
     }
 
     /**
-     * @return RedirectResponse|null
+     * @return null|RedirectResponse
      */
     public function onSecurityInteractiveLogin(InteractiveLoginEvent $event)
     {
         $request = $event->getRequest();
-        $user = $event->getAuthenticationToken()->getUser();
         /** @var User $user */
-        //$user = $token->getUser();
+        $user = $event->getAuthenticationToken()->getUser();
         $userId = $user->getId();
         $session = $request->getSession();
 
@@ -74,7 +68,7 @@ class LoginSuccessHandler
         /* Possible values: index.php, user_portal.php, main/auth/courses.php */
         $pageAfterLogin = $this->settingsManager->getSetting('registration.page_after_login');
 
-        $legacyIndex = $this->router->generate('home', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        $legacyIndex = $this->router->generate('index', [], UrlGeneratorInterface::ABSOLUTE_URL);
 
         // Default redirect:
         $url = $legacyIndex;
@@ -96,36 +90,35 @@ class LoginSuccessHandler
             }
         }
 
+        $goToCourse = $this->settingsManager->getSetting('course.go_to_course_after_login');
+
         $session->set('_uid', $user->getId());
         //$session->set('_user', $userInfo);
         //$session->set('is_platformAdmin', \UserManager::is_admin($userId));
         //$session->set('is_allowedCreateCourse', $userInfo['status'] === 1);
         // Redirecting to a course or a session.
-        if ('true' === api_get_setting('course.go_to_course_after_login')) {
+        if ('true' === $goToCourse) {
             // Get the courses list
-            $personal_course_list = \UserManager::get_personal_session_course_list($userId);
+            $personal_course_list = UserManager::get_personal_session_course_list($userId);
             $my_session_list = [];
             $count_of_courses_no_sessions = 0;
-            $count_of_courses_with_sessions = 0;
-
             foreach ($personal_course_list as $course) {
                 if (!empty($course['session_id'])) {
                     $my_session_list[$course['session_id']] = true;
-                    ++$count_of_courses_with_sessions;
                 } else {
-                    ++$count_of_courses_no_sessions;
+                    $count_of_courses_no_sessions++;
                 }
             }
 
-            $count_of_sessions = count($my_session_list);
-            if (1 == $count_of_sessions && 0 == $count_of_courses_no_sessions) {
+            $count_of_sessions = \count($my_session_list);
+            if (1 === $count_of_sessions && 0 === $count_of_courses_no_sessions) {
                 $key = array_keys($personal_course_list);
                 $course_info = $personal_course_list[$key[0]]['course_info'];
-                $id_session = isset($course_info['session_id']) ? $course_info['session_id'] : 0;
-                $url = api_get_path(WEB_COURSE_PATH).$course_info['directory'].'/index.php?sid='.$id_session;
+                $sessionId = isset($course_info['session_id']) ? $course_info['session_id'] : 0;
+                $url = api_get_path(WEB_COURSE_PATH).$course_info['directory'].'/index.php?sid='.$sessionId;
             }
 
-            if (0 == $count_of_sessions && 1 == $count_of_courses_no_sessions) {
+            if (0 === $count_of_sessions && 1 === $count_of_courses_no_sessions) {
                 $key = array_keys($personal_course_list);
                 $course_info = $personal_course_list[$key[0]]['course_info'];
                 $url = api_get_path(WEB_COURSE_PATH).$course_info['directory'].'/index.php?sid=0';

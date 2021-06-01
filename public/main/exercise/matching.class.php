@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -16,9 +17,6 @@ class Matching extends Question
     public $typePicture = 'matching.png';
     public $explanationLangVar = 'Matching';
 
-    /**
-     * Constructor.
-     */
     public function __construct()
     {
         parent::__construct();
@@ -26,9 +24,6 @@ class Matching extends Question
         $this->isContent = $this->getIsContent();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function createAnswersForm($form)
     {
         $defaults = [];
@@ -147,7 +142,6 @@ class Matching extends Question
 
             $form->addHtml('<tr>');
             $form->addHtml("<td>$i</td>");
-            //$form->addText("answer[$i]", null);
             $form->addHtmlEditor(
                 "answer[$i]",
                 null,
@@ -224,7 +218,7 @@ class Matching extends Question
         if (!empty($this->id)) {
             $form->setDefaults($defaults);
         } else {
-            if ($this->isContent == 1) {
+            if (1 == $this->isContent) {
                 $form->setDefaults($defaults);
             }
         }
@@ -237,9 +231,6 @@ class Matching extends Question
         );
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function processAnswersCreation($form, $exercise)
     {
         $nb_matches = $form->getSubmitValue('nb_matches');
@@ -275,15 +266,11 @@ class Matching extends Question
         $this->save($exercise);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function return_header(Exercise $exercise, $counter = null, $score = [])
     {
         $header = parent::return_header($exercise, $counter, $score);
         $header .= '<table class="'.$this->question_table_class.'">';
         $header .= '<tr>';
-
         $header .= '<th>'.get_lang('Elements list').'</th>';
         if (!in_array($exercise->results_disabled, [
             RESULT_DISABLE_SHOW_ONLY_IN_CORRECT_ANSWER,

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Settings;
@@ -8,12 +10,9 @@ use Chamilo\CoreBundle\Form\Type\YesNoType;
 use Sylius\Bundle\SettingsBundle\Schema\AbstractSettingsBuilder;
 use Symfony\Component\Form\FormBuilderInterface;
 
-/**
- * Class WebServiceSettingsSchema.
- */
 class WebServiceSettingsSchema extends AbstractSettingsSchema
 {
-    public function buildSettings(AbstractSettingsBuilder $builder)
+    public function buildSettings(AbstractSettingsBuilder $builder): void
     {
         $builder
             ->setDefaults(
@@ -24,18 +23,19 @@ class WebServiceSettingsSchema extends AbstractSettingsSchema
                     'messaging_gdc_api_key' => '',
                     'allow_download_documents_by_api_key' => 'false',
                 ]
-            );
+            )
+        ;
         $allowedTypes = [
             // commenting this line allows setting to be null
             //'header_extra_content' => array('string'),
             //'footer_extra_content' => array('string'),
-            'messaging_gdc_project_number' => ['string'],
-            'messaging_gdc_api_key' => ['string'],
+            //'messaging_gdc_project_number' => ['string'],
+            //'messaging_gdc_api_key' => ['string'],
         ];
         $this->setMultipleAllowedTypes($allowedTypes, $builder);
     }
 
-    public function buildForm(FormBuilderInterface $builder)
+    public function buildForm(FormBuilderInterface $builder): void
     {
         $builder
             ->add('decode_utf8', YesNoType::class)

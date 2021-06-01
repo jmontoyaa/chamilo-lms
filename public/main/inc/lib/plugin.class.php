@@ -206,7 +206,7 @@ class Plugin
         if ($checkboxNames = array_keys($this->fields, 'checkbox')) {
             $pluginInfoCollection = api_get_settings('Plugins');
             foreach ($pluginInfoCollection as $pluginInfo) {
-                if (array_search($pluginInfo['title'], $checkboxNames) !== false) {
+                if (false !== array_search($pluginInfo['title'], $checkboxNames)) {
                     $checkboxCollection[$pluginInfo['title']] = $pluginInfo;
                 }
             }
@@ -214,7 +214,7 @@ class Plugin
 
         foreach ($this->fields as $name => $type) {
             $options = null;
-            if (is_array($type) && isset($type['type']) && $type['type'] === 'select') {
+            if (is_array($type) && isset($type['type']) && 'select' === $type['type']) {
                 $attributes = isset($type['attributes']) ? $type['attributes'] : [];
                 if (!empty($type['options']) && isset($type['translate_options']) && $type['translate_options']) {
                     foreach ($type['options'] as $key => &$optionName) {
@@ -232,7 +232,7 @@ class Plugin
             $help = null;
             if ($this->get_lang_plugin_exists($name.'_help')) {
                 $help = $this->get_lang($name.'_help');
-                if ($name === "show_main_menu_tab") {
+                if ("show_main_menu_tab" === $name) {
                     $pluginName = strtolower(str_replace('Plugin', '', get_class($this)));
                     $pluginUrl = api_get_path(WEB_PATH)."plugin/$pluginName/index.php";
                     $pluginUrl = "<a href=$pluginUrl>$pluginUrl</a>";
@@ -271,10 +271,11 @@ class Plugin
                 case 'checkbox':
                     $selectedValue = null;
                     if (isset($checkboxCollection[$name])) {
-                        if ($checkboxCollection[$name]['selected_value'] === 'true') {
+                        if ('true' === $checkboxCollection[$name]['selected_value']) {
                             $selectedValue = 'checked';
                         }
                     }
+
                     $element = $result->createElement(
                         $type,
                         $name,
@@ -294,6 +295,21 @@ class Plugin
                         $attributes
                     );
                     break;
+                case 'user':
+                    $options = [];
+                    if (!empty($value)) {
+                        $userInfo = api_get_user_info($value);
+                        if ($userInfo) {
+                            $options[$value] = $userInfo['complete_name'];
+                        }
+                    }
+                    $result->addSelectAjax(
+                        $name,
+                        [$this->get_lang($name), $help],
+                        $options,
+                        ['url' => api_get_path(WEB_AJAX_PATH).'user_manager.ajax.php?a=get_user_like']
+                    );
+                    break;
             }
         }
 
@@ -301,7 +317,7 @@ class Plugin
             $result->addGroup(
                 $checkboxGroup,
                 null,
-                [$this->get_lang('sms_types'), $help]
+                ['', $help]
             );
         }
         $result->setDefaults($defaults);
@@ -313,9 +329,9 @@ class Plugin
     /**
      * Returns the value of a given plugin global setting.
      *
-     * @param string $name of the plugin
+     * @param string $name of the plugin setting
      *
-     * @return string Value of the plugin
+     * @return string Value of the plugin setting
      */
     public function get($name)
     {
@@ -419,7 +435,7 @@ class Plugin
                 }
             } elseif ($languageParentId > 0) {
                 $languageParentInfo = api_get_language_info($languageParentId);
-                $languageParentFolder = $languageParentInfo['dokeos_folder'];
+                $languageParentFolder = $languageParentInfo['english_name'];
 
                 $parentPath = "{$root}{$plugin_name}/lang/{$languageParentFolder}.php";
                 if (is_readable($parentPath)) {
@@ -437,6 +453,37 @@ class Plugin
         }
 
         return get_lang($name);
+    }
+
+    /**
+     * @param string $variable
+     * @param string $language
+     *
+     * @return string
+     */
+    public function getLangFromFile($variable, $language)
+    {
+        static $langStrings = [];
+
+        if (empty($langStrings[$language])) {
+            $root = api_get_path(SYS_PLUGIN_PATH);
+            $pluginName = $this->get_name();
+
+            $englishPath = "$root$pluginName/lang/$language.php";
+
+            if (is_readable($englishPath)) {
+                $strings = [];
+                include $englishPath;
+
+                $langStrings[$language] = $strings;
+            }
+        }
+
+        if (isset($langStrings[$language][$variable])) {
+            return $langStrings[$language][$variable];
+        }
+
+        return $this->get_lang($variable);
     }
 
     /**
@@ -459,7 +506,7 @@ class Plugin
      *
      * @return bool|null False on error, null otherwise
      */
-    public function install_course_fields($courseId, $add_tool_link = true)
+    public function install_course_fields($courseId, $add_tool_link = true, $iconName = '')
     {
         $plugin_name = $this->get_name();
         $t_course = Database::get_course_table(TABLE_COURSE_SETTING);
@@ -476,6 +523,11 @@ class Plugin
                 $value = '';
                 if (isset($setting['init_value'])) {
                     $value = $setting['init_value'];
+                }
+
+                $pluginGlobalValue = api_get_plugin_setting($plugin_name, $variable);
+                if (null !== $pluginGlobalValue) {
+                    $value = 1;
                 }
 
                 $type = 'textfield';
@@ -526,12 +578,12 @@ class Plugin
         }
 
         // Stop here if we don't want a tool link on the course homepage
-        if (!$add_tool_link || $this->addCourseTool == false) {
+        if (!$add_tool_link || false == $this->addCourseTool) {
             return true;
         }
 
         // Add an icon in the table tool list
-        $this->createLinkToCourseTool($plugin_name, $courseId);
+        $this->createLinkToCourseTool($plugin_name, $courseId, $iconName);
     }
 
     /**
@@ -571,11 +623,11 @@ class Plugin
 
         $pluginName = Database::escape_string($pluginName);
         $sql = "DELETE FROM $t_tool
-                WHERE c_id = $courseId AND 
+                WHERE c_id = $courseId AND
                 (
                   name = '$pluginName' OR
                   name = '$pluginName:student' OR
-                  name = '$pluginName:teacher'  
+                  name = '$pluginName:teacher'
                 )";
         Database::query($sql);
     }
@@ -585,14 +637,14 @@ class Plugin
      *
      * @param bool $add_tool_link Whether we want to add a plugin link on the course homepage
      */
-    public function install_course_fields_in_all_courses($add_tool_link = true)
+    public function install_course_fields_in_all_courses($add_tool_link = true, $iconName = '')
     {
         // Update existing courses to add plugin settings
         $table = Database::get_main_table(TABLE_MAIN_COURSE);
         $sql = "SELECT id FROM $table ORDER BY id";
         $res = Database::query($sql);
         while ($row = Database::fetch_assoc($res)) {
-            $this->install_course_fields($row['id'], $add_tool_link);
+            $this->install_course_fields($row['id'], $add_tool_link, $iconName);
         }
     }
 
@@ -619,6 +671,10 @@ class Plugin
         $settings = [];
         if (is_array($this->course_settings)) {
             foreach ($this->course_settings as $item) {
+                // Skip html type
+                if ('html' === $item['type']) {
+                    continue;
+                }
                 if (isset($item['group'])) {
                     if (!in_array($item['group'], $settings)) {
                         $settings[] = $item['group'];
@@ -754,9 +810,9 @@ class Plugin
                 foreach ($tabs as $row) {
                     $newSubKey = "custom_tab_$i";
 
-                    if (strpos($row['subkey'], self::TAB_FILTER_NO_STUDENT) !== false) {
+                    if (false !== strpos($row['subkey'], self::TAB_FILTER_NO_STUDENT)) {
                         $newSubKey .= self::TAB_FILTER_NO_STUDENT;
-                    } elseif (strpos($row['subkey'], self::TAB_FILTER_ONLY_STUDENT) !== false) {
+                    } elseif (false !== strpos($row['subkey'], self::TAB_FILTER_ONLY_STUDENT)) {
                         $newSubKey .= self::TAB_FILTER_ONLY_STUDENT;
                     }
 
@@ -800,7 +856,7 @@ class Plugin
         $pluginName = strtolower($langString);
         $pluginUrl = 'plugin/'.$pluginName.'/'.$filePath;
 
-        if ($showTab === 'true') {
+        if ('true' === $showTab) {
             $tabAdded = $this->addTab($langString, $pluginUrl);
             if ($tabAdded) {
                 // The page must be refreshed to show the recently created tab
@@ -846,9 +902,11 @@ class Plugin
     /**
      * Returns true if the plugin is installed, false otherwise.
      *
+     * @param bool $checkEnabled Also check if enabled (instead of only installed)
+     *
      * @return bool True if plugin is installed/enabled, false otherwise
      */
-    public function isEnabled()
+    public function isEnabled($checkEnabled = false)
     {
         $settings = api_get_settings_params_simple(
             [
@@ -859,7 +917,26 @@ class Plugin
                 ],
             ]
         );
-        if (is_array($settings) && isset($settings['selected_value']) && $settings['selected_value'] == 'installed') {
+        if (is_array($settings) && isset($settings['selected_value']) && 'installed' == $settings['selected_value']) {
+            // The plugin is installed
+            // If we need a check on whether it is enabled, also check for
+            // *plugin*_tool_enable and make sure it is *NOT* false
+            if ($checkEnabled) {
+                $enabled = api_get_settings_params_simple(
+                    [
+                        "variable = ? AND subkey = ? AND category = 'Plugins' " => [
+                            $this->get_name().'_tool_enable',
+                            $this->get_name(),
+                        ],
+                    ]
+                );
+                if (is_array($enabled) && isset($enabled['selected_value']) && 'false' == $enabled['selected_value']) {
+                    // Only return false if the setting exists and it is
+                    // *specifically* set to false
+                    return false;
+                }
+            }
+
             return true;
         }
 
@@ -989,7 +1066,7 @@ class Plugin
 
         /** @var CTool $tool */
         $tool = $em
-            ->getRepository('ChamiloCourseBundle:CTool')
+            ->getRepository(CTool::class)
             ->findOneBy([
                 'name' => $name,
                 'course' => $courseId,
@@ -1002,7 +1079,6 @@ class Plugin
 
             $tool = new CTool();
             $tool
-                ->setId($cToolId)
                 ->setCourse(api_get_course_entity($courseId))
                 ->setName($name.$visibilityPerStatus)
                 ->setLink($link ?: "$pluginName/start.php")

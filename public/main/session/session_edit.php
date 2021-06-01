@@ -1,11 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * Sessions edition script.
- *
- * @package chamilo.admin
- */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -13,18 +9,14 @@ require_once __DIR__.'/../inc/global.inc.php';
 $this_section = SECTION_PLATFORM_ADMIN;
 $formSent = 0;
 
-// Crop picture plugin for session images
-//$htmlHeadXtra[] = api_get_css_asset('cropper/dist/cropper.min.css');
-//$htmlHeadXtra[] = api_get_asset('cropper/dist/cropper.min.js');
-
 // Database Table Definitions
 $tbl_user = Database::get_main_table(TABLE_MAIN_USER);
 $tbl_session = Database::get_main_table(TABLE_MAIN_SESSION);
 
 $id = (int) $_GET['id'];
 
-SessionManager::protectSession($id);
-
+$session = api_get_session_entity($id);
+SessionManager::protectSession($session);
 $sessionInfo = SessionManager::fetch($id);
 
 // Sets to local time to show it correctly when you edit a session
@@ -63,24 +55,26 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
 $order_clause = 'ORDER BY ';
 $order_clause .= api_sort_by_first_name() ? 'firstname, lastname, username' : 'lastname, firstname, username';
 
-$sql = "SELECT user_id,lastname,firstname,username
+$sql = "SELECT id as user_id,lastname,firstname,username
         FROM $tbl_user
         WHERE status='1'".$order_clause;
 
 if (api_is_multiple_url_enabled()) {
     $table_access_url_rel_user = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
     $access_url_id = api_get_current_access_url_id();
-    if ($access_url_id != -1) {
-        $sql = "SELECT DISTINCT u.user_id,lastname,firstname,username
+    if (-1 != $access_url_id) {
+        $sql = "SELECT DISTINCT u.id as user_id,lastname,firstname,username
                 FROM $tbl_user u
                 INNER JOIN $table_access_url_rel_user url_rel_user
-                ON (url_rel_user.user_id = u.user_id)
+                ON (url_rel_user.user_id = u.id)
                 WHERE status='1' AND access_url_id = '$access_url_id' $order_clause";
     }
 }
 
 $result = Database::query($sql);
 $coaches = Database::store_result($result);
+$thisYear = date('Y');
+
 $coachesOption = [
     '' => '----- '.get_lang('none').' -----',
 ];
@@ -96,7 +90,7 @@ $categoriesOption = [
     '0' => get_lang('none'),
 ];
 
-if ($categoriesList != false) {
+if (false != $categoriesList) {
     foreach ($categoriesList as $categoryItem) {
         $categoriesOption[$categoryItem['id']] = $categoryItem['name'];
     }
@@ -127,12 +121,6 @@ $formDefaults['coach_username'] = $sessionInfo['id_coach'];
 $formDefaults['session_category'] = $sessionInfo['session_category_id'];
 $formDefaults['session_visibility'] = $sessionInfo['visibility'];
 
-if ($formSent) {
-    $formDefaults['name'] = api_htmlentities($name, ENT_QUOTES, $charset);
-} else {
-    $formDefaults['name'] = Security::remove_XSS($sessionInfo['name']);
-}
-
 $form->setDefaults($formDefaults);
 
 if ($form->validate()) {
@@ -149,7 +137,7 @@ if ($form->validate()) {
     $id_session_category = $params['session_category'];
     $id_visibility = $params['session_visibility'];
     $duration = isset($params['duration']) ? $params['duration'] : null;
-    if ($params['access'] == 1) {
+    if (1 == $params['access']) {
         $duration = null;
     }
 
@@ -160,7 +148,7 @@ if ($form->validate()) {
 
     $extraFields = [];
     foreach ($params as $key => $value) {
-        if (strpos($key, 'extra_') === 0) {
+        if (0 === strpos($key, 'extra_')) {
             $extraFields[$key] = $value;
         }
     }
@@ -168,6 +156,8 @@ if ($form->validate()) {
     if (isset($extraFields['extra_image']) && $isThisImageCropped) {
         $extraFields['extra_image']['crop_parameters'] = $params['picture_crop_result'];
     }
+
+    $status = isset($params['status']) ? $params['status'] : 0;
 
     $return = SessionManager::edit_session(
         $id,
@@ -186,7 +176,8 @@ if ($form->validate()) {
         $duration,
         $extraFields,
         null,
-        $sendSubscriptionNotification
+        $sendSubscriptionNotification,
+        $status
     );
 
     if ($return) {
@@ -196,7 +187,6 @@ if ($form->validate()) {
     }
 }
 
-// display the header
 Display::display_header($tool_name);
 $form->display();
 ?>

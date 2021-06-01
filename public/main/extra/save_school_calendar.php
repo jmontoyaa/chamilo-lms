@@ -29,7 +29,7 @@ foreach ($_POST as $index => $valeur) {
 
     echo "<table border='1'><tr>";
 
-    if ($i % $nbcol == 0) {
+    if (0 == $i % $nbcol) {
         $sqlexam = "SELECT * FROM set_module
                     WHERE cal_name =  '$d_title'";
     }
@@ -55,7 +55,7 @@ foreach ($_POST as $index => $valeur) {
     ?>
     </td>
     </tr>
-    <input type=hidden name=aaa value=<?= serialize(Database::fetch_array($resultexam)); ?>/>
+    <input type=hidden name=aaa value=<?php echo serialize(Database::fetch_array($resultexam)); ?>/>
     <input type="submit" value="Sauvegarder" name="B1">
     <?php
     echo $id, $tableau;

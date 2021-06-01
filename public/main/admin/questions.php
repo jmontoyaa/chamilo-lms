@@ -1,15 +1,13 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Framework\Container;
 use Chamilo\CourseBundle\Entity\CQuiz;
 use Chamilo\CourseBundle\Entity\CQuizQuestion;
 use ChamiloSession as Session;
 use Doctrine\Common\Collections\Criteria;
 use Knp\Component\Pager\Paginator;
 
-/**
- *  @package chamilo.admin
- */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -36,6 +34,8 @@ $pagination = '';
 $formSent = isset($_REQUEST['form_sent']) ? (int) $_REQUEST['form_sent'] : 0;
 $length = 20;
 $questionCount = 0;
+$start = 0;
+$end = 0;
 
 if ($formSent) {
     $id = isset($_REQUEST['id']) ? (int) $_REQUEST['id'] : '';
@@ -44,7 +44,7 @@ if ($formSent) {
     $page = isset($_GET['page']) && !empty($_GET['page']) ? (int) $_GET['page'] : 1;
 
     $em = Database::getManager();
-    $repo = $em->getRepository('ChamiloCourseBundle:CQuizQuestion');
+    $repo = $em->getRepository(CQuizQuestion::class);
     $criteria = new Criteria();
     if (!empty($id)) {
         $criteria->where($criteria->expr()->eq('iid', $id));
@@ -77,14 +77,14 @@ if ($formSent) {
 
     $questionCount = count($questions);
 
-    $paginator = new Paginator();
+    $paginator = new Paginator(Container::$container->get('event_dispatcher'));
     $pagination = $paginator->paginate($questions, $page, $length);
     $pagination->setItemNumberPerPage($length);
     $pagination->setCurrentPageNumber($page);
     $pagination->renderer = function ($data) use ($url) {
         $render = '<ul class="pagination">';
         for ($i = 1; $i <= $data['pageCount']; $i++) {
-            $page = (int) $i;
+            $page = $i;
             $pageContent = '<li><a href="'.$url.'&page='.$page.'">'.$page.'</a></li>';
             if ($data['current'] == $page) {
                 $pageContent = '<li class="active"><a href="#" >'.$page.'</a></li>';
@@ -99,21 +99,37 @@ if ($formSent) {
     if ($pagination) {
         $urlExercise = api_get_path(WEB_CODE_PATH).'exercise/admin.php?';
         $exerciseUrl = api_get_path(WEB_CODE_PATH).'exercise/exercise.php?';
+        $warningText = addslashes(api_htmlentities(get_lang('Please confirm your choice')));
 
         /** @var CQuizQuestion $question */
-        foreach ($pagination as $question) {
+        for ($i = 0; $i < $length; $i++) {
+            $index = $i;
+            if (!empty($page)) {
+                $index = ($page - 1) * $length + $i;
+            }
+            if (0 === $i) {
+                $start = $index;
+            }
+            if (!isset($pagination[$index])) {
+                continue;
+            }
+
+            if ($i < $length) {
+                $end = $index;
+            }
+            $question = &$pagination[$index];
             $courseId = $question->getCId();
             $courseInfo = api_get_course_info_by_id($courseId);
             $courseCode = $courseInfo['code'];
             $question->courseCode = $courseCode;
             // Creating empty exercise
             $exercise = new Exercise($courseId);
-            $questionObject = Question::read($question->getId(), $courseInfo);
+            $questionObject = Question::read($question->getIid(), $courseInfo);
 
             ob_start();
             ExerciseLib::showQuestion(
                 $exercise,
-                $question->getId(),
+                $question->getIid(),
                 false,
                 null,
                 null,
@@ -125,49 +141,38 @@ if ($formSent) {
             );
             $question->questionData = ob_get_contents();
 
+            $deleteUrl = $url.'&'.http_build_query([
+                'courseId' => $question->getCId(),
+                'questionId' => $question->getId(),
+                'action' => 'delete',
+            ]);
             $exerciseData = '';
             $exerciseId = 0;
             if (!empty($questionObject->exerciseList)) {
                 // Question exists in a valid exercise
                 $exerciseData .= get_lang('Tests').'<br />';
                 foreach ($questionObject->exerciseList as $exerciseId) {
-                    $exercise = new Exercise();
+                    $exercise = new Exercise($question->getCId());
                     $exercise->course_id = $question->getCId();
                     $exercise->read($exerciseId);
                     $exerciseData .= $exercise->title.'&nbsp;';
                     $exerciseData .= Display::url(
                         Display::return_icon('edit.png', get_lang('Edit')),
-                        $urlExercise.http_build_query([
+                        $urlExercise.http_build_query(
+                            [
                             'cidReq' => $courseCode,
                             'id_session' => $exercise->sessionId,
                             'exerciseId' => $exerciseId,
                             'type' => $question->getType(),
-                            'editQuestion' => $question->getId(),
-                        ])
-                    );
+                                'editQuestion' => $question->getId(),
+                            ]
+                        ),
+                        ['target' => '_blank']
+                    ).'<br />';
                 }
                 $question->questionData .= '<br />'.$exerciseData;
             } else {
                 // Question exists but it's orphan or it belongs to a deleted exercise
-                $question->questionData .= Display::url(
-                    Display::return_icon('edit.png', get_lang('Edit')),
-                    $urlExercise.http_build_query([
-                        'cidReq' => $courseCode,
-                        'id_session' => $exercise->sessionId,
-                        'exerciseId' => $exerciseId,
-                        'type' => $question->getType(),
-                        'editQuestion' => $question->getId(),
-                    ])
-                );
-
-                $question->questionData .= Display::url(
-                    Display::return_icon('delete.png', get_lang('Delete')),
-                    $url.'&'.http_build_query([
-                        'courseId' => $question->getCId(),
-                        'questionId' => $question->getId(),
-                        'action' => 'delete',
-                    ])
-                ).'<br />';
 
                 // This means the question is added in a deleted exercise
                 if ($questionObject->getCountExercise() > 0) {
@@ -177,7 +182,7 @@ if ($formSent) {
                         /** @var CQuiz $exercise */
                         foreach ($exerciseList as $exercise) {
                             $question->questionData .= $exercise->getTitle();
-                            if ($exercise->getActive() == -1) {
+                            if (-1 == $exercise->getActive()) {
                                 $question->questionData .= '- ('.get_lang('The test has been deleted').' #'.$exercise->getIid().') ';
                             }
                             $question->questionData .= '<br />';
@@ -187,7 +192,28 @@ if ($formSent) {
                     // This question is orphan :(
                     $question->questionData .= '&nbsp;'.get_lang('Orphan question');
                 }
+                $question->questionData .= Display::url(
+                    Display::return_icon('edit.png', get_lang('Edit')),
+                    $urlExercise.http_build_query(
+                        [
+                            'cidReq' => $courseCode,
+                            'id_session' => 0, //$exercise->sessionId,
+                            'exerciseId' => $exerciseId,
+                            'type' => $question->getType(),
+                            'editQuestion' => $question->getId(),
+                        ]
+                    ),
+                    ['target' => '_blank']
+                );
             }
+            $question->questionData .= '<div class="pull-right">'.Display::url(
+                get_lang('Delete'),
+                $deleteUrl,
+                [
+                    'class' => 'btn btn-danger',
+                    'onclick' => 'javascript: if(!confirm(\''.$warningText.'\')) return false',
+                ]
+            ).'</div>';
             ob_end_clean();
         }
     }
@@ -202,15 +228,17 @@ switch ($action) {
         $courseId = isset($_REQUEST['courseId']) ? $_REQUEST['courseId'] : '';
         $courseInfo = api_get_course_info_by_id($courseId);
 
-        $objQuestionTmp = Question::read($questionId, $courseInfo);
-        if (!empty($objQuestionTmp)) {
-            $result = $objQuestionTmp->delete();
-            if ($result) {
-                Display::addFlash(
-                    Display::return_message(
-                        get_lang('Deleted').' #'.$questionId.' - "'.$objQuestionTmp->question.'"'
-                    )
-                );
+        if (!empty($courseInfo)) {
+            $objQuestionTmp = Question::read($questionId, $courseInfo);
+            if (!empty($objQuestionTmp)) {
+                $result = $objQuestionTmp->delete();
+                if ($result) {
+                    Display::addFlash(
+                        Display::return_message(
+                            get_lang('Deleted').' #'.$questionId.' - "'.$objQuestionTmp->question.'"'
+                        )
+                    );
+                }
             }
         }
 
@@ -223,6 +251,8 @@ $tpl = new Template(get_lang('Questions'));
 $tpl->assign('form', $formContent);
 $tpl->assign('pagination', $pagination);
 $tpl->assign('pagination_length', $length);
+$tpl->assign('start', $start);
+$tpl->assign('end', $end);
 $tpl->assign('question_count', $questionCount);
 
 $layout = $tpl->get_template('admin/questions.tpl');

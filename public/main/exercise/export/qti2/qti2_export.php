@@ -1,15 +1,11 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
  * @author Claro Team <cvs@claroline.net>
  * @author Yannick Warnier <yannick.warnier@beeznest.com>
- *
- * @package chamilo.exercise
- */
-require __DIR__.'/qti2_classes.php';
 
-/**
  * An IMS/QTI item. It corresponds to a single question.
  * This class allows export from Claroline to IMS/QTI2.0 XML format of a single question.
  * It is not usable as-is, but must be subclassed, to support different kinds of questions.
@@ -17,8 +13,6 @@ require __DIR__.'/qti2_classes.php';
  * Every start_*() and corresponding end_*(), as well as export_*() methods return a string.
  *
  * note: Attached files are NOT exported.
- *
- * @package chamilo.exercise
  */
 class ImsAssessmentItem
 {
@@ -44,7 +38,7 @@ class ImsAssessmentItem
     {
         $this->question = $question;
         $this->answer = $this->question->setAnswer();
-        $this->questionIdent = "QST_".$question->id;
+        $this->questionIdent = 'QST_'.$question->id;
     }
 
     /**
@@ -63,15 +57,13 @@ class ImsAssessmentItem
             }
         }
 
-        $string = '<assessmentItem xmlns="http://www.imsglobal.org/xsd/imsqti_v2p1"
+        return '<assessmentItem xmlns="http://www.imsglobal.org/xsd/imsqti_v2p1"
                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                 xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v2p1 imsqti_v2p1.xsd"
                 identifier="'.$this->questionIdent.'"
                 title = "'.htmlspecialchars(formatExerciseQtiText($this->question->selectTitle())).'"
                 category = "'.$categoryTitle.'"
         >'."\n";
-
-        return $string;
     }
 
     /**
@@ -111,8 +103,6 @@ class ImsAssessmentItem
      *
      * This is a default behaviour, some classes may want to override this.
      *
-     * @param $standalone: Boolean stating if it should be exported as a stand-alone question
-     *
      * @return string string, the XML flow for an Item
      */
     public function export($standalone = false)
@@ -127,7 +117,7 @@ class ImsAssessmentItem
             return $head;
         }
 
-        $res = $head
+        return $head
             .$this->start_item()
             .$this->answer->imsExportResponsesDeclaration($this->questionIdent, $this->question)
             .$this->start_item_body()
@@ -141,8 +131,6 @@ class ImsAssessmentItem
             .$this->add_response_processing()
             .$this->end_item()
             .$foot;
-
-        return $res;
     }
 }
 
@@ -158,8 +146,6 @@ class ImsAssessmentItem
  *   - anonymous_attempts
  *
  * @author Amand Tihon <amand@alrj.org>
- *
- * @package chamilo.exercise
  */
 class ImsSection
 {
@@ -179,12 +165,10 @@ class ImsSection
 
     public function start_section()
     {
-        $out = '<section 
-            ident = "EXO_'.$this->exercise->selectId().'" 
-            title = "'.cleanAttribute(formatExerciseQtiDescription($this->exercise->selectTitle())).'"            
+        return '<section
+            ident = "EXO_'.$this->exercise->getId().'"
+            title = "'.cleanAttribute(formatExerciseQtiDescription($this->exercise->selectTitle())).'"
         >'."\n";
-
-        return $out;
     }
 
     public function end_section()
@@ -212,11 +196,9 @@ class ImsSection
      */
     public function export_presentation()
     {
-        $out = "<presentation_material><flow_mat><material>\n"
-             ."  <mattext><![CDATA[".formatExerciseQtiDescription($this->exercise->selectDescription())."]]></mattext>\n"
+        return "<presentation_material><flow_mat><material>\n"
+             .'  <mattext><![CDATA['.formatExerciseQtiDescription($this->exercise->selectDescription())."]]></mattext>\n"
              ."</material></flow_mat></presentation_material>\n";
-
-        return $out;
     }
 
     /**
@@ -229,9 +211,9 @@ class ImsSection
     {
         $out = '';
         if ($n = $this->exercise->getShuffle()) {
-            $out .= "<selection_ordering>"
+            $out .= '<selection_ordering>'
                  ."  <selection>\n"
-                 ."    <selection_number>".$n."</selection_number>\n"
+                 .'    <selection_number>'.$n."</selection_number>\n"
                  ."  </selection>\n"
                  .'  <order order_type="Random" />'
                  ."\n</selection_ordering>\n";
@@ -277,7 +259,8 @@ class ImsSection
                   ."<questestinterop>\n";
             $foot = "</questestinterop>\n";
         }
-        $out = $head
+
+        return $head
              .$this->start_section()
              .$this->export_duration()
              .$this->export_presentation()
@@ -285,8 +268,6 @@ class ImsSection
              .$this->exportQuestions()
              .$this->end_section()
              .$foot;
-
-        return $out;
     }
 }
 
@@ -315,8 +296,6 @@ class ImsSection
  * warning: Attached files are NOT exported.
  *
  * @author Amand Tihon <amand@alrj.org>
- *
- * @package chamilo.exercise
  */
 class ImsItem
 {
@@ -335,7 +314,7 @@ class ImsItem
     {
         $this->question = $question;
         $this->answer = $question->answer;
-        $this->questionIdent = "QST_".$question->selectId();
+        $this->questionIdent = 'QST_'.$question->getId();
     }
 
     /**
@@ -409,8 +388,6 @@ class ImsItem
      *
      * This is a default behaviour, some classes may want to override this.
      *
-     * @param $standalone: Boolean stating if it should be exported as a stand-alone question
-     *
      * @return string string, the XML flow for an Item
      *
      * @author Amand Tihon <amand@alrj.org>
@@ -418,7 +395,7 @@ class ImsItem
     public function export($standalone = false)
     {
         global $charset;
-        $head = $foot = "";
+        $head = $foot = '';
 
         if ($standalone) {
             $head = '<?xml version = "1.0" encoding = "'.$charset.'" standalone = "no"?>'."\n"
@@ -456,9 +433,8 @@ function export_exercise_to_qti($exerciseId, $standalone = true)
         return '';
     }
     $ims = new ImsSection($exercise);
-    $xml = $ims->export($standalone);
 
-    return $xml;
+    return $ims->export($standalone);
 }
 
 /**

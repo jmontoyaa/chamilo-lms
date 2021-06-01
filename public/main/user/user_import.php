@@ -7,7 +7,7 @@ $this_section = SECTION_COURSES;
 // notice for unauthorized people.
 api_protect_course_script(true);
 
-if (api_get_setting('allow_user_course_subscription_by_course_admin') == 'false') {
+if ('false' == api_get_setting('allow_user_course_subscription_by_course_admin')) {
     if (!api_is_platform_admin()) {
         api_not_allowed(true);
     }
@@ -15,7 +15,7 @@ if (api_get_setting('allow_user_course_subscription_by_course_admin') == 'false'
 
 // Make sure we know if we're importing students or teachers into the course
 $userType = STUDENT;
-if (!empty($_REQUEST['type']) && $_REQUEST['type'] == COURSEMANAGER) {
+if (!empty($_REQUEST['type']) && COURSEMANAGER == $_REQUEST['type']) {
     $userType = COURSEMANAGER;
 }
 
@@ -32,6 +32,7 @@ $form->addElement('hidden', 'type', $userType);
 $form->addButtonImport(get_lang('Import'));
 
 $course_code = api_get_course_id();
+$courseId = api_get_course_int_id();
 
 if (empty($course_code)) {
     api_not_allowed(true);
@@ -43,7 +44,7 @@ $user_to_show = [];
 $type = '';
 
 if ($form->validate()) {
-    if (isset($_FILES['import_file']['size']) && $_FILES['import_file']['size'] !== 0) {
+    if (isset($_FILES['import_file']['size']) && 0 !== $_FILES['import_file']['size']) {
         $unsubscribe_users = isset($_POST['unsubscribe_users']) ? true : false;
         //@todo : csvToArray deprecated
         $users = Import::csvToArray($_FILES['import_file']['tmp_name']);
@@ -88,12 +89,12 @@ if ($form->validate()) {
                     if (!empty($current_user_list)) {
                         $user_ids = [];
                         foreach ($current_user_list as $user) {
-                            if ($userType == COURSEMANAGER) {
-                                if (CourseManager::is_course_teacher($user['user_id'], $course_code)) {
+                            if (COURSEMANAGER == $userType) {
+                                if (CourseManager::isCourseTeacher($user['user_id'], $courseId)) {
                                     $user_ids[] = $user['user_id'];
                                 }
                             } else {
-                                if (!CourseManager::is_course_teacher($user['user_id'], $course_code)) {
+                                if (!CourseManager::isCourseTeacher($user['user_id'], $courseId)) {
                                     $user_ids[] = $user['user_id'];
                                 }
                             }
@@ -104,7 +105,7 @@ if ($form->validate()) {
 
                 foreach ($clean_users as $userId) {
                     $userInfo = api_get_user_info($userId);
-                    CourseManager::subscribeUser($userId, $course_code, $userType, $session_id);
+                    CourseManager::subscribeUser($userId, $courseId, $userType, $session_id);
                     if (empty($session_id)) {
                         //just to make sure
                         if (CourseManager::is_user_subscribed_in_course($userId, $course_code)) {
@@ -140,33 +141,33 @@ if (!empty($message)) {
             $user = array_filter($user);
             $userMessage .= implode(', ', $user)."<br />";
         }
-        if ($type == 'confirmation') {
+        if ('confirmation' == $type) {
             echo Display::return_message($message.': <br />'.$userMessage, 'confirm', false);
         } else {
             echo Display::return_message($message.':  <br />'.$userMessage, 'warning', false);
         }
     } else {
-        $empty_line_msg = ($empty_line == 0) ? get_lang('Errors when importing file') : get_lang('Errors when importing file').': '.get_lang('There are empty lines in the header of selected file');
+        $empty_line_msg = (0 == $empty_line) ? get_lang('Errors when importing file') : get_lang('Errors when importing file').': '.get_lang('There are empty lines in the header of selected file');
         echo Display::return_message($empty_line_msg, 'error');
     }
 }
 
-$form->display();
-
-echo get_lang('The CSV file must look like this');
-echo '<blockquote><pre>
+$content = get_lang('The CSV file must look like this').
+'<blockquote><pre>
     username
     jdoe
     jmontoya
 </pre>
-</blockquote>';
-
-echo get_lang('or');
-echo '<blockquote><pre>
+</blockquote>'.
+get_lang('or').
+    '<blockquote><pre>
     id
     23
     1337
 </pre>
 </blockquote>';
+
+echo Display::prose($content);
+$form->display();
 
 Display::display_footer();

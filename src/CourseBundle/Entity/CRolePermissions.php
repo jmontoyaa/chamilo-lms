@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
@@ -10,75 +12,54 @@ use Doctrine\ORM\Mapping as ORM;
  * CRolePermissions.
  *
  * @ORM\Table(
- *  name="c_role_permissions",
- *  indexes={
- *      @ORM\Index(name="course", columns="c_id"),
- *      @ORM\Index(name="role", columns="role_id")
- *  }
+ *     name="c_role_permissions",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"}),
+ *         @ORM\Index(name="role", columns={"role_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CRolePermissions
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var bool
-     *
      * @ORM\Column(name="default_perm", type="boolean", nullable=false)
      */
-    protected $defaultPerm;
+    protected bool $defaultPerm;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="role_id", type="integer")
      */
-    protected $roleId;
+    protected int $roleId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="tool", type="string", length=250)
      */
-    protected $tool;
+    protected string $tool;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="action", type="string", length=50)
      */
-    protected $action;
+    protected string $action;
 
     /**
      * Set defaultPerm.
      *
-     * @param bool $defaultPerm
-     *
      * @return CRolePermissions
      */
-    public function setDefaultPerm($defaultPerm)
+    public function setDefaultPerm(bool $defaultPerm)
     {
         $this->defaultPerm = $defaultPerm;
 
@@ -96,37 +77,11 @@ class CRolePermissions
     }
 
     /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CRolePermissions
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CRolePermissions
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
@@ -146,11 +101,9 @@ class CRolePermissions
     /**
      * Set roleId.
      *
-     * @param int $roleId
-     *
      * @return CRolePermissions
      */
-    public function setRoleId($roleId)
+    public function setRoleId(int $roleId)
     {
         $this->roleId = $roleId;
 
@@ -170,11 +123,9 @@ class CRolePermissions
     /**
      * Set tool.
      *
-     * @param string $tool
-     *
      * @return CRolePermissions
      */
-    public function setTool($tool)
+    public function setTool(string $tool)
     {
         $this->tool = $tool;
 
@@ -194,11 +145,9 @@ class CRolePermissions
     /**
      * Set action.
      *
-     * @param string $action
-     *
      * @return CRolePermissions
      */
-    public function setAction($action)
+    public function setAction(string $action)
     {
         $this->action = $action;
 

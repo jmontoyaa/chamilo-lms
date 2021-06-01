@@ -1,45 +1,35 @@
 <?php
 /* For licensing terms, see /license.txt */
 
-require_once __DIR__.'/../global.inc.php';
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CSurvey;
+use Chamilo\CourseBundle\Entity\CSurveyQuestion;
 
-$action = isset($_GET['a']) ? $_GET['a'] : null;
+require_once __DIR__.'/../global.inc.php';
 
 $current_user_id = api_get_user_id();
 $courseId = api_get_course_int_id();
 
-$surveyId = isset($_REQUEST['survey_id']) ? $_REQUEST['survey_id'] : null;
-$questionId = isset($_REQUEST['question_id']) ? $_REQUEST['question_id'] : null;
+$repo = Container::getSurveyRepository();
+$repoQuestion = Container::getSurveyQuestionRepository();
+
+$action = $_GET['a'] ?? null;
+$surveyId = $_REQUEST['survey_id'] ?? 0;
+$questionId = $_REQUEST['question_id'] ?? 0;
 
 switch ($action) {
     case 'load_question_options':
-        if (!api_is_allowed_to_edit()) {
+        if (!api_is_allowed_to_edit(false, true)) {
             exit;
         }
-
         $question = SurveyManager::get_question($questionId);
-        if (!empty($question)) {
-            foreach ($question['answers'] as $index => $answer) {
-                echo Display::input(
-                    'radio',
-                    'option['.$questionId.']',
-                    $question['answersid'][$index],
-                    ['class' => 'question_option']
-                );
-                echo $answer;
-                echo '<br />';
+        if (!empty($question) && !empty($question['answer_data'])) {
+            $optionList = [];
+            foreach ($question['answer_data'] as $answer) {
+                $optionList[$answer['iid']] = strip_tags($answer['data']);
             }
+            echo json_encode($optionList);
         }
-
-        echo '
-            <script>
-                $(function() {
-                    $(".question_option").on("click", function() {
-                        $("#question_form_option_id").attr("value", $(this).val());
-                    });
-                });
-            </script>
-        ';
         break;
     case 'save_question':
         if (api_is_anonymous()) {
@@ -48,27 +38,29 @@ switch ($action) {
         }
         $status = isset($_GET['status']) ? (int) $_GET['status'] : null;
         $userId = api_get_user_id();
+        /** @var CSurvey $survey */
+        $survey = $repo->find($surveyId);
 
-        $surveyData = SurveyManager::get_survey($surveyId);
+        /** @var CSurveyQuestion $survey */
+        $question = $repoQuestion->find($questionId);
 
-        if (empty($surveyData)) {
+        if (null === $survey) {
             exit;
         }
 
         SurveyUtil::remove_answer(
             $userId,
-            $surveyId,
+            $survey->getIid(),
             $questionId,
             $courseId
         );
 
-        SurveyUtil::store_answer(
+        SurveyUtil::saveAnswer(
             $userId,
-            $surveyId,
-            $questionId,
+            $survey,
+            $question,
             1,
-            $status,
-            $surveyData
+            $status
         );
 
         break;

@@ -1,243 +1,206 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation as Gedmo;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * CLpItem.
+ * Items from a learning path (LP).
  *
+ * @Gedmo\Tree(type="nested")
  * @ORM\Table(
- *  name="c_lp_item",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="lp_id", columns={"lp_id"}),
- *      @ORM\Index(name="idx_c_lp_item_cid_lp_id", columns={"c_id", "lp_id"})
- *  }
+ *     name="c_lp_item",
+ *     indexes={
+ *         @ORM\Index(name="lp_id", columns={"lp_id"}),
+ *     }
  * )
  * @ORM\Entity
  */
 class CLpItem
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected ?int $iid = null;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer")
-     */
-    protected $cId;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="lp_id", type="integer", nullable=false)
-     */
-    protected $lpId;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="item_type", type="string", length=32, nullable=false)
-     */
-    protected $itemType;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="ref", type="text", nullable=false)
-     */
-    protected $ref;
-
-    /**
-     * @var string
+     * @Assert\NotBlank()
      *
      * @ORM\Column(name="title", type="string", length=511, nullable=false)
      */
-    protected $title;
+    protected string $title;
 
     /**
-     * @var string
+     * @Assert\NotBlank()
      *
+     * @ORM\Column(name="item_type", type="string", length=32, nullable=false)
+     */
+    protected string $itemType;
+
+    /**
+     * @ORM\Column(name="ref", type="text", nullable=false)
+     */
+    protected string $ref;
+
+    /**
      * @ORM\Column(name="description", type="string", length=511, nullable=true)
      */
-    protected $description;
+    protected ?string $description;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="path", type="text", nullable=false)
      */
-    protected $path;
+    protected string $path;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="min_score", type="float", precision=10, scale=0, nullable=false)
      */
-    protected $minScore;
+    protected float $minScore;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="max_score", type="float", precision=10, scale=0, nullable=true, options={"default":"100"})
      */
-    protected $maxScore;
+    protected ?float $maxScore;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="mastery_score", type="float", precision=10, scale=0, nullable=true)
      */
-    protected $masteryScore;
+    protected ?float $masteryScore = null;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="parent_item_id", type="integer", nullable=false)
-     */
-    protected $parentItemId;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="previous_item_id", type="integer", nullable=false)
-     */
-    protected $previousItemId;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="next_item_id", type="integer", nullable=false)
-     */
-    protected $nextItemId;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="display_order", type="integer", nullable=false)
      */
-    protected $displayOrder;
+    protected int $displayOrder;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="prerequisite", type="text", nullable=true)
      */
-    protected $prerequisite;
+    protected ?string $prerequisite = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="parameters", type="text", nullable=true)
      */
-    protected $parameters;
+    protected ?string $parameters = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="launch_data", type="text", nullable=false)
      */
-    protected $launchData;
+    protected string $launchData;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="max_time_allowed", type="string", length=13, nullable=true)
      */
-    protected $maxTimeAllowed;
+    protected ?string $maxTimeAllowed = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="terms", type="text", nullable=true)
      */
-    protected $terms;
+    protected ?string $terms = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="search_did", type="integer", nullable=true)
      */
-    protected $searchDid;
+    protected ?int $searchDid = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="audio", type="string", length=250, nullable=true)
      */
-    protected $audio;
+    protected ?string $audio = null;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="prerequisite_min_score", type="float", precision=10, scale=0, nullable=true)
      */
-    protected $prerequisiteMinScore;
+    protected ?float $prerequisiteMinScore = null;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="prerequisite_max_score", type="float", precision=10, scale=0, nullable=true)
      */
-    protected $prerequisiteMaxScore;
+    protected ?float $prerequisiteMaxScore = null;
 
     /**
-     * CLpItem constructor.
+     * @Gedmo\TreeRoot
+     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CLp", inversedBy="items", cascade={"persist", "remove"})
+     * @ORM\JoinColumn(name="lp_id", referencedColumnName="iid", onDelete="CASCADE")
      */
+    protected CLp $lp;
+
+    /**
+     * @Gedmo\TreeParent
+     * @ORM\ManyToOne(targetEntity="CLpItem", inversedBy="children", cascade={"persist"})
+     * @ORM\JoinColumn(name="parent_item_id", referencedColumnName="iid", onDelete="SET NULL")
+     */
+    protected ?CLpItem $parent = null;
+
+    /**
+     * @var Collection|CLpItem[]
+     * @ORM\OneToMany(targetEntity="CLpItem", mappedBy="parent")
+     */
+    protected Collection $children;
+
+    /**
+     * @Gedmo\TreeLeft
+     * @ORM\Column(name="previous_item_id", type="integer", nullable=true)
+     */
+    protected ?int $previousItemId = null;
+
+    /**
+     * @Gedmo\TreeRight
+     * @ORM\Column(name="next_item_id", type="integer", nullable=true)
+     */
+    protected ?int $nextItemId = null;
+
+    /**
+     * @Gedmo\TreeLevel
+     * @ORM\Column(name="lvl", type="integer")
+     */
+    protected ?int $lvl;
+
     public function __construct()
     {
+        $this->children = new ArrayCollection();
+        $this->path = '';
+        $this->ref = '';
+        $this->lvl = 0;
+        $this->launchData = '';
+        $this->description = '';
+        $this->displayOrder = 0;
+        $this->minScore = 0;
         $this->maxScore = 100.0;
     }
 
-    /**
-     * Set lpId.
-     *
-     * @param int $lpId
-     *
-     * @return CLpItem
-     */
-    public function setLpId($lpId)
+    public function __toString(): string
     {
-        $this->lpId = $lpId;
+        return $this->getIid().' '.$this->getTitle();
+    }
+
+    public function getIid(): ?int
+    {
+        return $this->iid;
+    }
+
+    public function setLp(CLp $lp): self
+    {
+        $this->lp = $lp;
 
         return $this;
     }
 
-    /**
-     * Get lpId.
-     *
-     * @return int
-     */
-    public function getLpId()
+    public function getLp(): CLp
     {
-        return $this->lpId;
+        return $this->lp;
     }
 
-    /**
-     * Set itemType.
-     *
-     * @param string $itemType
-     *
-     * @return CLpItem
-     */
-    public function setItemType($itemType)
+    public function setItemType(string $itemType): self
     {
         $this->itemType = $itemType;
 
@@ -254,14 +217,7 @@ class CLpItem
         return $this->itemType;
     }
 
-    /**
-     * Set ref.
-     *
-     * @param string $ref
-     *
-     * @return CLpItem
-     */
-    public function setRef($ref)
+    public function setRef(string $ref): self
     {
         $this->ref = $ref;
 
@@ -278,14 +234,7 @@ class CLpItem
         return $this->ref;
     }
 
-    /**
-     * Set title.
-     *
-     * @param string $title
-     *
-     * @return CLpItem
-     */
-    public function setTitle($title)
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
@@ -302,38 +251,19 @@ class CLpItem
         return $this->title;
     }
 
-    /**
-     * Set description.
-     *
-     * @param string $description
-     *
-     * @return CLpItem
-     */
-    public function setDescription($description)
+    public function setDescription(string $description): self
     {
         $this->description = $description;
 
         return $this;
     }
 
-    /**
-     * Get description.
-     *
-     * @return string
-     */
-    public function getDescription()
+    public function getDescription(): ?string
     {
         return $this->description;
     }
 
-    /**
-     * Set path.
-     *
-     * @param string $path
-     *
-     * @return CLpItem
-     */
-    public function setPath($path)
+    public function setPath(string $path): self
     {
         $this->path = $path;
 
@@ -350,14 +280,7 @@ class CLpItem
         return $this->path;
     }
 
-    /**
-     * Set minScore.
-     *
-     * @param float $minScore
-     *
-     * @return CLpItem
-     */
-    public function setMinScore($minScore)
+    public function setMinScore(float $minScore): self
     {
         $this->minScore = $minScore;
 
@@ -374,14 +297,7 @@ class CLpItem
         return $this->minScore;
     }
 
-    /**
-     * Set maxScore.
-     *
-     * @param float $maxScore
-     *
-     * @return CLpItem
-     */
-    public function setMaxScore($maxScore)
+    public function setMaxScore(float $maxScore): self
     {
         $this->maxScore = $maxScore;
 
@@ -398,14 +314,7 @@ class CLpItem
         return $this->maxScore;
     }
 
-    /**
-     * Set masteryScore.
-     *
-     * @param float $masteryScore
-     *
-     * @return CLpItem
-     */
-    public function setMasteryScore($masteryScore)
+    public function setMasteryScore(float $masteryScore): self
     {
         $this->masteryScore = $masteryScore;
 
@@ -422,38 +331,7 @@ class CLpItem
         return $this->masteryScore;
     }
 
-    /**
-     * Set parentItemId.
-     *
-     * @param int $parentItemId
-     *
-     * @return CLpItem
-     */
-    public function setParentItemId($parentItemId)
-    {
-        $this->parentItemId = $parentItemId;
-
-        return $this;
-    }
-
-    /**
-     * Get parentItemId.
-     *
-     * @return int
-     */
-    public function getParentItemId()
-    {
-        return $this->parentItemId;
-    }
-
-    /**
-     * Set previousItemId.
-     *
-     * @param int $previousItemId
-     *
-     * @return CLpItem
-     */
-    public function setPreviousItemId($previousItemId)
+    public function setPreviousItemId(?int $previousItemId): self
     {
         $this->previousItemId = $previousItemId;
 
@@ -470,14 +348,7 @@ class CLpItem
         return $this->previousItemId;
     }
 
-    /**
-     * Set nextItemId.
-     *
-     * @param int $nextItemId
-     *
-     * @return CLpItem
-     */
-    public function setNextItemId($nextItemId)
+    public function setNextItemId(?int $nextItemId): self
     {
         $this->nextItemId = $nextItemId;
 
@@ -494,14 +365,7 @@ class CLpItem
         return $this->nextItemId;
     }
 
-    /**
-     * Set displayOrder.
-     *
-     * @param int $displayOrder
-     *
-     * @return CLpItem
-     */
-    public function setDisplayOrder($displayOrder)
+    public function setDisplayOrder(int $displayOrder): self
     {
         $this->displayOrder = $displayOrder;
 
@@ -518,14 +382,7 @@ class CLpItem
         return $this->displayOrder;
     }
 
-    /**
-     * Set prerequisite.
-     *
-     * @param string $prerequisite
-     *
-     * @return CLpItem
-     */
-    public function setPrerequisite($prerequisite)
+    public function setPrerequisite(string $prerequisite): self
     {
         $this->prerequisite = $prerequisite;
 
@@ -542,14 +399,7 @@ class CLpItem
         return $this->prerequisite;
     }
 
-    /**
-     * Set parameters.
-     *
-     * @param string $parameters
-     *
-     * @return CLpItem
-     */
-    public function setParameters($parameters)
+    public function setParameters(string $parameters): self
     {
         $this->parameters = $parameters;
 
@@ -566,14 +416,7 @@ class CLpItem
         return $this->parameters;
     }
 
-    /**
-     * Set launchData.
-     *
-     * @param string $launchData
-     *
-     * @return CLpItem
-     */
-    public function setLaunchData($launchData)
+    public function setLaunchData(string $launchData): self
     {
         $this->launchData = $launchData;
 
@@ -590,14 +433,7 @@ class CLpItem
         return $this->launchData;
     }
 
-    /**
-     * Set maxTimeAllowed.
-     *
-     * @param string $maxTimeAllowed
-     *
-     * @return CLpItem
-     */
-    public function setMaxTimeAllowed($maxTimeAllowed)
+    public function setMaxTimeAllowed(string $maxTimeAllowed): self
     {
         $this->maxTimeAllowed = $maxTimeAllowed;
 
@@ -614,14 +450,7 @@ class CLpItem
         return $this->maxTimeAllowed;
     }
 
-    /**
-     * Set terms.
-     *
-     * @param string $terms
-     *
-     * @return CLpItem
-     */
-    public function setTerms($terms)
+    public function setTerms(string $terms): self
     {
         $this->terms = $terms;
 
@@ -638,14 +467,7 @@ class CLpItem
         return $this->terms;
     }
 
-    /**
-     * Set searchDid.
-     *
-     * @param int $searchDid
-     *
-     * @return CLpItem
-     */
-    public function setSearchDid($searchDid)
+    public function setSearchDid(int $searchDid): self
     {
         $this->searchDid = $searchDid;
 
@@ -662,14 +484,7 @@ class CLpItem
         return $this->searchDid;
     }
 
-    /**
-     * Set audio.
-     *
-     * @param string $audio
-     *
-     * @return CLpItem
-     */
-    public function setAudio($audio)
+    public function setAudio(string $audio): self
     {
         $this->audio = $audio;
 
@@ -686,14 +501,7 @@ class CLpItem
         return $this->audio;
     }
 
-    /**
-     * Set prerequisiteMinScore.
-     *
-     * @param float $prerequisiteMinScore
-     *
-     * @return CLpItem
-     */
-    public function setPrerequisiteMinScore($prerequisiteMinScore)
+    public function setPrerequisiteMinScore(float $prerequisiteMinScore): self
     {
         $this->prerequisiteMinScore = $prerequisiteMinScore;
 
@@ -710,14 +518,7 @@ class CLpItem
         return $this->prerequisiteMinScore;
     }
 
-    /**
-     * Set prerequisiteMaxScore.
-     *
-     * @param float $prerequisiteMaxScore
-     *
-     * @return CLpItem
-     */
-    public function setPrerequisiteMaxScore($prerequisiteMaxScore)
+    public function setPrerequisiteMaxScore(float $prerequisiteMaxScore): self
     {
         $this->prerequisiteMaxScore = $prerequisiteMaxScore;
 
@@ -734,51 +535,54 @@ class CLpItem
         return $this->prerequisiteMaxScore;
     }
 
-    /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CLpItem
-     */
-    public function setId($id)
+    public function getParentItemId(): int
     {
-        $this->id = $id;
+        if (null === $this->parent) {
+            return 0;
+        }
+
+        return $this->getParent()->getIid();
+    }
+
+    public function getParent(): ?self
+    {
+        return $this->parent;
+    }
+
+    public function setParent(?self $parent): self
+    {
+        $this->parent = $parent;
 
         return $this;
     }
 
     /**
-     * Get id.
-     *
-     * @return int
+     * @return CLpItem[]|Collection
      */
-    public function getId()
+    public function getChildren()
     {
-        return $this->id;
+        return $this->children;
     }
 
     /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return CLpItem
+     * @param CLpItem[]|Collection $children
      */
-    public function setCId($cId)
+    public function setChildren(Collection $children): self
     {
-        $this->cId = $cId;
+        $this->children = $children;
 
         return $this;
     }
 
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
+    public function getLvl(): ?int
     {
-        return $this->cId;
+        return $this->lvl;
+    }
+
+    public function setLvl($lvl): self
+    {
+        $this->lvl = $lvl;
+
+        return $this;
     }
 }

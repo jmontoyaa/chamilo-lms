@@ -1,17 +1,19 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Entity\Message;
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\MessageAttachment;
+use Chamilo\CoreBundle\Entity\MessageFeedback;
+use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Framework\Container;
 use ChamiloSession as Session;
+use Doctrine\Common\Collections\Criteria;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
- * Class MessageManager.
- *
  * This class provides methods for messages management.
  * Include/require it in your code to use its features.
- *
- * @package chamilo.library
  */
 class MessageManager
 {
@@ -34,7 +36,7 @@ class MessageManager
         static $count;
         if (!isset($count)) {
             $cacheAvailable = api_get_configuration_value('apc');
-            if ($cacheAvailable === true) {
+            if (true === $cacheAvailable) {
                 $var = api_get_configuration_value('apc_prefix').'social_messages_unread_u_'.$userId;
                 if (apcu_exists($var)) {
                     $count = apcu_fetch($var);
@@ -64,7 +66,7 @@ class MessageManager
 
         $sql = "SELECT COUNT(id) as number_messages
                 FROM $table
-                WHERE 
+                WHERE
                     $conditions
                 ";
         $result = Database::query($sql);
@@ -144,12 +146,13 @@ class MessageManager
     ) {
         $from = (int) $from;
         $numberOfItems = (int) $numberOfItems;
+        $column = (int) $column;
+
         // Forcing this order.
         if (!isset($direction)) {
             $column = 2;
             $direction = 'DESC';
         } else {
-            $column = (int) $column;
             if (!in_array($direction, ['ASC', 'DESC'])) {
                 $direction = 'ASC';
             }
@@ -184,12 +187,13 @@ class MessageManager
         }
 
         $table = Database::get_main_table(TABLE_MESSAGE);
-        $sql = "SELECT 
-                    id as col0, 
-                    title as col1, 
-                    send_date as col2, 
+        $sql = "SELECT
+                    id as col0,
+                    title as col1,
+                    send_date as col2,
                     msg_status as col3,
-                    user_sender_id
+                    user_sender_id,
+                    user_receiver_id
                 FROM $table
                 WHERE
                     $whereConditions
@@ -208,16 +212,20 @@ class MessageManager
             $sendDate = $row['col2'];
             $status = $row['col3'];
             $senderId = $row['user_sender_id'];
+            $receiverId = $row['user_receiver_id'];
 
             $title = Security::remove_XSS($title, STUDENT, true);
             $title = cut($title, 80, true);
 
             $class = 'class = "read"';
-            if ($status == 1) {
+            if (1 == $status) {
                 $class = 'class = "unread"';
             }
 
             $userInfo = api_get_user_info($senderId);
+            if (self::MESSAGE_TYPE_OUTBOX == $type) {
+                $userInfo = api_get_user_info($receiverId);
+            }
             $message[3] = '';
             if (!empty($senderId) && !empty($userInfo)) {
                 $message[1] = '<a '.$class.' href="'.$viewUrl.'&id='.$messageId.'">'.$title.'</a><br />';
@@ -330,23 +338,18 @@ class MessageManager
         return false;
     }
 
-    /**
-     * @param array $aboutUserInfo
-     *
-     * @return array
-     */
-    public static function getMessagesAboutUser($aboutUserInfo)
+    public static function getMessagesAboutUser(User $user): array
     {
-        if (!empty($aboutUserInfo)) {
+        if (!empty($user)) {
             $table = Database::get_main_table(TABLE_MESSAGE);
             $sql = 'SELECT id FROM '.$table.'
-                    WHERE 
-                      user_receiver_id = '.$aboutUserInfo['id'].' AND 
-                      msg_status = '.MESSAGE_STATUS_CONVERSATION.'                    
+                    WHERE
+                      user_receiver_id = '.$user->getId().' AND
+                      msg_status = '.MESSAGE_STATUS_CONVERSATION.'
                     ';
             $result = Database::query($sql);
             $messages = [];
-            $repo = Database::getManager()->getRepository('ChamiloCoreBundle:Message');
+            $repo = Database::getManager()->getRepository(Message::class);
             while ($row = Database::fetch_array($result)) {
                 $message = $repo->find($row['id']);
                 $messages[] = $message;
@@ -358,14 +361,9 @@ class MessageManager
         return [];
     }
 
-    /**
-     * @param array $userInfo
-     *
-     * @return string
-     */
-    public static function getMessagesAboutUserToString($userInfo)
+    public static function getMessagesAboutUserToString(User $user): string
     {
-        $messages = self::getMessagesAboutUser($userInfo);
+        $messages = self::getMessagesAboutUser($user);
         $html = '';
         if (!empty($messages)) {
             /** @var Message $message */
@@ -383,7 +381,7 @@ class MessageManager
                     false,
                     false
                 );
-                $senderId = $message->getUserSenderId();
+                $senderId = $message->getUserSender()->getId();
                 $senderInfo = api_get_user_info($senderId);
                 $html .= Display::panelCollapse(
                     $localTime.' '.$senderInfo['complete_name'].' '.$message->getTitle(),
@@ -419,12 +417,12 @@ class MessageManager
         $message = Database::escape_string($message);
 
         $sql = "SELECT * FROM $table
-                WHERE 
+                WHERE
                     user_sender_id = $senderId AND
-                    user_receiver_id = $receiverId AND 
-                    title = '$subject' AND 
+                    user_receiver_id = $receiverId AND
+                    title = '$subject' AND
                     content = '$message' AND
-                    (msg_status = ".MESSAGE_STATUS_UNREAD." OR msg_status = ".MESSAGE_STATUS_NEW.")                    
+                    (msg_status = ".MESSAGE_STATUS_UNREAD." OR msg_status = ".MESSAGE_STATUS_NEW.")
                 ";
         $result = Database::query($sql);
 
@@ -434,7 +432,7 @@ class MessageManager
     /**
      * Sends a message to a user/group.
      *
-     * @param int    $receiver_user_id
+     * @param int    $receiverUserId
      * @param string $subject
      * @param string $content
      * @param array  $attachments                files array($_FILES) (optional)
@@ -449,11 +447,12 @@ class MessageManager
      * @param array  $smsParameters
      * @param bool   $checkCurrentAudioId
      * @param bool   $forceTitleWhenSendingEmail force the use of $title as subject instead of "You have a new message"
+     * @param int    $status                     Message status
      *
      * @return bool
      */
     public static function send_message(
-        $receiver_user_id,
+        $receiverUserId,
         $subject,
         $content,
         array $attachments = [],
@@ -470,29 +469,85 @@ class MessageManager
         $forceTitleWhenSendingEmail = false,
         $status = 0
     ) {
-        $table = Database::get_main_table(TABLE_MESSAGE);
         $group_id = (int) $group_id;
-        $receiver_user_id = (int) $receiver_user_id;
+        $receiverUserId = (int) $receiverUserId;
         $parent_id = (int) $parent_id;
         $editMessageId = (int) $editMessageId;
         $topic_id = (int) $topic_id;
-
         $status = empty($status) ? MESSAGE_STATUS_UNREAD : (int) $status;
+        $user_sender_id = empty($sender_id) ? api_get_user_id() : (int) $sender_id;
 
-        if (!empty($receiver_user_id)) {
-            $receiverUserInfo = api_get_user_info($receiver_user_id);
-
-            // Disabling messages for inactive users.
-            if ($receiverUserInfo['active'] == 0) {
-                return false;
-            }
+        if (empty($user_sender_id) || empty($receiverUserId)) {
+            return false;
         }
 
-        $user_sender_id = empty($sender_id) ? api_get_user_id() : (int) $sender_id;
-        if (empty($user_sender_id)) {
+        $userSender = api_get_user_entity($user_sender_id);
+        if (null === $userSender) {
             Display::addFlash(Display::return_message(get_lang('This user doesn\'t exist'), 'warning'));
 
             return false;
+        }
+
+        $userRecipient = api_get_user_entity($receiverUserId);
+
+        if (null === $userRecipient) {
+            return false;
+        }
+
+        // Disabling messages for inactive users.
+        if (!$userRecipient->getActive()) {
+            return false;
+        }
+
+        $sendEmail = true;
+        // Disabling messages depending the pausetraining plugin.
+        $allowPauseFormation =
+            'true' === api_get_plugin_setting('pausetraining', 'tool_enable') &&
+            'true' === api_get_plugin_setting('pausetraining', 'allow_users_to_edit_pause_formation');
+
+        if ($allowPauseFormation) {
+            $extraFieldValue = new ExtraFieldValue('user');
+            $disableEmails = $extraFieldValue->get_values_by_handler_and_field_variable(
+                $receiverUserId,
+                'disable_emails'
+            );
+
+            // User doesn't want email notifications but chamilo inbox still available.
+            if (!empty($disableEmails) &&
+                isset($disableEmails['value']) && 1 === (int) $disableEmails['value']
+            ) {
+                $sendEmail = false;
+            }
+
+            if ($sendEmail) {
+                // Check if user pause his formation.
+                $pause = $extraFieldValue->get_values_by_handler_and_field_variable(
+                    $receiverUserId,
+                    'pause_formation'
+                );
+                if (!empty($pause) && isset($pause['value']) && 1 === (int) $pause['value']) {
+                    $startDate = $extraFieldValue->get_values_by_handler_and_field_variable(
+                        $receiverUserId,
+                        'start_pause_date'
+                    );
+                    $endDate = $extraFieldValue->get_values_by_handler_and_field_variable(
+                        $receiverUserId,
+                        'end_pause_date'
+                    );
+
+                    if (!empty($startDate) && isset($startDate['value']) && !empty($startDate['value']) &&
+                        !empty($endDate) && isset($endDate['value']) && !empty($endDate['value'])
+                    ) {
+                        $now = time();
+                        $start = api_strtotime($startDate['value']);
+                        $end = api_strtotime($endDate['value']);
+
+                        if ($now > $start && $now < $end) {
+                            $sendEmail = false;
+                        }
+                    }
+                }
+            }
         }
 
         $totalFileSize = 0;
@@ -500,8 +555,8 @@ class MessageManager
         if (is_array($attachments)) {
             $counter = 0;
             foreach ($attachments as $attachment) {
-                $attachment['comment'] = isset($fileCommentList[$counter]) ? $fileCommentList[$counter] : '';
-                $fileSize = isset($attachment['size']) ? $attachment['size'] : 0;
+                $attachment['comment'] = $fileCommentList[$counter] ?? '';
+                $fileSize = $attachment['size'] ?? 0;
                 if (is_array($fileSize)) {
                     foreach ($fileSize as $size) {
                         $totalFileSize += $size;
@@ -516,21 +571,11 @@ class MessageManager
 
         if ($checkCurrentAudioId) {
             // Add the audio file as an attachment
-            $audioId = Session::read('current_audio_id');
-            if (!empty($audioId)) {
-                $file = api_get_uploaded_file('audio_message', api_get_user_id(), $audioId);
-                if (!empty($file)) {
-                    $audioAttachment = [
-                        'name' => basename($file),
-                        'comment' => 'audio_message',
-                        'size' => filesize($file),
-                        'tmp_name' => $file,
-                        'error' => 0,
-                        'type' => DocumentManager::file_get_mime_type(basename($file)),
-                    ];
-                    // create attachment from audio message
-                    $attachmentList[] = $audioAttachment;
-                }
+            $audio = Session::read('current_audio');
+            if (!empty($audio) && isset($audio['name']) && !empty($audio['name'])) {
+                $audio['comment'] = 'audio_message';
+                // create attachment from audio message
+                $attachmentList[] = $audio;
             }
         }
 
@@ -544,7 +589,7 @@ class MessageManager
             );
 
             return false;
-        } elseif ($totalFileSize > intval(api_get_setting('message_max_upload_filesize'))) {
+        } elseif ($totalFileSize > (int) api_get_setting('message_max_upload_filesize')) {
             $warning = sprintf(
                 get_lang('Files size exceeds'),
                 format_file_size(api_get_setting('message_max_upload_filesize'))
@@ -555,91 +600,88 @@ class MessageManager
             return false;
         }
 
+        $em = Database::getManager();
+        $repo = $em->getRepository(Message::class);
+        $parent = null;
+        if (!empty($parent_id)) {
+            $parent = $repo->find($parent_id);
+        }
+
+        $message = null;
         // Just in case we replace the and \n and \n\r while saving in the DB
-        // $content = str_replace(array("\n", "\n\r"), '<br />', $content);
-        $now = api_get_utc_datetime();
-        if (!empty($receiver_user_id) || !empty($group_id)) {
+        if (!empty($receiverUserId) || !empty($group_id)) {
             // message for user friend
             //@todo it's possible to edit a message? yes, only for groups
             if (!empty($editMessageId)) {
-                $query = " UPDATE $table SET
-                              update_date = '".$now."',
-                              content = '".Database::escape_string($content)."'
-                           WHERE id = '$editMessageId' ";
-                Database::query($query);
+                $message = $repo->find($editMessageId);
+                if (null !== $message) {
+                    $message->setContent($content);
+                    $em->persist($message);
+                    $em->flush();
+                }
                 $messageId = $editMessageId;
             } else {
-                $params = [
-                    'user_sender_id' => $user_sender_id,
-                    'msg_status' => $status,
-                    'send_date' => $now,
-                    'title' => $subject,
-                    'content' => $content,
-                    'group_id' => $group_id,
-                    'parent_id' => $parent_id,
-                    'update_date' => $now,
-                ];
-                if (!empty($receiver_user_id)) {
-                    $params['user_receiver_id'] = $receiver_user_id;
-                }
-                $messageId = Database::insert($table, $params);
+                $message = new Message();
+                $message
+                    ->setUserSender($userSender)
+                    ->setUserReceiver($userRecipient)
+                    ->setMsgStatus($status)
+                    ->setTitle($subject)
+                    ->setContent($content)
+                    ->setGroupId($group_id)
+                    ->setParent($parent)
+                ;
+                $em->persist($message);
+                $em->flush();
+                $messageId = $message->getId();
             }
 
-            // Forward also message attachments
+            // Forward also message attachments.
             if (!empty($forwardId)) {
-                $attachments = self::getAttachmentList($forwardId);
-                foreach ($attachments as $attachment) {
-                    if (!empty($attachment['file_source'])) {
-                        $file = [
-                            'name' => $attachment['filename'],
-                            'tmp_name' => $attachment['file_source'],
-                            'size' => $attachment['size'],
-                            'error' => 0,
-                            'comment' => $attachment['comment'],
-                        ];
-
-                        // Inject this array so files can be added when sending and email with the mailer
-                        $attachmentList[] = $file;
+                $forwardMessage = $repo->find($forwardId);
+                if (null !== $forwardMessage) {
+                    $forwardAttachments = $forwardMessage->getAttachments();
+                    foreach ($forwardAttachments as $forwardAttachment) {
+                        $message->addAttachment($forwardAttachment);
                     }
+                    $em->persist($message);
+                    $em->flush();
                 }
             }
 
             // Save attachment file for inbox messages
             if (is_array($attachmentList)) {
                 foreach ($attachmentList as $attachment) {
-                    if ($attachment['error'] == 0) {
-                        $comment = $attachment['comment'];
+                    if (0 === $attachment['error']) {
                         self::saveMessageAttachmentFile(
                             $attachment,
-                            $comment,
-                            $messageId,
-                            null,
-                            $receiver_user_id,
-                            $group_id
+                            $attachment['comment'] ?? '',
+                            $message,
                         );
                     }
                 }
             }
 
             // Save message in the outbox for user friend or group.
-            if (empty($group_id) && $status == MESSAGE_STATUS_UNREAD) {
-                $params = [
-                    'user_sender_id' => $user_sender_id,
-                    'user_receiver_id' => $receiver_user_id,
-                    'msg_status' => MESSAGE_STATUS_OUTBOX,
-                    'send_date' => $now,
-                    'title' => $subject,
-                    'content' => $content,
-                    'group_id' => $group_id,
-                    'parent_id' => $parent_id,
-                    'update_date' => $now,
-                ];
-                $outbox_last_id = Database::insert($table, $params);
+            if (empty($group_id) && MESSAGE_STATUS_UNREAD === $status) {
+                $message = new Message();
+                $message
+                    ->setUserSender($userSender)
+                    ->setUserReceiver($userRecipient)
+                    ->setMsgStatus(MESSAGE_STATUS_OUTBOX)
+                    ->setTitle($subject)
+                    ->setContent($content)
+                    ->setGroupId($group_id)
+                    ->setParent($parent)
+                ;
+                $em->persist($message);
+                $em->flush();
+                $messageId = $message->getId();
 
                 // save attachment file for outbox messages
-                if (is_array($attachmentList)) {
+                /*if (is_array($attachmentList)) {
                     foreach ($attachmentList as $attachment) {
-                        if ($attachment['error'] == 0) {
+                        if (0 == $attachment['error']) {
                             $comment = $attachment['comment'];
                             self::saveMessageAttachmentFile(
                                 $attachment,
@@ -649,72 +691,73 @@ class MessageManager
                             );
                         }
                     }
-                }
+                }*/
             }
 
-            // Load user settings.
-            $notification = new Notification();
-            $sender_info = api_get_user_info($user_sender_id);
+            if ($sendEmail) {
+                $notification = new Notification();
+                $sender_info = api_get_user_info($user_sender_id);
 
-            // add file attachment additional attributes
-            $attachmentAddedByMail = [];
-            foreach ($attachmentList as $attachment) {
-                $attachmentAddedByMail[] = [
-                    'path' => $attachment['tmp_name'],
-                    'filename' => $attachment['name'],
-                ];
-            }
-
-            if (empty($group_id)) {
-                $type = Notification::NOTIFICATION_TYPE_MESSAGE;
-                if ($directMessage) {
-                    $type = Notification::NOTIFICATION_TYPE_DIRECT_MESSAGE;
+                // add file attachment additional attributes
+                $attachmentAddedByMail = [];
+                foreach ($attachmentList as $attachment) {
+                    $attachmentAddedByMail[] = [
+                        'path' => $attachment['tmp_name'],
+                        'filename' => $attachment['name'],
+                    ];
                 }
-                $notification->saveNotification(
-                    $messageId,
-                    $type,
-                    [$receiver_user_id],
-                    $subject,
-                    $content,
-                    $sender_info,
-                    $attachmentAddedByMail,
-                    $smsParameters,
-                    $forceTitleWhenSendingEmail
-                );
-            } else {
-                $usergroup = new UserGroup();
-                $group_info = $usergroup->get($group_id);
-                $group_info['topic_id'] = $topic_id;
-                $group_info['msg_id'] = $messageId;
 
-                $user_list = $usergroup->get_users_by_group(
-                    $group_id,
-                    false,
-                    [],
-                    0,
-                    1000
-                );
+                if (empty($group_id)) {
+                    $type = Notification::NOTIFICATION_TYPE_MESSAGE;
+                    if ($directMessage) {
+                        $type = Notification::NOTIFICATION_TYPE_DIRECT_MESSAGE;
+                    }
+                    $notification->saveNotification(
+                        $messageId,
+                        $type,
+                        [$receiverUserId],
+                        $subject,
+                        $content,
+                        $sender_info,
+                        $attachmentAddedByMail,
+                        $smsParameters,
+                        $forceTitleWhenSendingEmail
+                    );
+                } else {
+                    $usergroup = new UserGroup();
+                    $group_info = $usergroup->get($group_id);
+                    $group_info['topic_id'] = $topic_id;
+                    $group_info['msg_id'] = $messageId;
 
-                // Adding more sense to the message group
-                $subject = sprintf(get_lang('There is a new message in group %s'), $group_info['name']);
-                $new_user_list = [];
-                foreach ($user_list as $user_data) {
-                    $new_user_list[] = $user_data['id'];
+                    $user_list = $usergroup->get_users_by_group(
+                        $group_id,
+                        false,
+                        [],
+                        0,
+                        1000
+                    );
+
+                    // Adding more sense to the message group
+                    $subject = sprintf(get_lang('There is a new message in group %s'), $group_info['name']);
+                    $new_user_list = [];
+                    foreach ($user_list as $user_data) {
+                        $new_user_list[] = $user_data['id'];
+                    }
+                    $group_info = [
+                        'group_info' => $group_info,
+                        'user_info' => $sender_info,
+                    ];
+                    $notification->saveNotification(
+                        $messageId,
+                        Notification::NOTIFICATION_TYPE_GROUP,
+                        $new_user_list,
+                        $subject,
+                        $content,
+                        $group_info,
+                        $attachmentAddedByMail,
+                        $smsParameters
+                    );
                 }
-                $group_info = [
-                    'group_info' => $group_info,
-                    'user_info' => $sender_info,
-                ];
-                $notification->saveNotification(
-                    $messageId,
-                    Notification::NOTIFICATION_TYPE_GROUP,
-                    $new_user_list,
-                    $subject,
-                    $content,
-                    $group_info,
-                    $attachmentAddedByMail,
-                    $smsParameters
-                );
             }
 
             return $messageId;
@@ -724,8 +767,8 @@ class MessageManager
     }
 
     /**
-     * @param int    $receiver_user_id
-     * @param int    $subject
+     * @param int    $receiverUserId
+     * @param string $subject
      * @param string $message
      * @param int    $sender_id
      * @param bool   $sendCopyToDrhUsers send copy to related DRH users
@@ -737,7 +780,7 @@ class MessageManager
      * @return bool
      */
     public static function send_message_simple(
-        $receiver_user_id,
+        $receiverUserId,
         $subject,
         $message,
         $sender_id = 0,
@@ -748,7 +791,7 @@ class MessageManager
         $attachmentList = []
     ) {
         $files = $_FILES ? $_FILES : [];
-        if ($uploadFiles === false) {
+        if (false === $uploadFiles) {
             $files = [];
         }
         // $attachmentList must have: tmp_name, name, size keys
@@ -756,7 +799,7 @@ class MessageManager
             $files = $attachmentList;
         }
         $result = self::send_message(
-            $receiver_user_id,
+            $receiverUserId,
             $subject,
             $message,
             $files,
@@ -772,8 +815,8 @@ class MessageManager
         );
 
         if ($sendCopyToDrhUsers) {
-            $userInfo = api_get_user_info($receiver_user_id);
-            $drhList = UserManager::getDrhListFromUser($receiver_user_id);
+            $userInfo = api_get_user_info($receiverUserId);
+            $drhList = UserManager::getDrhListFromUser($receiverUserId);
             if (!empty($drhList)) {
                 foreach ($drhList as $drhInfo) {
                     $message = sprintf(
@@ -782,7 +825,7 @@ class MessageManager
                     ).' <br />'.$message;
 
                     self::send_message_simple(
-                        $drhInfo['user_id'],
+                        $drhInfo['id'],
                         $subject,
                         $message,
                         $sender_id,
@@ -797,47 +840,6 @@ class MessageManager
     }
 
     /**
-     * Update parent ids for other receiver user from current message in groups.
-     *
-     * @author Christian Fasanando Flores
-     *
-     * @param int $parent_id
-     * @param int $receiver_user_id
-     * @param int $messageId
-     */
-    public static function update_parent_ids_from_reply(
-        $parent_id,
-        $receiver_user_id,
-        $messageId
-    ) {
-        $table = Database::get_main_table(TABLE_MESSAGE);
-        $parent_id = intval($parent_id);
-        $receiver_user_id = intval($receiver_user_id);
-        $messageId = intval($messageId);
-
-        // first get data from message id (parent)
-        $sql = "SELECT * FROM $table WHERE id = '$parent_id'";
-        $rs_message = Database::query($sql);
-        $row_message = Database::fetch_array($rs_message);
-
-        // get message id from data found early for other receiver user
-        $sql = "SELECT id FROM $table
-                WHERE
-                    user_sender_id ='{$row_message['user_sender_id']}' AND
-                    title='{$row_message['title']}' AND
-                    content='{$row_message['content']}' AND
-                    group_id='{$row_message['group_id']}' AND
-                    user_receiver_id='$receiver_user_id'";
-        $result = Database::query($sql);
-        $row = Database::fetch_array($result);
-
-        // update parent_id for other user receiver
-        $sql = "UPDATE $table SET parent_id = ".$row['id']."
-                WHERE id = $messageId";
-        Database::query($sql);
-    }
-
-    /**
      * @param int $user_receiver_id
      * @param int $id
      *
@@ -845,7 +847,6 @@ class MessageManager
      */
     public static function delete_message_by_user_receiver($user_receiver_id, $id)
     {
-        $table = Database::get_main_table(TABLE_MESSAGE);
         $id = (int) $id;
         $user_receiver_id = (int) $user_receiver_id;
 
@@ -853,28 +854,38 @@ class MessageManager
             return false;
         }
 
-        $sql = "SELECT * FROM $table
-                WHERE 
-                    id = $id AND 
-                    user_receiver_id = $user_receiver_id AND
-                    msg_status <> ".MESSAGE_STATUS_OUTBOX;
-        $rs = Database::query($sql);
+        $em = Database::getManager();
+        $repo = $em->getRepository(Message::class);
+        $criteria = ['id' => $id, 'userReceiver' => $user_receiver_id];
+        $message = $repo->findOneBy($criteria);
 
-        if (Database::num_rows($rs) > 0) {
-            // Delete attachment file.
-            self::delete_message_attachment_file($id, $user_receiver_id);
-            // Soft delete message.
-            $query = "UPDATE $table 
-                      SET msg_status = ".MESSAGE_STATUS_DELETED."
-                      WHERE
-                        id = $id AND 
-                        user_receiver_id = $user_receiver_id ";
-            Database::query($query);
-
-            return true;
+        if (null === $message || ($message && MESSAGE_STATUS_OUTBOX === $message->getMsgStatus())) {
+            return false;
         }
 
-        return false;
+        $message->setMsgStatus(MESSAGE_STATUS_DELETED);
+        $attachments = $message->getAttachments();
+        if (!empty($attachments)) {
+            $repo = Container::getMessageAttachmentRepository();
+            foreach ($attachments as $file) {
+                $repo->softDelete($file);
+            }
+        }
+        $em->persist($message);
+        $em->flush();
+
+        /*
+        // Delete attachment file.
+        self::delete_message_attachment_file($id, $user_receiver_id);
+        // Soft delete message.
+        $query = "UPDATE $table
+                  SET msg_status = ".MESSAGE_STATUS_DELETED."
+                  WHERE
+                    id = $id AND
+                    user_receiver_id = $user_receiver_id ";
+        Database::query($query);*/
+
+        return true;
     }
 
     /**
@@ -895,20 +906,22 @@ class MessageManager
         if (empty($id) || empty($user_sender_id)) {
             return false;
         }
+        $em = Database::getManager();
+        $repo = $em->getRepository(Message::class);
+        $criteria = ['id' => $id, 'userSender' => $user_sender_id];
+        $message = $repo->findOneBy($criteria);
 
-        $table = Database::get_main_table(TABLE_MESSAGE);
-
+        /*$table = Database::get_main_table(TABLE_MESSAGE);
         $sql = "SELECT * FROM $table WHERE id = $id AND user_sender_id= $user_sender_id";
-        $rs = Database::query($sql);
+        $rs = Database::query($sql);*/
 
-        if (Database::num_rows($rs) > 0) {
+        if (null !== $message) {
             // delete attachment file
-            self::delete_message_attachment_file($id, $user_sender_id);
-            // delete message
-            $sql = "UPDATE $table
-                    SET msg_status = '".MESSAGE_STATUS_DELETED."'
-                    WHERE user_sender_id= $user_sender_id AND id= $id";
-            Database::query($sql);
+            //self::delete_message_attachment_file($id, $user_sender_id);
+            $message->setMsgStatus(MESSAGE_STATUS_DELETED);
+            self::softDeleteAttachments($message);
+            $em->persist($message);
+            $em->flush();
 
             return true;
         }
@@ -916,143 +929,94 @@ class MessageManager
         return false;
     }
 
-    /**
-     * Saves a message attachment files.
-     *
-     * @param array $file_attach $_FILES['name']
-     * @param  string    a comment about the uploaded file
-     * @param  int        message id
-     * @param  int        receiver user id (optional)
-     * @param  int        sender user id (optional)
-     * @param  int        group id (optional)
-     */
-    public static function saveMessageAttachmentFile(
-        $file_attach,
-        $file_comment,
-        $message_id,
-        $receiver_user_id = 0,
-        $sender_user_id = 0,
-        $group_id = 0
-    ) {
-        $table = Database::get_main_table(TABLE_MESSAGE_ATTACHMENT);
-
-        // Try to add an extension to the file if it hasn't one
-        $type = isset($file_attach['type']) ? $file_attach['type'] : '';
-        if (empty($type)) {
-            $type = DocumentManager::file_get_mime_type($file_attach['name']);
-        }
-        $new_file_name = add_ext_on_mime(stripslashes($file_attach['name']), $type);
-
-        // user's file name
-        $file_name = $file_attach['name'];
-        if (!filter_extension($new_file_name)) {
-            Display::addFlash(Display::return_message(get_lang('File upload failed: this file extension or file type is prohibited'), 'error'));
-        } else {
-            $new_file_name = uniqid('');
-            if (!empty($receiver_user_id)) {
-                $message_user_id = $receiver_user_id;
-            } else {
-                $message_user_id = $sender_user_id;
-            }
-
-            // User-reserved directory where photos have to be placed.*
-            $userGroup = new UserGroup();
-            if (!empty($group_id)) {
-                $path_user_info = $userGroup->get_group_picture_path_by_id(
-                    $group_id,
-                    'system',
-                    true
-                );
-            } else {
-                $path_user_info['dir'] = UserManager::getUserPathById($message_user_id, 'system');
-            }
-
-            $path_message_attach = $path_user_info['dir'].'message_attachments/';
-            // If this directory does not exist - we create it.
-            if (!file_exists($path_message_attach)) {
-                @mkdir($path_message_attach, api_get_permissions_for_new_directories(), true);
-            }
-
-            $new_path = $path_message_attach.$new_file_name;
-            $fileCopied = false;
-            if (isset($file_attach['tmp_name']) && !empty($file_attach['tmp_name'])) {
-                if (is_uploaded_file($file_attach['tmp_name'])) {
-                    @copy($file_attach['tmp_name'], $new_path);
-                    $fileCopied = true;
-                } else {
-                    // 'tmp_name' can be set by the ticket or when forwarding a message
-                    if (file_exists($file_attach['tmp_name'])) {
-                        @copy($file_attach['tmp_name'], $new_path);
-                        $fileCopied = true;
-                    }
-                }
-            }
-
-            if ($fileCopied) {
-                // Storing the attachments if any
-                $params = [
-                    'filename' => $file_name,
-                    'comment' => $file_comment,
-                    'path' => $new_file_name,
-                    'message_id' => $message_id,
-                    'size' => $file_attach['size'],
-                ];
-
-                return Database::insert($table, $params);
+    public static function softDeleteAttachments(Message $message): void
+    {
+        $attachments = $message->getAttachments();
+        if (!empty($attachments)) {
+            $repo = Container::getMessageAttachmentRepository();
+            foreach ($attachments as $file) {
+                $repo->softDelete($file);
             }
         }
-
-        return false;
     }
 
     /**
-     * Delete message attachment files (logically updating the row with a suffix _DELETE_id).
+     * Saves a message attachment files.
      *
-     * @param  int    message id
-     * @param  int    message user id (receiver user id or sender user id)
-     * @param  int    group id (optional)
+     * @param array  $file    $_FILES['name']
+     * @param string $comment a comment about the uploaded file
      */
-    public static function delete_message_attachment_file(
-        $message_id,
-        $message_uid,
-        $group_id = 0
-    ) {
-        $message_id = (int) $message_id;
-        $message_uid = (int) $message_uid;
-        $table_message_attach = Database::get_main_table(TABLE_MESSAGE_ATTACHMENT);
+    public static function saveMessageAttachmentFile($file, $comment, Message $message)
+    {
+        // Try to add an extension to the file if it hasn't one
+        $type = $file['type'] ?? '';
+        if (empty($type)) {
+            $type = DocumentManager::file_get_mime_type($file['name']);
+        }
+        $new_file_name = add_ext_on_mime(stripslashes($file['name']), $type);
 
-        $sql = "SELECT * FROM $table_message_attach
-                WHERE message_id = '$message_id'";
-        $rs = Database::query($sql);
-        while ($row = Database::fetch_array($rs)) {
-            $path = $row['path'];
-            $attach_id = (int) $row['id'];
-            $new_path = $path.'_DELETED_'.$attach_id;
+        // user's file name
+        $fileName = $file['name'];
+        if (!filter_extension($new_file_name)) {
+            Display::addFlash(
+                Display::return_message(
+                    get_lang('File upload failed: this file extension or file type is prohibited'),
+                    'error'
+                )
+            );
 
-            if (!empty($group_id)) {
-                $userGroup = new UserGroup();
-                $path_user_info = $userGroup->get_group_picture_path_by_id(
-                    $group_id,
-                    'system',
-                    true
-                );
-            } else {
-                $path_user_info['dir'] = UserManager::getUserPathById(
-                    $message_uid,
-                    'system'
-                );
-            }
+            return false;
+        }
 
-            $path_message_attach = $path_user_info['dir'].'message_attachments/';
-            if (is_file($path_message_attach.$path)) {
-                if (rename($path_message_attach.$path, $path_message_attach.$new_path)) {
-                    $sql = "UPDATE $table_message_attach 
-                            SET path = '$new_path'
-                            WHERE id = $attach_id ";
-                    Database::query($sql);
+        $em = Database::getManager();
+        $attachmentRepo = Container::getMessageAttachmentRepository();
+
+        $attachment = new MessageAttachment();
+        $attachment
+            ->setSize($file['size'])
+            ->setPath($fileName)
+            ->setFilename($fileName)
+            ->setComment($comment)
+            ->setParent($message->getUserSender())
+            ->setMessage($message)
+        ;
+
+        $request = Container::getRequest();
+        $fileToUpload = null;
+
+        // Search for files inside the $_FILES, when uploading several files from the form.
+        if ($request->files->count()) {
+            /** @var UploadedFile|null $fileRequest */
+            foreach ($request->files->all() as $fileRequest) {
+                if (null === $fileRequest) {
+                    continue;
+                }
+                if ($fileRequest->getClientOriginalName() === $file['name']) {
+                    $fileToUpload = $fileRequest;
+                    break;
                 }
             }
         }
+
+        // If no found file, try with $file['content'].
+        if (null === $fileToUpload && isset($file['content'])) {
+            $handle = tmpfile();
+            fwrite($handle, $file['content']);
+            $meta = stream_get_meta_data($handle);
+            $fileToUpload = new UploadedFile($meta['uri'], $fileName, $file['type'], null, true);
+        }
+
+        if (null !== $fileToUpload) {
+            $em->persist($attachment);
+            $attachmentRepo->addFile($attachment, $fileToUpload);
+            $attachment->addUserLink($message->getUserSender());
+            $attachment->addUserLink($message->getUserReceiver());
+            $em->flush();
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -1078,7 +1042,9 @@ class MessageManager
                 WHERE
                     user_receiver_id = ".$user_id." AND
                     id = '".$message_id."'";
-        Database::query($sql);
+        $result = Database::query($sql);
+
+        return Database::affected_rows($result) > 0;
     }
 
     /**
@@ -1265,7 +1231,7 @@ class MessageManager
             $sendDate = $row['col2'];
             $senderId = $row['user_sender_id'];
 
-            if ($request === true) {
+            if (true === $request) {
                 $message[0] = '<input type="checkbox" value='.$messageId.' name="out[]">';
             } else {
                 $message[0] = $messageId;
@@ -1274,7 +1240,7 @@ class MessageManager
             $class = 'class = "read"';
             $title = Security::remove_XSS($title);
             $userInfo = api_get_user_info($senderId);
-            if ($request === true) {
+            if (true === $request) {
                 $message[1] = '<a onclick="show_sent_message('.$messageId.')" href="javascript:void(0)">'.
                     $userInfo['complete_name_with_username'].'</a>';
                 $message[2] = '<a onclick="show_sent_message('.$messageId.')" href="javascript:void(0)">'.str_replace(
@@ -1324,165 +1290,177 @@ class MessageManager
         }
         $currentUserId = api_get_user_id();
 
-        $table = Database::get_main_table(TABLE_MESSAGE);
-
-        if (empty($type)) {
-            return '';
-        }
-
+        $criteria = [];
+        $status = null;
         switch ($type) {
             case self::MESSAGE_TYPE_OUTBOX:
-                $status = MESSAGE_STATUS_OUTBOX;
                 $userCondition = " user_sender_id = $currentUserId AND ";
+                $criteria['userSender'] = $currentUserId;
+                $criteria['msgStatus'] = MESSAGE_STATUS_OUTBOX;
                 break;
             case self::MESSAGE_TYPE_INBOX:
-                $status = MESSAGE_STATUS_NEW;
                 $userCondition = " user_receiver_id = $currentUserId AND ";
-
-                $query = "UPDATE $table SET
+                $criteria['userReceiver'] = $currentUserId;
+                /*$query = "UPDATE $table SET
                           msg_status = '".MESSAGE_STATUS_NEW."'
                           WHERE id = $messageId ";
-                Database::query($query);
+                Database::query($query);*/
                 break;
             case self::MESSAGE_TYPE_PROMOTED:
-                $status = MESSAGE_STATUS_PROMOTED;
                 $userCondition = " user_receiver_id = $currentUserId AND ";
+                $criteria['userReceiver'] = $currentUserId;
+                $criteria['msgStatus'] = MESSAGE_STATUS_PROMOTED;
                 break;
         }
 
-        if (empty($userCondition)) {
+        $criteria['id'] = $messageId;
+        $em = Database::getManager();
+        $repo = $em->getRepository(Message::class);
+        $message = $repo->findOneBy($criteria);
+
+        if (null === $message) {
             return '';
         }
 
-        $query = "SELECT * FROM $table
-                  WHERE                            
-                    id = $messageId AND 
-                    $userCondition
-                    msg_status = $status";
+        /*if (self::MESSAGE_TYPE_INBOX === $type) {
+            $message->setMsgStatus(MESSAGE_STATUS_NEW);
+            $em->persist($message);
+            $em->flush();
+        }*/
+
+        $table = Database::get_main_table(TABLE_MESSAGE);
+        /* Get previous message */
+        $query = "SELECT id FROM $table
+                  WHERE
+                        $userCondition
+                       id < $messageId
+                  ORDER BY id DESC LIMIT 1 ";
         $result = Database::query($query);
-        $row = Database::fetch_array($result, 'ASSOC');
+        $rowPrevMessage = Database::fetch_array($result, 'ASSOC');
+        $idPrevMessage = (int) isset($rowPrevMessage['id']) ? $rowPrevMessage['id'] : 0;
 
-        if (empty($row)) {
-            return '';
-        }
-
-        $user_sender_id = $row['user_sender_id'];
+        /* Get next message */
+        $query = "SELECT id FROM $table
+                  WHERE
+                       $userCondition
+                       id > $messageId
+                  ORDER BY id ASC LIMIT 1 ";
+        $result = Database::query($query);
+        $rowNextMessage = Database::fetch_array($result, 'ASSOC');
+        $idNextMessage = (int) isset($rowNextMessage['id']) ? $rowNextMessage['id'] : 0;
 
         // get file attachments by message id
-        $files_attachments = self::getAttachmentLinkList($messageId, $type);
-
-        $row['content'] = str_replace('</br>', '<br />', $row['content']);
-        $title = Security::remove_XSS($row['title'], STUDENT, true);
-        $content = Security::remove_XSS($row['content'], STUDENT, true);
+        $filesAttachments = self::getAttachmentLinkList($message, $type);
+        $title = Security::remove_XSS($message->getTitle(), STUDENT, true);
+        $content = str_replace('</br>', '<br />', $message->getContent());
+        $content = Security::remove_XSS($content, STUDENT, true);
 
         $name = get_lang('Unknown user');
-        $fromUser = api_get_user_info($user_sender_id);
         $userImage = '';
-        if (!empty($user_sender_id) && !empty($fromUser)) {
-            $name = $fromUser['complete_name_with_username'];
-            $userImage = Display::img(
-                $fromUser['avatar_small'],
-                $name,
-                ['title' => $name, 'class' => 'img-responsive img-circle', 'style' => 'max-width:35px'],
-                false
-            );
+        if (null !== $message->getUserSender()) {
+            $name = UserManager::formatUserFullName($message->getUserSender());
         }
 
-        $message_content = Display::page_subheader(str_replace("\\", '', $title));
-
-        $receiverUserInfo = [];
-        if (!empty($row['user_receiver_id'])) {
-            $receiverUserInfo = api_get_user_info($row['user_receiver_id']);
-        }
-
-        $message_content .= '<tr>';
-        if (api_get_setting('allow_social_tool') === 'true') {
-            $message_content .= '<div class="row">';
-            $message_content .= '<div class="col-md-12">';
-            $message_content .= '<ul class="list-message">';
-
-            if (!empty($user_sender_id)) {
-                $message_content .= '<li>'.$userImage.'</li>';
-                $message_content .= '<li>';
-                $message_content .= Display::url(
+        $messageContent = Display::page_subheader(str_replace("\\", '', $title));
+        $messageContent .= '<tr>';
+        if ('true' === api_get_setting('allow_social_tool')) {
+            $messageContent .= '<div class="row">';
+            $messageContent .= '<div class="col-md-12">';
+            $messageContent .= '<ul class="list-message">';
+            if (null !== $message->getUserSender()) {
+                $messageContent .= '<li>'.$userImage.'</li>';
+                $messageContent .= '<li>';
+                $messageContent .= Display::url(
                     $name,
-                    api_get_path(WEB_PATH).'main/social/profile.php?u='.$user_sender_id
+                    api_get_path(WEB_PATH).'main/social/profile.php?u='.$message->getUserSender()->getId()
                 );
             } else {
-                $message_content .= '<li>'.$name;
+                $messageContent .= '<li>'.$name;
             }
 
             switch ($type) {
                 case self::MESSAGE_TYPE_INBOX:
-                    //$message_content .= api_strtolower(get_lang('To')).'&nbsp;<b>-</b></li>';
-                    $message_content .= '&nbsp;'.api_strtolower(get_lang('To')).'&nbsp;'.get_lang('Me');
+                    $messageContent .= '&nbsp;'.get_lang('To').'&nbsp;'.get_lang('Me');
                     break;
                 case self::MESSAGE_TYPE_OUTBOX:
-                    if (!empty($receiverUserInfo)) {
-                        $message_content .= '&nbsp;'.api_strtolower(
-                                get_lang('To')
-                            ).'&nbsp;<b>'.$receiverUserInfo['complete_name_with_username'].'</b></li>';
+                    if (null !== $message->getUserReceiver()) {
+                        $messageContent .= '&nbsp;'.get_lang('To')
+                            .'&nbsp;<b>'.UserManager::formatUserFullName($message->getUserReceiver()).'</b></li>';
                     }
                     break;
                 case self::MESSAGE_TYPE_PROMOTED:
                     break;
             }
 
-            $message_content .= '&nbsp;<li>'.Display::dateToStringAgoAndLongDate($row['send_date']).'</li>';
-            $message_content .= '</ul>';
-            $message_content .= '</div>';
-            $message_content .= '</div>';
+            $messageContent .= '&nbsp;<li>'.Display::dateToStringAgoAndLongDate($message->getSendDate()).'</li>';
+            $messageContent .= '</ul>';
+            $messageContent .= '</div>';
+            $messageContent .= '</div>';
         } else {
             switch ($type) {
                 case self::MESSAGE_TYPE_INBOX:
-                    $message_content .= get_lang('From').':&nbsp;'.$name.'</b> '.api_strtolower(get_lang('To')).' <b>'.
+                    $messageContent .= get_lang('From').':&nbsp;'.$name.'</b> '.get_lang('To').' <b>'.
                         get_lang('Me').'</b>';
                     break;
                 case self::MESSAGE_TYPE_OUTBOX:
-
-                    $message_content .= get_lang('From').':&nbsp;'.$name.'</b> '.api_strtolower(get_lang('To')).' <b>'.
-                        $receiverUserInfo['complete_name_with_username'].'</b>';
+                    $messageContent .= get_lang('From').':&nbsp;'.$name.'</b> '.get_lang('To').' <b>'.
+                        UserManager::formatUserFullName($message->getUserReceiver()).'</b>';
                     break;
             }
         }
 
-        $message_content .= '
+        $messageContent .= '
 		        <hr style="color:#ddd" />
 		        <table width="100%">
 		            <tr>
-		              <td valign=top class="view-message-content">'.str_replace("\\", "", $content).'</td>
+		              <td valign=top class="view-message-content">'.
+                        str_replace("\\", "", $content).'</td>
 		            </tr>
 		        </table>
-		        <div id="message-attach">'.(!empty($files_attachments) ? implode('<br />', $files_attachments) : '').'</div>
-		        <div style="padding: 15px 0px 5px 0px">';
+		        <div id="message-attach">'.(!empty($filesAttachments) ? implode('<br />', $filesAttachments) : '').'</div>
+		        ';
         $social_link = '';
-        if (isset($_GET['f']) && $_GET['f'] == 'social') {
+        if (isset($_GET['f']) && 'social' === $_GET['f']) {
             $social_link = 'f=social';
         }
 
+        $actions = '';
         switch ($type) {
             case self::MESSAGE_TYPE_OUTBOX:
-                $message_content .= '<a href="outbox.php?'.$social_link.'">'.
+                $actions .= '<a href="outbox.php?'.$social_link.'">'.
                     Display::return_icon('back.png', get_lang('Return to outbox')).'</a> &nbsp';
-                $message_content .= '<a href="outbox.php?action=deleteone&id='.$messageId.'&'.$social_link.'" >'.
+                $actions .= '<a href="outbox.php?action=deleteone&id='.$messageId.'&'.$social_link.'" >'.
                     Display::return_icon('delete.png', get_lang('Delete message')).'</a>&nbsp';
                 break;
             case self::MESSAGE_TYPE_INBOX:
-                $message_content .= '<a href="inbox.php?'.$social_link.'">'.
+                $actions .= '<a href="inbox.php?'.$social_link.'">'.
                     Display::return_icon('back.png', get_lang('Return to inbox')).'</a> &nbsp';
-                $message_content .= '<a href="new_message.php?re_id='.$messageId.'&'.$social_link.'">'.
+                $actions .= '<a href="new_message.php?re_id='.$messageId.'&'.$social_link.'">'.
                     Display::return_icon('message_reply.png', get_lang('Reply to this message')).'</a> &nbsp';
-                $message_content .= '<a href="inbox.php?action=deleteone&id='.$messageId.'&'.$social_link.'" >'.
-                    Display::return_icon('delete.png', get_lang('Delete message')).'</a>&nbsp';
+                $actions .= '<a href="inbox.php?action=deleteone&id='.$messageId.'&'.$social_link.'" >'.
+                    Display::return_icon('delete.png', get_lang('DeleteMessage')).'</a>&nbsp;';
+                if (0 != $idPrevMessage) {
+                    $actions .= '<a
+                        title="'.get_lang('PrevMessage').'"
+                        href="view_message.php?type='.$type.'&id='.$idPrevMessage.'" ">'.
+                        Display::return_icon('icons/22/back.png', get_lang('ScormPrevious')).'</a> &nbsp';
+                }
+                if (0 != $idNextMessage) {
+                    $actions .= '<a
+                        title="'.get_lang('NextMessage').'"
+                        href="view_message.php?type='.$type.'&id='.$idNextMessage.'">'.
+                        Display::return_icon('icons/22/move.png', get_lang('ScormNext')).'</a> &nbsp';
+                }
                 break;
         }
 
-        $message_content .= '</div></td>
-		      <td width=10></td>
+        $messageContent .= Display::toolbarAction('toolbar-bottom', [$actions]);
+        $messageContent .= '</td>
+		      <td width="10"></td>
 		    </tr>
 		</table>';
 
-        return $message_content;
+        return $messageContent;
     }
 
     /**
@@ -1557,7 +1535,7 @@ class MessageManager
                 $html .= '<div class="row">';
 
                 $items = $topic['count'];
-                $reply_label = ($items == 1) ? get_lang('Reply') : get_lang('Replies');
+                $reply_label = (1 == $items) ? get_lang('Reply') : get_lang('Replies');
                 $label = '<i class="fa fa-envelope"></i> '.$items.' '.$reply_label;
                 $topic['title'] = trim($topic['title']);
 
@@ -1575,8 +1553,8 @@ class MessageManager
                     ['class' => 'title']
                 );
                 $actions = '';
-                if ($my_group_role == GROUP_USER_PERMISSION_ADMIN ||
-                    $my_group_role == GROUP_USER_PERMISSION_MODERATOR
+                if (GROUP_USER_PERMISSION_ADMIN == $my_group_role ||
+                    GROUP_USER_PERMISSION_MODERATOR == $my_group_role
                 ) {
                     $actions = '<br />'.Display::url(
                             get_lang('Delete'),
@@ -1675,7 +1653,7 @@ class MessageManager
         $items_page_nr = null;
 
         $user_sender_info = api_get_user_info($main_message['user_sender_id']);
-        $files_attachments = self::getAttachmentLinkList($main_message['id'], 0);
+        $filesAttachments = self::getAttachmentLinkList($main_message['id'], 0);
         $name = $user_sender_info['complete_name'];
 
         $topic_page_nr = isset($_GET['topics_page_nr']) ? (int) $_GET['topics_page_nr'] : null;
@@ -1683,7 +1661,7 @@ class MessageManager
         $links .= '<div class="pull-right">';
         $links .= '<div class="btn-group btn-group-sm">';
 
-        if (($my_group_role == GROUP_USER_PERMISSION_ADMIN || $my_group_role == GROUP_USER_PERMISSION_MODERATOR) ||
+        if ((GROUP_USER_PERMISSION_ADMIN == $my_group_role || GROUP_USER_PERMISSION_MODERATOR == $my_group_role) ||
             $main_message['user_sender_id'] == $current_user_id
         ) {
             $urlEdit = $webCodePath.'social/message_for_group_form.inc.php?'
@@ -1778,7 +1756,7 @@ class MessageManager
                 .'</div>';
         }
         $attachment = '<div class="message-attach">'
-            .(!empty($files_attachments) ? implode('<br />', $files_attachments) : '')
+            .(!empty($filesAttachments) ? implode('<br />', $filesAttachments) : '')
             .'</div>';
         $main_content .= '<div class="col-md-10">';
         $user_link = Display::url(
@@ -1817,13 +1795,13 @@ class MessageManager
                 $links .= '<div class="pull-right">';
                 $html_items = '';
                 $user_sender_info = api_get_user_info($topic['user_sender_id']);
-                $files_attachments = self::getAttachmentLinkList($topic['id'], 0);
+                $filesAttachments = self::getAttachmentLinkList($topic['id'], 0);
                 $name = $user_sender_info['complete_name'];
 
                 $links .= '<div class="btn-group btn-group-sm">';
                 if (
-                    ($my_group_role == GROUP_USER_PERMISSION_ADMIN ||
-                        $my_group_role == GROUP_USER_PERMISSION_MODERATOR
+                    (GROUP_USER_PERMISSION_ADMIN == $my_group_role ||
+                        GROUP_USER_PERMISSION_MODERATOR == $my_group_role
                     ) ||
                     $topic['user_sender_id'] == $current_user_id
                 ) {
@@ -1906,7 +1884,7 @@ class MessageManager
                         .'</div>';
                 }
                 $attachment = '<div class="message-attach">'
-                    .(!empty($files_attachments) ? implode('<br />', $files_attachments) : '')
+                    .(!empty($filesAttachments) ? implode('<br />', $filesAttachments) : '')
                     .'</div>';
                 $html_items .= '<div class="col-md-10">'
                     .'<div class="message-content">'
@@ -1921,7 +1899,7 @@ class MessageManager
 
                 $base_padding = 20;
 
-                if ($topic['indent_cnt'] == 0) {
+                if (0 == $topic['indent_cnt']) {
                     $indent = $base_padding;
                 } else {
                     $indent = (int) $topic['indent_cnt'] * $base_padding + $base_padding;
@@ -2008,72 +1986,30 @@ class MessageManager
     }
 
     /**
-     * @param int $messageId
-     *
-     * @return array
-     */
-    public static function getAttachmentList($messageId)
-    {
-        $table = Database::get_main_table(TABLE_MESSAGE_ATTACHMENT);
-        $messageId = (int) $messageId;
-
-        if (empty($messageId)) {
-            return [];
-        }
-
-        $messageInfo = self::get_message_by_id($messageId);
-
-        if (empty($messageInfo)) {
-            return [];
-        }
-
-        $attachmentDir = UserManager::getUserPathById($messageInfo['user_receiver_id'], 'system');
-        $attachmentDir .= 'message_attachments/';
-
-        $sql = "SELECT * FROM $table
-                WHERE message_id = '$messageId'";
-        $result = Database::query($sql);
-        $files = [];
-        while ($row = Database::fetch_array($result, 'ASSOC')) {
-            $row['file_source'] = '';
-            if (file_exists($attachmentDir.$row['path'])) {
-                $row['file_source'] = $attachmentDir.$row['path'];
-            }
-            $files[] = $row;
-        }
-
-        return $files;
-    }
-
-    /**
      * Get array of links (download) for message attachment files.
      *
-     * @param int $messageId
-     * @param int $type
-     *
      * @return array
      */
-    public static function getAttachmentLinkList($messageId, $type)
+    public static function getAttachmentLinkList(Message $message)
     {
-        $files = self::getAttachmentList($messageId);
+        $files = $message->getAttachments();
         // get file attachments by message id
         $list = [];
         if ($files) {
-            $attachIcon = Display::return_icon('attachment.gif', '');
-            $archiveURL = api_get_path(WEB_CODE_PATH).'messages/download.php?type='.$type.'&file=';
-            foreach ($files as $row_file) {
-                $archiveFile = $row_file['path'];
-                $filename = $row_file['filename'];
-                $size = format_file_size($row_file['size']);
-                $comment = Security::remove_XSS($row_file['comment']);
-                $filename = Security::remove_XSS($filename);
-                $link = Display::url($filename, $archiveURL.$archiveFile);
+            $attachIcon = Display::returnFontAwesomeIcon('paperclip');
+            $repo = Container::getMessageAttachmentRepository();
+            foreach ($files as $file) {
+                $size = format_file_size($file->getSize());
+                $comment = Security::remove_XSS($file->getComment());
+                $filename = Security::remove_XSS($file->getFilename());
+                $url = $repo->getResourceFileUrl($file);
+                $link = Display::url($filename, $url);
                 $comment = !empty($comment) ? '&nbsp;-&nbsp;<i>'.$comment.'</i>' : '';
 
                 $attachmentLine = $attachIcon.'&nbsp;'.$link.'&nbsp;('.$size.')'.$comment;
-                if ($row_file['comment'] === 'audio_message') {
+                /*if ('audio_message' === $file['comment']) {
                     $attachmentLine = '<audio src="'.$archiveURL.$archiveFile.'"/>';
-                }
+                }*/
                 $list[] = $attachmentLine;
             }
         }
@@ -2093,8 +2029,8 @@ class MessageManager
         $table = Database::get_main_table(TABLE_MESSAGE);
         $messageId = (int) $messageId;
         $sql = "SELECT * FROM $table
-                WHERE 
-                    id = '$messageId' AND 
+                WHERE
+                    id = '$messageId' AND
                     msg_status <> '".MESSAGE_STATUS_DELETED."' ";
         $res = Database::query($sql);
         $item = [];
@@ -2160,7 +2096,6 @@ class MessageManager
             20,
             'DESC'
         );
-
         $table->setDataFunctionParams(
             ['keyword' => $keyword, 'type' => $type, 'actions' => $actions]
         );
@@ -2169,7 +2104,7 @@ class MessageManager
         $table->set_header(2, get_lang('Date'), true, ['style' => 'width:180px;']);
         $table->set_header(3, get_lang('Edit'), false, ['style' => 'width:120px;']);
 
-        if (isset($_REQUEST['f']) && $_REQUEST['f'] === 'social') {
+        if (isset($_REQUEST['f']) && 'social' === $_REQUEST['f']) {
             $parameters['f'] = 'social';
             $table->set_additional_parameters($parameters);
         }
@@ -2208,7 +2143,6 @@ class MessageManager
         $success_read = get_lang('Selected messages have been marked as read');
         $success_unread = get_lang('Selected messages have been marked as unread');
         $currentUserId = api_get_user_id();
-
         if (isset($_REQUEST['action'])) {
             switch ($_REQUEST['action']) {
                 case 'mark_as_unread':
@@ -2271,9 +2205,8 @@ class MessageManager
         }
 
         $actions = ['reply', 'mark_as_unread', 'mark_as_read', 'forward', 'delete'];
-        $html = self::getMessageGrid(self::MESSAGE_TYPE_INBOX, $keyword, $actions);
 
-        return $html;
+        return self::getMessageGrid(self::MESSAGE_TYPE_INBOX, $keyword, $actions);
     }
 
     /**
@@ -2377,7 +2310,7 @@ class MessageManager
             switch ($_REQUEST['action']) {
                 case 'delete':
                     $count = count($_POST['id']);
-                    if ($count != 0) {
+                    if (0 != $count) {
                         foreach ($_POST['id'] as $index => $messageId) {
                             self::delete_message_by_user_receiver(
                                 api_get_user_id(),
@@ -2425,7 +2358,7 @@ class MessageManager
      * @param int $userId The user id
      * @param int $lastId The id of the last received message
      *
-     * @return array
+     * @return Message[]
      */
     public static function getMessagesFromLastReceivedMessage($userId, $lastId = 0)
     {
@@ -2436,7 +2369,17 @@ class MessageManager
             return [];
         }
 
-        $messagesTable = Database::get_main_table(TABLE_MESSAGE);
+        $user = api_get_user_entity($userId);
+        $criteria = Criteria::create()
+            ->where(
+                Criteria::expr()->gt('id', $lastId)
+            )->andWhere(
+                Criteria::expr()->in('msgStatus', [MESSAGE_STATUS_UNREAD])
+            )->orderBy(['sendDate' => Criteria::DESC]);
+
+        return $user->getSentMessages()->matching($criteria);
+
+        /*$messagesTable = Database::get_main_table(TABLE_MESSAGE);
         $userTable = Database::get_main_table(TABLE_MAIN_USER);
 
         $sql = "SELECT m.*, u.user_id, u.lastname, u.firstname
@@ -2452,13 +2395,121 @@ class MessageManager
         $result = Database::query($sql);
 
         $messages = [];
-        if ($result !== false) {
+        if (false !== $result) {
             while ($row = Database::fetch_assoc($result)) {
                 $messages[] = $row;
             }
         }
 
-        return $messages;
+        return $messages;*/
+    }
+
+    /**
+     * Get the data of the last received messages for a user.
+     *
+     * @param int $userId The user id
+     * @param int $lastId The id of the last received message
+     *
+     * @return Message[]
+     */
+    public static function getReceivedMessages($userId, $lastId = 0)
+    {
+        $userId = (int) $userId;
+        $lastId = (int) $lastId;
+
+        if (empty($userId)) {
+            return [];
+        }
+
+        $user = api_get_user_entity($userId);
+        $criteria = Criteria::create()
+            ->where(
+            Criteria::expr()->gt('id', $lastId)
+            )->andWhere(
+            Criteria::expr()->in('msgStatus', [MESSAGE_STATUS_NEW, MESSAGE_STATUS_UNREAD])
+            )->orderBy(['sendDate' => Criteria::DESC]);
+
+        return $user->getReceivedMessages()->matching($criteria);
+
+        /*$messagesTable = Database::get_main_table(TABLE_MESSAGE);
+        $userTable = Database::get_main_table(TABLE_MAIN_USER);
+        $sql = "SELECT m.*, u.user_id, u.lastname, u.firstname, u.picture_uri
+                FROM $messagesTable as m
+                INNER JOIN $userTable as u
+                ON m.user_sender_id = u.user_id
+                WHERE
+                    m.user_receiver_id = $userId AND
+                    m.msg_status IN (".MESSAGE_STATUS_NEW.", ".MESSAGE_STATUS_UNREAD.")
+                    AND m.id > $lastId
+                ORDER BY m.send_date DESC";
+        $result = Database::query($sql);
+        $messages = [];
+        if (false !== $result) {
+            while ($row = Database::fetch_assoc($result)) {
+                $messages[] = $row;
+            }
+        }
+
+        return $messages;*/
+    }
+
+    /**
+     * Get the data of the last received messages for a user.
+     *
+     * @param int $userId The user id
+     * @param int $lastId The id of the last received message
+     *
+     * @return array
+     */
+    public static function getSentMessages($userId, $lastId = 0)
+    {
+        $userId = (int) $userId;
+        $lastId = (int) $lastId;
+
+        if (empty($userId)) {
+            return [];
+        }
+
+        $user = api_get_user_entity($userId);
+        $criteria = Criteria::create()
+            ->where(
+                Criteria::expr()->gt('id', $lastId)
+            )->andWhere(
+                Criteria::expr()->in('msgStatus', [MESSAGE_STATUS_OUTBOX])
+            )->orderBy(['sendDate' => Criteria::DESC]);
+
+        if ($user->getSentMessages()->count()) {
+            return $user->getSentMessages()->matching($criteria);
+        }
+
+        return [];
+
+        /*
+        $messagesTable = Database::get_main_table(TABLE_MESSAGE);
+        $userTable = Database::get_main_table(TABLE_MAIN_USER);
+
+        $sql = "SELECT m.*, u.user_id, u.lastname, u.firstname, u.picture_uri
+                FROM $messagesTable as m
+                INNER JOIN $userTable as u
+                ON m.user_receiver_id = u.user_id
+                WHERE
+                    m.user_sender_id = $userId
+                    AND m.msg_status = ".MESSAGE_STATUS_OUTBOX."
+                    AND m.id > $lastId
+                ORDER BY m.send_date DESC";
+
+        $result = Database::query($sql);
+
+        $messages = [];
+        if (false !== $result) {
+            while ($row = Database::fetch_assoc($result)) {
+                $pictureInfo = UserManager::get_user_picture_path_by_id($row['user_id'], 'web');
+                $row['pictureUri'] = $pictureInfo['dir'].$pictureInfo['file'];
+                $messages[] = $row;
+            }
+        }
+
+        return $messages;*/
     }
 
     /**
@@ -2567,7 +2618,7 @@ class MessageManager
     /**
      * Send a notification to all admins when a new user is registered.
      */
-    public static function sendNotificationByRegisteredUser(User $user)
+    public static function sendNotificationOfNewRegisteredUser(User $user)
     {
         $tplMailBody = new Template(
             null,
@@ -2609,6 +2660,86 @@ class MessageManager
     }
 
     /**
+     * Send a notification to all admins when a new user is registered
+     * while the approval method is used for users registration.
+     */
+    public static function sendNotificationOfNewRegisteredUserApproval(User $user)
+    {
+        $tplMailBody = new Template(
+            null,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        );
+        $tplMailBody->assign('user', $user);
+        $tplMailBody->assign('is_western_name_order', api_is_western_name_order());
+        $userId = $user->getId();
+        $url_edit = Display::url(
+            api_get_path(WEB_CODE_PATH).'admin/user_edit.php?user_id='.$userId,
+            api_get_path(WEB_CODE_PATH).'admin/user_edit.php?user_id='.$userId
+        );
+        $tplMailBody->assign(
+            'manageUrl',
+            $url_edit
+        );
+        // Get extra field values for this user and reformat the array
+        $extraFieldValues = new ExtraFieldValue('user');
+        $userExtraFields = $extraFieldValues->getAllValuesByItem($userId);
+        $values = [];
+        foreach ($userExtraFields as $field => $value) {
+            $values[$value['variable']] = $value['value'];
+        }
+        $tplMailBody->assign(
+            'extra',
+            $values
+        );
+        $layoutContent = '';
+        $emailbody = '';
+        if (true == api_get_configuration_value('mail_template_system')) {
+            $mailTemplateManager = new MailTemplateManager();
+            $templateText = $mailTemplateManager->getTemplateByType('new_user_mail_to_admin_approval.tpl');
+            if (empty($templateText)) {
+            } else {
+                // custom procedure to load a template as a string (doesn't use cache so may slow down)
+                $template = $tplMailBody->twig->createTemplate($templateText);
+                $emailbody = $template->render($tplMailBody->params);
+            }
+        }
+        if (empty($emailbody)) {
+            $layoutContent = $tplMailBody->get_template('mail/new_user_mail_to_admin_approval.tpl');
+            $emailbody = $tplMailBody->fetch($layoutContent);
+        }
+
+        $emailsubject = '['.get_lang('ApprovalForNewAccount').'] '.$user->getUsername();
+
+        if (api_get_configuration_value('send_inscription_notification_to_general_admin_only')) {
+            $email = api_get_setting('emailAdministrator');
+            $firstname = api_get_setting('administratorSurname');
+            $lastname = api_get_setting('administratorName');
+            api_mail_html("$firstname $lastname", $email, $emailsubject, $emailbody);
+        } else {
+            $admins = UserManager::get_all_administrators();
+            foreach ($admins as $admin_info) {
+                self::send_message(
+                    $admin_info['user_id'],
+                    $emailsubject,
+                    $emailbody,
+                    [],
+                    [],
+                    null,
+                    null,
+                    null,
+                    null,
+                    $userId
+                );
+            }
+        }
+    }
+
+    /**
      * Get the error log from failed mailing
      * This assumes a complex setup where you have a cron script regularly copying the mail queue log
      * into app/cache/mail/mailq.
@@ -2632,7 +2763,7 @@ class MessageManager
         while (!feof($file)) {
             $line = fgets($file);
 
-            if (trim($line) == '') {
+            if ('' == trim($line)) {
                 continue;
             }
 
@@ -2649,7 +2780,7 @@ class MessageManager
             while (!feof($mailFile)) {
                 $mailLine = fgets($mailFile);
                 //if ($iX == 4 && preg_match('/(.*):\s(.*)$/', $mailLine, $matches)) {
-                if ($iX == 2 &&
+                if (2 == $iX &&
                     preg_match('/(.*)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s(.*)/', $mailLine, $detailsMatches)
                 ) {
                     $mail_queue[$i]['reason'] = $detailsMatches[3];
@@ -2721,7 +2852,7 @@ class MessageManager
             return [];
         }
 
-        $sql = "SELECT DISTINCT * 
+        $sql = "SELECT DISTINCT *
                 FROM $messagesTable
                 WHERE
                     (user_receiver_id = $userId AND user_sender_id = $otherUserId) OR
@@ -2787,11 +2918,7 @@ class MessageManager
      */
     public static function cleanAudioMessage()
     {
-        $audioId = Session::read('current_audio_id');
-        if (!empty($audioId)) {
-            api_remove_uploaded_file_by_id('audio_message', api_get_user_id(), $audioId);
-            Session::erase('current_audio_id');
-        }
+        Session::erase('current_audio');
     }
 
     /**
@@ -2840,7 +2967,7 @@ class MessageManager
         }
 
         $userLike = $em
-            ->getRepository('ChamiloCoreBundle:MessageFeedback')
+            ->getRepository(MessageFeedback::class)
             ->findOneBy(['message' => $messageId, 'user' => $userId]);
 
         return [
@@ -2882,7 +3009,7 @@ class MessageManager
         );
 
         $btnDislike = '';
-        if (api_get_configuration_value('disable_dislike_option') === false) {
+        if (false === api_get_configuration_value('disable_dislike_option')) {
             $disabled = $countLikes['user_disliked'] ? 'btn-danger' : 'btn-default';
 
             $btnDislike = Display::button(
@@ -2918,7 +3045,7 @@ class MessageManager
         }
 
         $table = Database::get_main_table(TABLE_MESSAGE);
-        $sql = "SELECT COUNT(id) as count 
+        $sql = "SELECT COUNT(id) as count
                 FROM $table
                 WHERE
                     user_receiver_id = $userId AND

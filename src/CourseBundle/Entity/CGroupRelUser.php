@@ -1,108 +1,65 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Traits\UserTrait;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * CGroupRelUser.
  *
  * @ORM\Table(
- *  name="c_group_rel_user",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_group_rel_user",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CGroupRelUser
 {
+    use UserTrait;
+
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer", nullable=true)
-     */
-    protected $id;
-
-    /**
-     * @var User
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\UserBundle\Entity\User", inversedBy="courseGroupsAsMember")
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="courseGroupsAsMember")
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
      */
-    protected $user;
+    protected User $user;
 
     /**
-     * @var CGroupInfo
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CGroupInfo", inversedBy="members")
-     * @ORM\JoinColumn(name="group_id", referencedColumnName="iid", nullable=false)
+     * @ORM\ManyToOne(targetEntity="CGroup", inversedBy="members")
+     * @ORM\JoinColumn(name="group_id", referencedColumnName="iid", nullable=false, onDelete="CASCADE")
      */
-    protected $group;
+    protected CGroup $group;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="status", type="integer", nullable=false)
      */
-    protected $status;
+    protected int $status;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="role", type="string", length=50, nullable=false)
      */
-    protected $role;
+    protected string $role;
 
-    /**
-     * Set userId.
-     *
-     * @param int $user
-     *
-     * @return CGroupRelUser
-     */
-    public function setUser($user)
-    {
-        $this->user = $user;
-
-        return $this;
-    }
-
-    /**
-     * Get userId.
-     *
-     * @return User
-     */
-    public function getUser()
-    {
-        return $this->user;
-    }
-
-    /**
-     * Set group.
-     *
-     * @return CGroupRelUser
-     */
-    public function setGroup(CGroupInfo $group)
+    public function setGroup(CGroup $group): self
     {
         $this->group = $group;
 
@@ -112,21 +69,14 @@ class CGroupRelUser
     /**
      * Get group.
      *
-     * @return CGroupInfo
+     * @return CGroup
      */
     public function getGroup()
     {
         return $this->group;
     }
 
-    /**
-     * Set status.
-     *
-     * @param int $status
-     *
-     * @return CGroupRelUser
-     */
-    public function setStatus($status)
+    public function setStatus(int $status): self
     {
         $this->status = $status;
 
@@ -143,14 +93,7 @@ class CGroupRelUser
         return $this->status;
     }
 
-    /**
-     * Set role.
-     *
-     * @param string $role
-     *
-     * @return CGroupRelUser
-     */
-    public function setRole($role)
+    public function setRole(string $role): self
     {
         $this->role = $role;
 
@@ -168,37 +111,11 @@ class CGroupRelUser
     }
 
     /**
-     * Set id.
-     *
-     * @param int $id
-     *
-     * @return CGroupRelUser
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CGroupRelUser
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 

@@ -1,11 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * Script.
- *
- * @package chamilo.gradebook
- */
 require_once __DIR__.'/../inc/global.inc.php';
 
 api_block_anonymous_users();
@@ -29,7 +25,7 @@ $linkedit = isset($_GET['editlink']) ? Security::remove_XSS($_GET['editlink']) :
 $course_code = api_get_course_id();
 $session_id = api_get_session_id();
 
-if ($session_id == 0) {
+if (0 == $session_id) {
     $cats = Category:: load(
         null,
         null,
@@ -69,19 +65,19 @@ if ($form->validate()) {
     $rs_attendance = Database::query($sql);
     if (Database::num_rows($rs_attendance) > 0) {
         $row_attendance = Database::fetch_array($rs_attendance);
-        $attendance_id = $row_attendance['ref_id'];
+        $attendance_id = (int) $row_attendance['ref_id'];
         $sql = 'UPDATE '.$tbl_attendance.' SET
                     attendance_weight ='.api_float_val($final_weight).'
-                WHERE c_id = '.$course_id.' AND id = '.intval($attendance_id);
+                WHERE iid = '.$attendance_id;
         Database::query($sql);
     }
 
     //Update weight into forum thread
-    $sql = 'UPDATE '.$tbl_forum_thread.' SET 
+    $sql = 'UPDATE '.$tbl_forum_thread.' SET
                 thread_weight = '.api_float_val($final_weight).'
-            WHERE 
-			    c_id = '.$course_id.' AND 
-			    thread_id = (
+            WHERE
+			    c_id = '.$course_id.' AND
+			    iid = (
                     SELECT ref_id FROM '.$tbl_grade_links.'
 			        WHERE id='.intval($_GET['editlink']).' AND type = 5
             )';
@@ -93,7 +89,7 @@ if ($form->validate()) {
             UPDATE ChamiloCourseBundle:CStudentPublication w
             SET w.weight = :final_weight
             WHERE w.cId = :course
-                AND w.id = (
+                AND w.iid = (
                     SELECT l.refId FROM ChamiloCoreBundle:GradebookLink l
                     WHERE l.id = :link AND l.type = :type
                 )

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
@@ -10,81 +12,63 @@ use Doctrine\ORM\Mapping as ORM;
  * CBlogRating.
  *
  * @ORM\Table(
- *  name="c_blog_rating",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_blog_rating",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CBlogRating
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="rating_id", type="integer")
      */
-    protected $ratingId;
+    protected int $ratingId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="blog_id", type="integer", nullable=false)
      */
-    protected $blogId;
+    protected int $blogId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="rating_type", type="string", length=40, nullable=false)
      */
-    protected $ratingType;
+    protected string $ratingType;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="item_id", type="integer", nullable=false)
      */
-    protected $itemId;
+    protected int $itemId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="user_id", type="integer", nullable=false)
      */
-    protected $userId;
+    protected int $userId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="rating", type="integer", nullable=false)
      */
-    protected $rating;
+    protected int $rating;
 
     /**
      * Set blogId.
      *
-     * @param int $blogId
-     *
      * @return CBlogRating
      */
-    public function setBlogId($blogId)
+    public function setBlogId(int $blogId)
     {
         $this->blogId = $blogId;
 
@@ -104,11 +88,9 @@ class CBlogRating
     /**
      * Set ratingType.
      *
-     * @param string $ratingType
-     *
      * @return CBlogRating
      */
-    public function setRatingType($ratingType)
+    public function setRatingType(string $ratingType)
     {
         $this->ratingType = $ratingType;
 
@@ -128,11 +110,9 @@ class CBlogRating
     /**
      * Set itemId.
      *
-     * @param int $itemId
-     *
      * @return CBlogRating
      */
-    public function setItemId($itemId)
+    public function setItemId(int $itemId)
     {
         $this->itemId = $itemId;
 
@@ -152,11 +132,9 @@ class CBlogRating
     /**
      * Set userId.
      *
-     * @param int $userId
-     *
      * @return CBlogRating
      */
-    public function setUserId($userId)
+    public function setUserId(int $userId)
     {
         $this->userId = $userId;
 
@@ -176,11 +154,9 @@ class CBlogRating
     /**
      * Set rating.
      *
-     * @param int $rating
-     *
      * @return CBlogRating
      */
-    public function setRating($rating)
+    public function setRating(int $rating)
     {
         $this->rating = $rating;
 
@@ -200,11 +176,9 @@ class CBlogRating
     /**
      * Set ratingId.
      *
-     * @param int $ratingId
-     *
      * @return CBlogRating
      */
-    public function setRatingId($ratingId)
+    public function setRatingId(int $ratingId)
     {
         $this->ratingId = $ratingId;
 
@@ -224,11 +198,9 @@ class CBlogRating
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CBlogRating
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 

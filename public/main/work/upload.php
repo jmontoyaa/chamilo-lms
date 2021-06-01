@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -6,11 +7,7 @@ $current_course_tool = TOOL_STUDENTPUBLICATION;
 
 api_protect_course_script(true);
 
-// Including necessary files
-require_once 'work.lib.php';
-
 $this_section = SECTION_COURSES;
-
 $work_id = isset($_REQUEST['id']) ? (int) $_REQUEST['id'] : null;
 
 $is_allowed_to_edit = api_is_allowed_to_edit();
@@ -28,14 +25,14 @@ if (empty($work_id)) {
 
 protectWork($course_info, $work_id);
 $workInfo = get_work_data_by_id($work_id);
-$is_course_member = CourseManager::is_user_subscribed_in_real_or_linked_course(
-    $user_id,
-    $course_id,
-    $session_id
-);
+if (empty($session_id)) {
+    $is_course_member = CourseManager::is_user_subscribed_in_course($user_id, $course_code);
+} else {
+    $is_course_member = CourseManager::is_user_subscribed_in_course($user_id, $course_code, true, $session_id);
+}
 $is_course_member = $is_course_member || api_is_platform_admin();
 
-if ($is_course_member == false || api_is_invitee()) {
+if (false == $is_course_member || api_is_invitee()) {
     api_not_allowed(true);
 }
 
@@ -53,7 +50,7 @@ if ($onlyOnePublication) {
     }
 }
 
-$homework = get_work_assignment_by_id($workInfo['id']);
+$homework = get_work_assignment_by_id($workInfo['iid']);
 $validationStatus = getWorkDateValidationStatus($homework);
 
 $interbreadcrumb[] = [
@@ -69,9 +66,9 @@ $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Upload a document')];
 $form = new FormValidator(
     'form-work',
     'POST',
-    api_get_self()."?".api_get_cidreq()."&id=".$work_id,
+    api_get_self().'?'.api_get_cidreq().'&id='.$work_id,
     '',
-    ['enctype' => "multipart/form-data"]
+    ['enctype' => 'multipart/form-data']
 );
 
 setWorkUploadForm($form, $workInfo['allow_text_assignment']);
@@ -87,7 +84,7 @@ if ($allowRedirect) {
 
 $succeed = false;
 if ($form->validate()) {
-    if ($student_can_edit_in_session && $check) {
+    if ($student_can_edit_in_session) {
         $values = $form->getSubmitValues();
         // Process work
         $result = processWorkForm(
@@ -127,7 +124,7 @@ $htmlHeadXtra[] = to_javascript_work();
 Display::display_header(null);
 
 // Only text
-if ($workInfo['allow_text_assignment'] == 1) {
+if (1 == $workInfo['allow_text_assignment']) {
     $tabs = $form->returnForm();
 } else {
     $headers = [
@@ -153,7 +150,7 @@ if (!empty($work_id)) {
         } else {
             echo $tabs;
         }
-    } elseif ($student_can_edit_in_session && $validationStatus['has_ended'] == false) {
+    } elseif ($student_can_edit_in_session && false == $validationStatus['has_ended']) {
         echo $tabs;
     } else {
         Display::addFlash(Display::return_message(get_lang('Action not allowed'), 'error'));
@@ -162,4 +159,4 @@ if (!empty($work_id)) {
     Display::addFlash(Display::return_message(get_lang('Action not allowed'), 'error'));
 }
 
-Display :: display_footer();
+Display::display_footer();

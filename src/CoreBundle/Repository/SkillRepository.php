@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Repository;
@@ -7,10 +9,11 @@ namespace Chamilo\CoreBundle\Repository;
 use Chamilo\CoreBundle\Entity\Course;
 use Chamilo\CoreBundle\Entity\Session;
 use Chamilo\CoreBundle\Entity\Skill;
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\Common\Collections\Criteria;
 use Doctrine\ORM\Query\Expr\Join;
+use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * SkillRepository class.
@@ -19,9 +22,6 @@ use Doctrine\ORM\Query\Expr\Join;
  */
 class SkillRepository extends ServiceEntityRepository
 {
-    /**
-     * SkillRepository constructor.
-     */
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Skill::class);
@@ -49,15 +49,16 @@ class SkillRepository extends ServiceEntityRepository
             )
             ->where(
                 $qb->expr()->eq('su.user', $user->getId())
-            );
+            )
+        ;
 
-        if ($course) {
+        if (null !== $course) {
             $qb->andWhere(
                 $qb->expr()->eq('su.course', $course->getId())
             );
         }
 
-        if ($session) {
+        if (null !== $session) {
             $qb->andWhere(
                 $qb->expr()->eq('su.session', $session->getId())
             );
@@ -65,7 +66,8 @@ class SkillRepository extends ServiceEntityRepository
 
         $qb
             ->setMaxResults(1)
-            ->orderBy('su.id', 'DESC');
+            ->orderBy('su.id', Criteria::DESC)
+        ;
 
         return $qb->getQuery()->getOneOrNullResult();
     }

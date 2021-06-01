@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -266,7 +267,7 @@ class LegalManager
                 }
                 $preview .= get_lang('By clicking on \'Register\' below you are agreeing to the Terms and Conditions');
                 $courseInfo = api_get_course_info();
-                if (api_get_setting('load_term_conditions_section') === 'course' && empty($courseInfo)) {
+                if ('course' === api_get_setting('load_term_conditions_section') && empty($courseInfo)) {
                     $preview = '';
                 }
                 break;
@@ -320,11 +321,11 @@ class LegalManager
             // max 2000 chars
             $languages[] = $legal[1];
             if (strlen($legal[2]) > 2000) {
-                $legal[2] = substr($legal[2], 0, 2000).' ... ';
+                $legal[2] = substr(strip_tags($legal[2]), 0, 2000).' ... ';
             }
-            if ($legal[4] == 0) {
+            if (0 == $legal[4]) {
                 $legal[4] = get_lang('HTML');
-            } elseif ($legal[4] == 1) {
+            } elseif (1 == $legal[4]) {
                 $legal[4] = get_lang('Page Link');
             }
             $legals[] = $legal;
@@ -388,7 +389,7 @@ class LegalManager
 
         $extraFieldValue = new ExtraFieldValue('user');
         $value = $extraFieldValue->get_values_by_handler_and_field_variable($userId, 'termactivated');
-        if ($value === false) {
+        if (false === $value) {
             $extraFieldInfo = $extraFieldValue->getExtraField()->get_handler_field_info_by_field_variable('termactivated');
             if ($extraFieldInfo) {
                 $newParams = [
@@ -428,7 +429,7 @@ class LegalManager
      */
     public static function getTreatmentTypeList()
     {
-        return  [
+        return [
             'privacy_terms_collection' => 'collection',
             'privacy_terms_recording' => 'recording',
             'privacy_terms_organization' => 'organization',

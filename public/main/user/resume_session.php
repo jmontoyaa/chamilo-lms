@@ -1,10 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
  *	@author Bart Mollet, Julio Montoya lot of fixes
- *
- *	@package chamilo.admin
  */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
@@ -13,11 +12,11 @@ require_once __DIR__.'/../inc/global.inc.php';
 $this_section = SECTION_PLATFORM_ADMIN;
 $id_session = (int) $_GET['id_session'];
 SessionManager::protect_teacher_session_edit($id_session);
-
+$url = null;
 $tool_name = get_lang('Session overview');
 
 $allowTutors = api_get_setting('allow_tutors_to_assign_students_to_session');
-if ($allowTutors === 'true') {
+if ('true' === $allowTutors) {
     // Database Table Definitions
     $tbl_session = Database::get_main_table(TABLE_MAIN_SESSION);
     $tbl_session_rel_class = Database::get_main_table(TABLE_MAIN_SESSION_CLASS);
@@ -132,7 +131,7 @@ if ($allowTutors === 'true') {
     );
     echo Display::page_subheader(get_lang('General properties').$url); ?>
     <!-- General properties -->
-    <table class="data_table">
+    <table class="table table-hover table-striped data_table">
     <tr>
         <td><?php echo get_lang('General coach'); ?> :</td>
         <td><?php echo api_get_person_name($session['firstname'], $session['lastname']).' ('.$session['username'].')'; ?></td>
@@ -149,16 +148,16 @@ if ($allowTutors === 'true') {
         <td><?php echo get_lang('Date'); ?> :</td>
         <td>
         <?php
-        if ($session['access_start_date'] == '00-00-0000' && $session['access_end_date'] == '00-00-0000') {
+        if ('00-00-0000' == $session['access_start_date'] && '00-00-0000' == $session['access_end_date']) {
             echo get_lang('No time limits');
         } else {
-            if ($session['access_start_date'] != '00-00-0000') {
+            if ('00-00-0000' != $session['access_start_date']) {
                 //$session['date_start'] = Display::tag('i', get_lang('No time limits'));
                 $session['access_start_date'] = get_lang('From').' '.$session['access_start_date'];
             } else {
                 $session['access_start_date'] = '';
             }
-            if ($session['access_end_date'] == '00-00-0000') {
+            if ('00-00-0000' == $session['access_end_date']) {
                 $session['access_end_date'] = '';
             } else {
                 $session['access_end_date'] = get_lang('Until').' '.$session['access_end_date'];
@@ -189,11 +188,11 @@ if ($allowTutors === 'true') {
             <?php echo api_ucfirst(get_lang('Visibility after end date')); ?> :
         </td>
         <td>
-            <?php if ($session['visibility'] == 1) {
+            <?php if (1 == $session['visibility']) {
             echo get_lang('Read only');
-        } elseif ($session['visibility'] == 2) {
+        } elseif (2 == $session['visibility']) {
             echo get_lang('Visible');
-        } elseif ($session['visibility'] == 3) {
+        } elseif (3 == $session['visibility']) {
             echo api_ucfirst(get_lang('invisible'));
         } ?>
         </td>
@@ -217,14 +216,14 @@ if ($allowTutors === 'true') {
     <?php
     echo Display::page_subheader(get_lang('Course list').$url); ?>
     <!--List of courses -->
-    <table class="data_table">
+    <table class="table table-hover table-striped data_table">
     <tr>
       <th width="35%"><?php echo get_lang('Course title'); ?></th>
       <th width="30%"><?php echo get_lang('Course coach'); ?></th>
       <th width="20%"><?php echo get_lang('Users number'); ?></th>
     </tr>
     <?php
-    if ($session['nbr_courses'] == 0) {
+    if (0 == $session['nbr_courses']) {
         echo '<tr>
             <td colspan="4">'.get_lang('No course for this session').'</td>
             </tr>';
@@ -255,7 +254,7 @@ if ($allowTutors === 'true') {
             $sql = "SELECT user.lastname,user.firstname,user.username
                     FROM $tbl_session_rel_course_rel_user session_rcru, $tbl_user user
                     WHERE
-                        session_rcru.user_id = user.user_id AND
+                        session_rcru.user_id = user.id AND
                         session_rcru.session_id = '".intval($id_session)."' AND
                         session_rcru.c_id ='".Database::escape_string($course['id'])."' AND
                         session_rcru.status=2";
@@ -296,7 +295,7 @@ if ($allowTutors === 'true') {
     <?php
     echo Display::page_subheader(get_lang('User list').$url); ?>
     <!--List of users -->
-    <table class="data_table">
+    <table class="table table-hover table-striped data_table">
         <tr>
             <th>
                 <?php echo get_lang('User'); ?>
@@ -307,7 +306,7 @@ if ($allowTutors === 'true') {
         </tr>
     <?php
 
-    if ($session['nbr_users'] == 0) {
+    if (0 == $session['nbr_users']) {
         echo '<tr>
                 <td colspan="2">'.get_lang('No Users for this session').'</td>
             </tr>';
@@ -315,18 +314,18 @@ if ($allowTutors === 'true') {
         $order_clause = api_sort_by_first_name() ? ' ORDER BY firstname, lastname' : ' ORDER BY lastname, firstname';
 
         if ($multiple_url_is_on) {
-            $sql = "SELECT u.user_id, lastname, firstname, username, access_url_id
+            $sql = "SELECT u.id as user_id, lastname, firstname, username, access_url_id
                     FROM $tbl_user u
                     INNER JOIN $tbl_session_rel_user su
-                    ON u.user_id = su.user_id AND su.relation_type<>".SESSION_RELATION_TYPE_RRHH."
-                    LEFT OUTER JOIN $table_access_url_user uu ON (uu.user_id = u.user_id)
+                    ON u.id = su.user_id AND su.relation_type<>".SESSION_RELATION_TYPE_RRHH."
+                    LEFT OUTER JOIN $table_access_url_user uu ON (uu.user_id = u.id)
                     WHERE su.session_id = $id_session AND (access_url_id = $url_id OR access_url_id is null )
                     $order_clause";
         } else {
-            $sql = "SELECT u.user_id, lastname, firstname, username
+            $sql = "SELECT u.id as user_id, lastname, firstname, username
                     FROM $tbl_user u
                     INNER JOIN $tbl_session_rel_user su
-                    ON u.user_id = su.user_id AND su.relation_type<>".SESSION_RELATION_TYPE_RRHH."
+                    ON u.id = su.user_id AND su.relation_type<>".SESSION_RELATION_TYPE_RRHH."
                     AND su.session_id = ".$id_session.$order_clause;
         }
 
@@ -337,7 +336,8 @@ if ($allowTutors === 'true') {
         foreach ($users as $user) {
             $user_link = '';
             if (!empty($user['user_id'])) {
-                $user_link = '<a href="'.api_get_path(WEB_CODE_PATH).'admin/user_information.php?user_id='.intval($user['user_id']).'">'.
+                $user_link = '<a
+                    href="'.api_get_path(WEB_CODE_PATH).'admin/user_information.php?user_id='.intval($user['user_id']).'">'.
                     api_htmlentities(api_get_person_name($user['firstname'], $user['lastname']), ENT_QUOTES, $charset).' ('.$user['username'].')</a>';
             }
 

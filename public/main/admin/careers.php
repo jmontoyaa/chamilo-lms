@@ -1,11 +1,7 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-use ChamiloSession as Session;
-
-/**
- *  @package chamilo.admin
- */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -27,15 +23,15 @@ $interbreadcrumb[] = [
     'name' => get_lang('Careers and promotions'),
 ];
 
-$action = isset($_GET['action']) ? $_GET['action'] : null;
+$action = $_GET['action'] ?? null;
 
 $check = Security::check_token('request');
 $token = Security::get_token();
 
-if ($action == 'add') {
+if ('add' === $action) {
     $interbreadcrumb[] = ['url' => 'careers.php', 'name' => get_lang('Careers')];
     $tool_name = get_lang('Add');
-} elseif ($action == 'edit') {
+} elseif ('edit' === $action) {
     $interbreadcrumb[] = ['url' => 'careers.php', 'name' => get_lang('Careers')];
     $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Edit')];
     $tool_name = get_lang('Edit');
@@ -80,7 +76,9 @@ $extra_params['height'] = 'auto';
 $diagramLink = '';
 $allow = api_get_configuration_value('allow_career_diagram');
 if ($allow) {
-    $diagramLink = '<a href="'.api_get_path(WEB_CODE_PATH).'admin/career_diagram.php?id=\'+options.rowId+\'">'.get_lang('Diagram').'</a>';
+    $diagramLink = '<a
+        href="'.api_get_path(WEB_CODE_PATH).'admin/career_diagram.php?id=\'+options.rowId+\'">'.
+        get_lang('Diagram').'</a>';
 }
 
 // With this function we can add actions to the jgrid (edit, delete, etc)
@@ -88,8 +86,8 @@ if (api_is_platform_admin()) {
     $actionLinks = 'function action_formatter(cellvalue, options, rowObject) {
         return \'<a href="?action=edit&id=\'+options.rowId+\'">'.Display::return_icon('edit.png', get_lang('Edit'), '', ICON_SIZE_SMALL).'</a>'.
             $diagramLink.
-            '&nbsp;<a onclick="javascript:if(!confirm('."\'".addslashes(api_htmlentities(get_lang("Please confirm your choice"), ENT_QUOTES))."\'".')) return false;"  href="?sec_token='.$token.'&action=copy&id=\'+options.rowId+\'">'.Display::return_icon('copy.png', get_lang('Copy'), '', ICON_SIZE_SMALL).'</a>'.
-            '&nbsp;<a onclick="javascript:if(!confirm('."\'".addslashes(api_htmlentities(get_lang("Please confirm your choice"), ENT_QUOTES))."\'".')) return false;"  href="?sec_token='.$token.'&action=delete&id=\'+options.rowId+\'">'.Display::return_icon('delete.png', get_lang('Delete'), '', ICON_SIZE_SMALL).'</a>'.
+            '&nbsp;<a onclick="javascript:if(!confirm('."\'".addslashes(api_htmlentities(get_lang('Please confirm your choice'), ENT_QUOTES))."\'".')) return false;"  href="?sec_token='.$token.'&action=copy&id=\'+options.rowId+\'">'.Display::return_icon('copy.png', get_lang('Copy'), '', ICON_SIZE_SMALL).'</a>'.
+            '&nbsp;<a onclick="javascript:if(!confirm('."\'".addslashes(api_htmlentities(get_lang('Please confirm your choice'), ENT_QUOTES))."\'".')) return false;"  href="?sec_token='.$token.'&action=delete&id=\'+options.rowId+\'">'.Display::return_icon('delete.png', get_lang('Delete'), '', ICON_SIZE_SMALL).'</a>'.
             '\';
     }';
 } else {
@@ -100,7 +98,6 @@ if (api_is_platform_admin()) {
 
 $career = new Career();
 $content = '';
-
 $listUrl = api_get_self();
 
 // Action handling: Add
@@ -108,12 +105,11 @@ switch ($action) {
     case 'add':
         api_protect_admin_script();
 
-        if (api_get_session_id() != 0 &&
+        if (0 != api_get_session_id() &&
             !api_is_allowed_to_session_edit(false, true)
         ) {
             api_not_allowed();
         }
-        Session::write('notebook_view', 'creation_date');
 
         $url = api_get_self().'?action='.Security::remove_XSS($_GET['action']);
         $form = $career->return_form($url, 'add');
@@ -132,14 +128,15 @@ switch ($action) {
             header('Location: '.$listUrl);
             exit;
         } else {
-            $content .= '<div class="actions">';
-            $content .= '<a href="'.api_get_self().'">'.
-                Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM).'</a>';
-            $content .= '</div>';
+            $actions = '<a href="'.api_get_self().'">'.
+                Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM).
+                '</a>';
             $form->addElement('hidden', 'sec_token');
             $form->setConstants(['sec_token' => $token]);
+            $content .= Display::toolbarAction('career_actions', [$actions]);
             $content .= $form->returnForm();
         }
+
         break;
     case 'edit':
         api_protect_admin_script();
@@ -190,13 +187,16 @@ switch ($action) {
             header('Location: '.$listUrl);
             exit;
         } else {
-            $content .= '<div class="actions">';
-            $content .= '<a href="'.api_get_self().'">'.Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM).'</a>';
-            $content .= '</div>';
+            $actions = '<a href="'.api_get_self().'">'.
+                Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM).
+                '</a>';
+
             $form->addElement('hidden', 'sec_token');
             $form->setConstants(['sec_token' => $token]);
+            $content .= Display::toolbarAction('career_actions', [$actions]);
             $content .= $form->returnForm();
         }
+
         break;
     case 'delete':
         api_protect_admin_script();
@@ -211,10 +211,11 @@ switch ($action) {
         }
         header('Location: '.$listUrl);
         exit;
+
         break;
     case 'copy':
         api_protect_admin_script();
-        if (api_get_session_id() != 0 && !api_is_allowed_to_session_edit(false, true)) {
+        if (0 != api_get_session_id() && !api_is_allowed_to_session_edit(false, true)) {
             api_not_allowed(true);
         }
         if ($check) {
@@ -228,9 +229,11 @@ switch ($action) {
 
         header('Location: '.$listUrl);
         exit;
+
         break;
     default:
         $content = $career->display();
+
         break;
 }
 
@@ -257,5 +260,4 @@ Display::display_header($tool_name);
 <?php
 
 echo $content;
-
 Display::display_footer();

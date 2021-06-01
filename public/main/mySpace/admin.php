@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -10,13 +11,12 @@ $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 
 $this_section = SECTION_TRACKING;
-
 $nameTools = get_lang('Administrators');
 
 api_block_anonymous_users();
 $interbreadcrumb[] = ["url" => "index.php", "name" => get_lang('Reporting')];
-Display :: display_header($nameTools);
-
+Display::display_header($nameTools);
+$data = [];
 api_display_tool_title($nameTools);
 
 // Database Table Definitions
@@ -32,15 +32,23 @@ if (isset($_POST['export'])) {
 } else {
     $order_clause = api_sort_by_first_name() ? ' ORDER BY firstname, lastname' : ' ORDER BY lastname, firstname';
 }
-$sql = "SELECT user.user_id,lastname,firstname,email
+$sql = "SELECT user.id as user_id,lastname,firstname,email
         FROM $tbl_user as user, $tbl_admin as admin
-        WHERE admin.user_id=user.user_id".$order_clause;
+        WHERE admin.user_id=user.id".$order_clause;
 $result_admins = Database::query($sql);
 
 if (api_is_western_name_order()) {
-    echo '<table class="data_table"><tr><th>'.get_lang('First name').'</th><th>'.get_lang('Last name').'</th><th>'.get_lang('e-mail').'</th></tr>';
+    echo '<table class="table table-hover table-striped data_table">
+        <tr>
+        <th>'.get_lang('FirstName').'</th>
+        <th>'.get_lang('LastName').'</th>
+        <th>'.get_lang('Email').'</th></tr>';
 } else {
-    echo '<table class="data_table"><tr><th>'.get_lang('Last name').'</th><th>'.get_lang('First name').'</th><th>'.get_lang('e-mail').'</th></tr>';
+    echo '<table class="table table-hover table-striped data_table">
+        <tr>
+            <th>'.get_lang('LastName').'</th>
+            <th>'.get_lang('FirstName').'</th>
+            <th>'.get_lang('Email').'</th></tr>';
 }
 
 if (api_is_western_name_order(PERSON_NAME_DATA_EXPORT)) {
@@ -59,9 +67,9 @@ if (Database::num_rows($result_admins) > 0) {
         $firstname = $admins["firstname"];
         $email = $admins["email"];
 
-        if ($i % 2 == 0) {
+        if (0 == $i % 2) {
             $css_class = "row_odd";
-            if ($i % 20 == 0 && $i != 0) {
+            if (0 == $i % 20 && 0 != $i) {
                 if (api_is_western_name_order()) {
                     echo '<tr><th>'.get_lang('First name').'</th><th>'.get_lang('Last name').'</th><th>'.get_lang('e-mail').'</th></tr>';
                 } else {
@@ -96,7 +104,7 @@ if (Database::num_rows($result_admins) > 0) {
 echo '</table>';
 
 if (isset($_POST['export'])) {
-    export_csv($header, $data, 'administrators.csv');
+    Export::arrayToCsv($header + $data, 'administrators.csv');
 }
 
 echo "

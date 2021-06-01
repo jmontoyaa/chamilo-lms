@@ -1,6 +1,9 @@
 <?php
 /* For license terms, see /license.txt */
-
+/**
+ * Callback script for Azure. The URL of this file is sent to Azure as a
+ * point of contact to send particular signals.
+ */
 require __DIR__.'/../../../main/inc/global.inc.php';
 
 $plugin = AzureActiveDirectory::create();
@@ -8,7 +11,8 @@ $plugin = AzureActiveDirectory::create();
 $provider = $plugin->getProvider();
 
 if (!isset($_GET['code'])) {
-    // If we don't have an authorization code then get one
+    // If we don't have an authorization code then get one by redirecting
+    // users to Azure (with the callback URL information)
     $authUrl = $provider->getAuthorizationUrl();
 
     ChamiloSession::write('oauth2state', $provider->getState());
@@ -33,40 +37,88 @@ $token = $provider->getAccessToken('authorization_code', [
 $me = null;
 
 try {
-    $me = $provider->get("me", $token);
-} catch (Exception $e) {
-    exit;
-}
+    $me = $provider->get('me', $token);
 
-$userInfo = [];
+    if (empty($me)) {
+        throw new Exception('Token not found.');
+    }
 
-if (!empty($me['email'])) {
-    $userInfo = api_get_user_info_from_email($me['email']);
-}
+    // We use the e-mail to authenticate the user, so check that at least one
+    // e-mail source exists
+    if (empty($me['mail']) || empty($me['mailNickname'])) {
+        throw new Exception('Mail empty');
+    }
 
-if (empty($userInfo) && !empty($me['email'])) {
     $extraFieldValue = new ExtraFieldValue('user');
-    $itemValue = $extraFieldValue->get_item_id_from_field_variable_and_field_value(
-        'organisationemail',
-        $me['email']
+    $organisationValue = $extraFieldValue->get_item_id_from_field_variable_and_field_value(
+        AzureActiveDirectory::EXTRA_FIELD_ORGANISATION_EMAIL,
+        $me['mail']
     );
-
-    $userInfo = api_get_user_info($itemValue['item_id']);
-}
-
-if (empty($userInfo) && !empty($me['mailNickname'])) {
-    $extraFieldValue = new ExtraFieldValue('user');
-    $itemValue = $extraFieldValue->get_item_id_from_field_variable_and_field_value(
-        'azure_id',
+    $azureValue = $extraFieldValue->get_item_id_from_field_variable_and_field_value(
+        AzureActiveDirectory::EXTRA_FIELD_AZURE_ID,
         $me['mailNickname']
     );
 
-    $userInfo = api_get_user_info($itemValue['item_id']);
-}
+    $userId = null;
+    // Get the user ID (if any) from the EXTRA_FIELD_ORGANISATION_EMAIL extra
+    // field
+    if (!empty($organisationValue) && isset($organisationValue['item_id'])) {
+        $userId = $organisationValue['item_id'];
+    }
 
-if (empty($userInfo)) {
-    header('Location: '.api_get_path(WEB_PATH).'index.php?loginFailed=1&error=user_password_incorrect');
+    if (empty($userId)) {
+        // If the previous step didn't work, get the user ID from
+        // EXTRA_FIELD_AZURE_ID
+        if (!empty($azureValue) && isset($azureValue['item_id'])) {
+            $userId = $azureValue['item_id'];
+        }
+    }
 
+    if (empty($userId)) {
+        // If we didn't find the user
+        if ($plugin->get(AzureActiveDirectory::SETTING_PROVISION_USERS) === 'true') {
+            // If the option is set to create users, create it
+            $userId = UserManager::create_user(
+                $me['givenName'],
+                $me['surname'],
+                STUDENT,
+                $me['mail'],
+                $me['mailNickname'],
+                '',
+                null,
+                null,
+                $me['telephoneNumber'],
+                null,
+                'azure',
+                null,
+                ($me['accountEnabled'] ? 1 : 0),
+                null,
+                [
+                    'extra_'.AzureActiveDirectory::EXTRA_FIELD_ORGANISATION_EMAIL => $me['mail'],
+                    'extra_'.AzureActiveDirectory::EXTRA_FIELD_AZURE_ID => $me['mailNickname'],
+                ]
+            );
+            if (!$userId) {
+                throw new Exception(get_lang('UserNotAdded').' '.$me['mailNickname']);
+            }
+        } else {
+            throw new Exception('User not found when checking the extra fields from '.$me['mail'].' or '.$me['mailNickname'].'.');
+        }
+    }
+
+    $userInfo = api_get_user_info($userId);
+
+    if (empty($userInfo)) {
+        throw new Exception('User '.$userId.' not found.');
+    }
+
+    if ($userInfo['active'] != '1') {
+        throw new Exception(get_lang('AccountInactive'));
+    }
+} catch (Exception $exception) {
+    $message = Display::return_message($exception->getMessage(), 'error');
+    Display::addFlash($message);
+    header('Location: '.api_get_path(WEB_PATH));
     exit;
 }
 
@@ -75,6 +127,5 @@ $_user['uidReset'] = true;
 
 ChamiloSession::write('_user', $_user);
 ChamiloSession::write('_user_auth_source', 'azure_active_directory');
-
-header('Location: '.api_get_path(WEB_PATH));
-exit;
+Event::eventLogin($userInfo['user_id']);
+Redirect::session_request_uri(true, $userInfo['user_id']);

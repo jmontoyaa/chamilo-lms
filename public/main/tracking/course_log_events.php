@@ -1,9 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
 
-/**
- * @package chamilo.tracking
- */
 require_once __DIR__.'/../inc/global.inc.php';
 $this_section = SECTION_COURSES;
 
@@ -19,8 +16,8 @@ if (!$is_allowedToTrack) {
 }
 
 // Starting the output buffering when we are exporting the information.
-$export_csv = isset($_GET['export']) && $_GET['export'] == 'csv' ? true : false;
-$exportXls = isset($_GET['export']) && $_GET['export'] == 'xls' ? true : false;
+$export_csv = isset($_GET['export']) && 'csv' == $_GET['export'] ? true : false;
+$exportXls = isset($_GET['export']) && 'xls' == $_GET['export'] ? true : false;
 $keyword = isset($_GET['keyword']) ? Security::remove_XSS($_GET['keyword']) : '';
 
 // jqgrid will use this URL to do the selects
@@ -129,11 +126,7 @@ $(function() {
 </script>';
 
 Display::display_header();
-
-echo '<div class="actions">';
 echo TrackingCourseLog::actionsLeft('logs', api_get_session_id());
-
-echo '</div>';
 
 $form = new FormValidator(
     'search_simple',
@@ -143,6 +136,8 @@ $form = new FormValidator(
     [],
     FormValidator::LAYOUT_INLINE
 );
+$renderer = $form->defaultRenderer();
+$renderer->setCustomElementTemplate('<span>{element}</span>');
 $form->addHidden('report', 'activities');
 $form->addHidden('activities_direction', 'DESC');
 $form->addElement('text', 'keyword', get_lang('Keyword'));

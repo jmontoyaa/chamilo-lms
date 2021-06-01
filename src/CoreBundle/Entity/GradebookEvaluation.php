@@ -1,10 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
 use Chamilo\CoreBundle\Traits\CourseTrait;
+use Chamilo\CoreBundle\Traits\UserTrait;
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 
@@ -12,118 +16,108 @@ use Gedmo\Mapping\Annotation as Gedmo;
  * GradebookEvaluation.
  *
  * @ORM\Table(name="gradebook_evaluation",
- *  indexes={
- *     @ORM\Index(name="idx_ge_cat", columns={"category_id"}),
- *  })
- * @ORM\Entity
+ *     indexes={
+ *         @ORM\Index(name="idx_ge_cat", columns={"category_id"}),
+ *     })
+ *     @ORM\Entity
  */
 class GradebookEvaluation
 {
     use CourseTrait;
+    use UserTrait;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="name", type="text", nullable=false)
      */
-    protected $name;
+    protected string $name;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="description", type="text", nullable=true)
      */
-    protected $description;
+    protected ?string $description = null;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="user_id", type="integer", nullable=false)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="gradeBookEvaluations")
+     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $userId;
+    protected User $user;
 
     /**
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course", inversedBy="gradebookEvaluations")
      * @ORM\JoinColumn(name="c_id", referencedColumnName="id")
      */
-    protected $course;
+    protected Course $course;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="category_id", type="integer", nullable=true)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\GradebookCategory", inversedBy="evaluations")
+     * @ORM\JoinColumn(name="category_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $categoryId;
+    protected GradebookCategory $category;
 
     /**
-     * @var \DateTime
-     *
      * @Gedmo\Timestampable(on="create")
-     *
      * @ORM\Column(name="created_at", type="datetime", nullable=false)
      */
-    protected $createdAt;
+    protected DateTime $createdAt;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="weight", type="float", precision=10, scale=0, nullable=false)
      */
-    protected $weight;
+    protected float $weight;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="max", type="float", precision=10, scale=0, nullable=false)
      */
-    protected $max;
+    protected float $max;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="visible", type="integer", nullable=false)
      */
-    protected $visible;
+    protected int $visible;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="type", type="string", length=40, nullable=false)
      */
-    protected $type;
+    protected string $type;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="locked", type="integer", nullable=false)
      */
-    protected $locked;
+    protected int $locked;
 
     /**
-     * GradebookEvaluation constructor.
+     * @ORM\Column(name="best_score", type="float", precision=6, scale=2, nullable=true)
      */
+    protected ?float $bestScore = null;
+
+    /**
+     * @ORM\Column(name="average_score", type="float", precision=6, scale=2, nullable=true)
+     */
+    protected ?float $averageScore = null;
+
+    /**
+     * @ORM\Column(name="score_weight", type="float", precision=6, scale=2, nullable=true)
+     */
+    protected ?float $scoreWeight = null;
+
+    /**
+     * @ORM\Column(name="user_score_list", type="array", nullable=true)
+     */
+    protected ?array $userScoreList = null;
+
     public function __construct()
     {
         $this->locked = 0;
     }
 
-    /**
-     * Set name.
-     *
-     * @param string $name
-     *
-     * @return GradebookEvaluation
-     */
-    public function setName($name)
+    public function setName(string $name): self
     {
         $this->name = $name;
 
@@ -140,14 +134,7 @@ class GradebookEvaluation
         return $this->name;
     }
 
-    /**
-     * Set description.
-     *
-     * @param string $description
-     *
-     * @return GradebookEvaluation
-     */
-    public function setDescription($description)
+    public function setDescription(?string $description): self
     {
         $this->description = $description;
 
@@ -164,62 +151,7 @@ class GradebookEvaluation
         return $this->description;
     }
 
-    /**
-     * Set userId.
-     *
-     * @param int $userId
-     *
-     * @return GradebookEvaluation
-     */
-    public function setUserId($userId)
-    {
-        $this->userId = $userId;
-
-        return $this;
-    }
-
-    /**
-     * Get userId.
-     *
-     * @return int
-     */
-    public function getUserId()
-    {
-        return $this->userId;
-    }
-
-    /**
-     * Set categoryId.
-     *
-     * @param int $categoryId
-     *
-     * @return GradebookEvaluation
-     */
-    public function setCategoryId($categoryId)
-    {
-        $this->categoryId = $categoryId;
-
-        return $this;
-    }
-
-    /**
-     * Get categoryId.
-     *
-     * @return int
-     */
-    public function getCategoryId()
-    {
-        return $this->categoryId;
-    }
-
-    /**
-     * Set createdAt.
-     *
-     * @param \DateTime $createdAt
-     *
-     * @return GradebookEvaluation
-     */
-    public function setCreatedAt($createdAt)
+    public function setCreatedAt(DateTime $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -229,21 +161,14 @@ class GradebookEvaluation
     /**
      * Get createdAt.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreatedAt()
     {
         return $this->createdAt;
     }
 
-    /**
-     * Set weight.
-     *
-     * @param float $weight
-     *
-     * @return GradebookEvaluation
-     */
-    public function setWeight($weight)
+    public function setWeight(float $weight): self
     {
         $this->weight = $weight;
 
@@ -260,14 +185,7 @@ class GradebookEvaluation
         return $this->weight;
     }
 
-    /**
-     * Set max.
-     *
-     * @param float $max
-     *
-     * @return GradebookEvaluation
-     */
-    public function setMax($max)
+    public function setMax(float $max): self
     {
         $this->max = $max;
 
@@ -284,14 +202,7 @@ class GradebookEvaluation
         return $this->max;
     }
 
-    /**
-     * Set visible.
-     *
-     * @param int $visible
-     *
-     * @return GradebookEvaluation
-     */
-    public function setVisible($visible)
+    public function setVisible(int $visible): self
     {
         $this->visible = $visible;
 
@@ -308,14 +219,7 @@ class GradebookEvaluation
         return $this->visible;
     }
 
-    /**
-     * Set type.
-     *
-     * @param string $type
-     *
-     * @return GradebookEvaluation
-     */
-    public function setType($type)
+    public function setType(string $type): self
     {
         $this->type = $type;
 
@@ -332,14 +236,7 @@ class GradebookEvaluation
         return $this->type;
     }
 
-    /**
-     * Set locked.
-     *
-     * @param int $locked
-     *
-     * @return GradebookEvaluation
-     */
-    public function setLocked($locked)
+    public function setLocked(int $locked): self
     {
         $this->locked = $locked;
 
@@ -364,5 +261,87 @@ class GradebookEvaluation
     public function getId()
     {
         return $this->id;
+    }
+
+    /**
+     * @return float
+     */
+    public function getBestScore()
+    {
+        return $this->bestScore;
+    }
+
+    public function setBestScore(float $bestScore): self
+    {
+        $this->bestScore = $bestScore;
+
+        return $this;
+    }
+
+    /**
+     * @return float
+     */
+    public function getAverageScore()
+    {
+        return $this->averageScore;
+    }
+
+    public function setAverageScore(float $averageScore): self
+    {
+        $this->averageScore = $averageScore;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getUserScoreList()
+    {
+        if (empty($this->userScoreList)) {
+            return [];
+        }
+
+        return $this->userScoreList;
+    }
+
+    /**
+     * @return GradebookEvaluation
+     */
+    public function setUserScoreList(array $userScoreList)
+    {
+        $this->userScoreList = $userScoreList;
+
+        return $this;
+    }
+
+    /**
+     * @return float
+     */
+    public function getScoreWeight()
+    {
+        return $this->scoreWeight;
+    }
+
+    /**
+     * @return GradebookEvaluation
+     */
+    public function setScoreWeight(float $scoreWeight)
+    {
+        $this->scoreWeight = $scoreWeight;
+
+        return $this;
+    }
+
+    public function getCategory(): GradebookCategory
+    {
+        return $this->category;
+    }
+
+    public function setCategory(GradebookCategory $category): self
+    {
+        $this->category = $category;
+
+        return $this;
     }
 }

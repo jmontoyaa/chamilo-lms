@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -6,18 +7,13 @@
  * This class allows to instantiate an object of type FREE_ANSWER,
  * extending the class question.
  *
- * @package chamilo.exercise
- *
  * @author Eric Marguin
  */
 class FreeAnswer extends Question
 {
     public $typePicture = 'open_answer.png';
-    public $explanationLangVar = 'FreeAnswer';
+    public $explanationLangVar = 'Open question';
 
-    /**
-     * Constructor.
-     */
     public function __construct()
     {
         parent::__construct();
@@ -25,36 +21,27 @@ class FreeAnswer extends Question
         $this->isContent = $this->getIsContent();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function createAnswersForm($form)
     {
-        $form->addElement('text', 'weighting', get_lang('Score'));
+        $form->addText('weighting', get_lang('Score'));
         global $text;
         // setting the save button here and not in the question class.php
         $form->addButtonSave($text, 'submitQuestion');
         if (!empty($this->id)) {
             $form->setDefaults(['weighting' => float_format($this->weighting, 1)]);
         } else {
-            if ($this->isContent == 1) {
+            if (1 == $this->isContent) {
                 $form->setDefaults(['weighting' => '10']);
             }
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function processAnswersCreation($form, $exercise)
     {
         $this->weighting = $form->getSubmitValue('weighting');
         $this->save($exercise);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function return_header(Exercise $exercise, $counter = null, $score = [])
     {
         $score['revised'] = $this->isQuestionWaitingReview($score);

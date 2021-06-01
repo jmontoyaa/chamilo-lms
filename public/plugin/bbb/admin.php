@@ -1,12 +1,11 @@
 <?php
+
 /* For license terms, see /license.txt */
 
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\User;
 
 /**
  * This script initiates a video conference session, calling the BigBlueButton API.
- *
- * @package chamilo.plugin.bigbluebutton
  */
 $course_plugin = 'bbb'; //needed in order to load the plugin lang variables
 $cidReset = true;
@@ -45,12 +44,13 @@ if ($form->validate()) {
 $meetings = $bbb->getMeetings(0, 0, 0, true, $dateRange);
 
 foreach ($meetings as &$meeting) {
-    $participants = $bbb->findConnectedMeetingMembers($meeting['id']);
-
+    $participants = $bbb->findConnectedMeetingParticipants($meeting['id']);
     foreach ($participants as $meetingParticipant) {
         /** @var User $participant */
         $participant = $meetingParticipant['participant'];
-        $meeting['participants'][] = $participant->getCompleteName().' ('.$participant->getEmail().')';
+        if ($participant) {
+            $meeting['participants'][] = $participant->getCompleteName().' ('.$participant->getEmail().')';
+        }
     }
 }
 
@@ -61,20 +61,20 @@ if ($action) {
                 [$tool_name, $plugin->get_lang('RecordList')],
                 [],
                 [
-                    get_lang('Created at'),
+                    get_lang('CreatedAt'),
                     get_lang('Status'),
                     $plugin->get_lang('Records'),
                     get_lang('Course'),
                     get_lang('Session'),
-                    get_lang('Members'),
+                    get_lang('Participants'),
                 ],
             ];
 
             foreach ($meetings as $meeting) {
                 $dataToExport[] = [
                     $meeting['created_at'],
-                    $meeting['status'] == 1 ? $plugin->get_lang('MeetingOpened') : $plugin->get_lang('MeetingClosed'),
-                    $meeting['record'] == 1 ? get_lang('Yes') : get_lang('No'),
+                    1 == $meeting['status'] ? $plugin->get_lang('MeetingOpened') : $plugin->get_lang('MeetingClosed'),
+                    1 == $meeting['record'] ? get_lang('Yes') : get_lang('No'),
                     $meeting['course'] ? $meeting['course']->getTitle() : '-',
                     $meeting['session'] ? $meeting['session']->getName() : '-',
                     isset($meeting['participants']) ? implode(PHP_EOL, $meeting['participants']) : null,
@@ -105,8 +105,46 @@ $tpl = new Template($tool_name);
 $tpl->assign('meetings', $meetings);
 $tpl->assign('search_form', $form->returnForm());
 
-$content = $tpl->fetch('bbb/view/admin.tpl');
+$settingsForm = new FormValidator('settings', api_get_self());
+$settingsForm->addHeader($plugin->get_lang('UpdateAllCourseSettings'));
+$settingsForm->addHtml(Display::return_message($plugin->get_lang('ThisWillUpdateAllSettingsInAllCourses')));
+$settings = $plugin->course_settings;
+$defaults = [];
+foreach ($settings as $setting) {
+    $setting = $setting['name'];
+    $text = $settingsForm->addText($setting, $plugin->get_lang($setting), false);
+    $text->freeze();
+    $defaults[$setting] = 'true' === api_get_plugin_setting('bbb', $setting) ? get_lang('Yes') : get_lang('No');
+}
 
+$settingsForm->addButtonSave($plugin->get_lang('UpdateAllCourses'));
+
+if ($settingsForm->validate()) {
+    $table = Database::get_course_table(TABLE_COURSE_SETTING);
+    foreach ($settings as $setting) {
+        $setting = $setting['name'];
+        $setting = Database::escape_string($setting);
+
+        if (empty($setting)) {
+            continue;
+        }
+        $value = api_get_plugin_setting('bbb', $setting);
+        if ('true' === $value) {
+            $value = 1;
+        } else {
+            $value = '';
+        }
+        $sql = "UPDATE $table SET value = '$value' WHERE variable = '$setting'";
+        Database::query($sql);
+    }
+    Display::addFlash(Display::return_message(get_lang('Updated')));
+    header('Location: '.api_get_self());
+    exit;
+}
+
+$settingsForm->setDefaults($defaults);
+$tpl->assign('settings_form', $settingsForm->returnForm());
+$content = $tpl->fetch('bbb/view/admin.tpl');
 if ($meetings) {
     $actions = Display::toolbarButton(
         get_lang('Export in Excel format'),

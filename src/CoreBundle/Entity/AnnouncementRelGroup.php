@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
@@ -15,31 +17,25 @@ use Doctrine\ORM\Mapping as ORM;
 class AnnouncementRelGroup
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="group_id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="NONE")
      */
-    protected $groupId;
+    protected int $groupId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="announcement_id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="NONE")
      */
-    protected $announcementId;
+    protected int $announcementId;
 
     /**
      * Set groupId.
      *
-     * @param int $groupId
-     *
      * @return AnnouncementRelGroup
      */
-    public function setGroupId($groupId)
+    public function setGroupId(int $groupId)
     {
         $this->groupId = $groupId;
 
@@ -59,11 +55,9 @@ class AnnouncementRelGroup
     /**
      * Set announcementId.
      *
-     * @param int $announcementId
-     *
      * @return AnnouncementRelGroup
      */
-    public function setAnnouncementId($announcementId)
+    public function setAnnouncementId(int $announcementId)
     {
         $this->announcementId = $announcementId;
 

@@ -86,12 +86,11 @@ function edit_cat_def($id, $title, $comment, $nbline)
  * @author - Hugues peeters <peeters@ipm.ucl.ac.be>
  * @author - Christophe Gesche <gesche@ipm.ucl.ac.be>
  *
- * @param int  $id     - id of the category
- *                     or "ALL" for all category
- * @param bool $force  - FALSE (default) : prevents removal if users have
- *                     already fill this category
- *                     TRUE : bypass user content existence check
- * @param int  $nbline - lines number for the field the user will fill
+ * @param int  $id    - id of the category
+ *                    or "ALL" for all category
+ * @param bool $force - FALSE (default) : prevents removal if users have
+ *                    already fill this category
+ *                    TRUE : bypass user content existence check
  *
  * @return bool - TRUE if succeed, ELSE otherwise
  */
@@ -102,7 +101,7 @@ function remove_cat_def($id, $force = false)
 
     $id = strval(intval($id));
 
-    if ((0 == (int) $id || $id == "ALL") || !is_bool($force)) {
+    if ((0 == (int) $id || "ALL" == $id) || !is_bool($force)) {
         return false;
     }
     $sqlCondition = " WHERE id = $id";
@@ -136,7 +135,7 @@ function move_cat_rank($id, $direction) // up & down.
     $TBL_USERINFO_DEF = Database:: get_course_table(userinfo_def);
     $id = strval(intval($id));
 
-    if (0 == (int) $id || !($direction == "up" || $direction == "down")) {
+    if (0 == (int) $id || !("up" == $direction || "down" == $direction)) {
         return false;
     }
 
@@ -170,11 +169,11 @@ function move_cat_rank_by_rank($rank, $direction) // up & down.
 {
     $TBL_USERINFO_DEF = Database:: get_course_table(userinfo_def);
 
-    if (0 == (int) $rank || !($direction == "up" || $direction == "down")) {
+    if (0 == (int) $rank || !("up" == $direction || "down" == $direction)) {
         return false;
     }
 
-    if ($direction == "down") {
+    if ("down" == $direction) {
         // thus increase rank ...
         $sort = "ASC";
         $compOp = ">=";
@@ -255,7 +254,7 @@ function update_user_course_properties($user_id, $course_code, $properties, $hor
              ORDER BY date ";
     $result3 = Database::query($sql3);
 
-    if (Database::num_rows($result3) == '0') {
+    if ('0' == Database::num_rows($result3)) {
         return false;
     }
 
@@ -322,7 +321,7 @@ function fill_new_cat_content($definition_id, $user_id, $content = "", $user_ip 
     $content = Database::escape_string(trim($content));
     $user_ip = Database::escape_string(trim($user_ip));
 
-    if (0 == $definition_id || 0 == $user_id || $content == "") {
+    if (0 == $definition_id || 0 == $user_id || "" == $content) {
         // Here we should introduce an error handling system...
 
         return false;
@@ -379,7 +378,7 @@ function edit_cat_content($definition_id, $user_id, $content = "", $user_ip = ""
         return false;
     }
 
-    if ($content == "") {
+    if ("" == $content) {
         return cleanout_cat_content($user_id, $definition_id);
     }
 

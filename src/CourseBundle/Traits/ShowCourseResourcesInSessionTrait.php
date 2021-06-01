@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Traits;
@@ -9,7 +11,7 @@ namespace Chamilo\CourseBundle\Traits;
  */
 trait ShowCourseResourcesInSessionTrait
 {
-    protected $loadCourseResourcesInSession = true;
+    protected bool $loadCourseResourcesInSession = true;
 
     public function isLoadCourseResourcesInSession(): bool
     {

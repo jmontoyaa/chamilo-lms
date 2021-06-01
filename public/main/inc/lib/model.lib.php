@@ -14,9 +14,6 @@ class Model
     public $required;
     public $is_course_model = false;
 
-    /**
-     * Constructor.
-     */
     public function __construct()
     {
     }
@@ -63,7 +60,7 @@ class Model
 
         // Database table definition
         $result = Database::delete($this->table, $params);
-        if ($result != 1) {
+        if (1 != $result) {
             return false;
         }
 
@@ -89,19 +86,18 @@ class Model
         if (empty($id)) {
             return [];
         }
-        $params = ['id = ?' => intval($id)];
+        $params = ['id = ?' => (int) $id];
         if ($this->is_course_model) {
             $course_id = api_get_course_int_id();
             $params = ['id = ? AND c_id = ?' => [$id, $course_id]];
         }
-        $result = Database::select(
+
+        return Database::select(
             '*',
             $this->table,
             ['where' => $params],
             'first'
         );
-
-        return $result;
     }
 
     /**
@@ -152,11 +148,11 @@ class Model
      * Saves an element into the DB.
      *
      * @param array $params
-     * @param bool  $show_query Whether to show the query in logs or not (passed to Database::insert())
+     * @param bool  $showQuery Whether to show the query in logs or not (passed to Database::insert())
      *
      * @return bool|int
      */
-    public function save($params, $show_query = false)
+    public function save($params, $showQuery = false)
     {
         $params = $this->clean_parameters($params);
 
@@ -188,7 +184,7 @@ class Model
         }
 
         if (!empty($params)) {
-            $id = Database::insert($this->table, $params, $show_query);
+            $id = Database::insert($this->table, $params, $showQuery);
             if (is_numeric($id)) {
                 return $id;
             }

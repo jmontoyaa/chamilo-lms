@@ -1,5 +1,8 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
+use Chamilo\CoreBundle\Entity\TrackEAttempt;
 
 /**
  * Class OralExpression
@@ -7,13 +10,11 @@
  * extending the class question.
  *
  * @author Eric Marguin
- *
- * @package chamilo.exercise
  */
 class OralExpression extends Question
 {
     public $typePicture = 'audio_question.png';
-    public $explanationLangVar = 'OralExpression';
+    public $explanationLangVar = 'Oral expression';
     public $available_extensions = ['wav', 'ogg'];
     private $sessionId;
     private $userId;
@@ -23,9 +24,6 @@ class OralExpression extends Question
     private $fileName;
     private $filePath;
 
-    /**
-     * Constructor.
-     */
     public function __construct()
     {
         parent::__construct();
@@ -33,9 +31,6 @@ class OralExpression extends Question
         $this->isContent = $this->getIsContent();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function createAnswersForm($form)
     {
         $form->addText(
@@ -49,31 +44,25 @@ class OralExpression extends Question
         if (!empty($this->id)) {
             $form->setDefaults(['weighting' => float_format($this->weighting, 1)]);
         } else {
-            if ($this->isContent == 1) {
+            if (1 == $this->isContent) {
                 $form->setDefaults(['weighting' => '10']);
             }
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function processAnswersCreation($form, $exercise)
     {
         $this->weighting = $form->getSubmitValue('weighting');
         $this->save($exercise);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function return_header(Exercise $exercise, $counter = null, $score = [])
     {
         $score['revised'] = $this->isQuestionWaitingReview($score);
         $header = parent::return_header($exercise, $counter, $score);
         $header .= '<table class="'.$this->question_table_class.'">
             <tr>
-                <th>'.get_lang("Answer").'</th>
+                <th>'.get_lang('Answer').'</th>
             </tr>';
 
         return $header;
@@ -82,19 +71,19 @@ class OralExpression extends Question
     /**
      * initialize the attributes to generate the file path.
      *
-     * @param $sessionId integer
-     * @param $userId integer
-     * @param $exerciseId integer
-     * @param $exeId integer
+     * @param int $sessionId
+     * @param int $userId
+     * @param int $exerciseId
+     * @param int $exeId
      */
     public function initFile($sessionId, $userId, $exerciseId, $exeId)
     {
-        $this->sessionId = intval($sessionId);
-        $this->userId = intval($userId);
+        $this->sessionId = (int) $sessionId;
+        $this->userId = (int) $userId;
         $this->exerciseId = 0;
-        $this->exeId = intval($exeId);
+        $this->exeId = (int) $exeId;
         if (!empty($exerciseId)) {
-            $this->exerciseId = intval($exerciseId);
+            $this->exerciseId = (int) $exerciseId;
         }
         $this->storePath = $this->generateDirectory();
         $this->fileName = $this->generateFileName();
@@ -145,7 +134,7 @@ class OralExpression extends Question
             //Load the real filename just if exists
             if (isset($this->exeId, $this->userId, $this->id, $this->sessionId, $this->course['real_id'])) {
                 $result = $em
-                    ->getRepository('ChamiloCoreBundle:TrackEAttempt')
+                    ->getRepository(TrackEAttempt::class)
                     ->findOneBy([
                         'exeId' => $this->exeId,
                         'userId' => $this->userId,
@@ -177,7 +166,7 @@ class OralExpression extends Question
             }
 
             // Function handle_uploaded_document() adds the session and group id by default.
-            $file = "$audioFile"."__".$this->sessionId."__0.$extension";
+            $file = "$audioFile".'__'.$this->sessionId."__0.$extension";
 
             if (is_file($file)) {
                 return $file;
@@ -192,12 +181,16 @@ class OralExpression extends Question
     /**
      * Get the URL for the audio file. Return null if the file doesn't exists.
      *
+     * @todo fix path
+     *
      * @param bool $loadFromDatabase
      *
      * @return string
      */
     public function getFileUrl($loadFromDatabase = false)
     {
+        return null;
+
         $filePath = $this->getAbsoluteFilePath($loadFromDatabase);
 
         if (empty($filePath)) {
@@ -214,7 +207,7 @@ class OralExpression extends Question
     /**
      * Tricky stuff to deal with the feedback = 0 in exercises (all question per page).
      *
-     * @param $exe_id integer
+     * @param int $exe_id
      */
     public function replaceWithRealExe($exe_id)
     {
@@ -232,6 +225,7 @@ class OralExpression extends Question
                 $filename = $filename = implode('-', $items);
                 $new_name = $this->storePath.$filename.'.'.$extension;
                 rename($old_name, $new_name);
+
                 break;
             }
         }
@@ -317,8 +311,7 @@ class OralExpression extends Question
         ];
 
         $path = implode('/', $params);
-        $directory = '/exercises/'.$path.'/';
 
-        return $directory;
+        return '/exercises/'.$path.'/';
     }
 }

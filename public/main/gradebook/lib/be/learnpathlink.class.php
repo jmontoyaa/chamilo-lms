@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -6,8 +7,6 @@
  *
  * @author Yannick Warnier <yannick.warnier@beeznest.com>
  * @author Bert Steppé
- *
- * @package chamilo.gradebook
  */
 class LearnpathLink extends AbstractLink
 {
@@ -42,13 +41,13 @@ class LearnpathLink extends AbstractLink
             $session_condition = api_get_session_condition($session_id, true, true);
         }
 
-        $sql = 'SELECT id, name FROM '.$this->get_learnpath_table().'
+        $sql = 'SELECT iid, name FROM '.$this->get_learnpath_table().'
                 WHERE c_id = '.$this->course_id.' '.$session_condition.' ';
         $result = Database::query($sql);
 
         $cats = [];
         while ($data = Database::fetch_array($result)) {
-            $cats[] = [$data['id'], $data['name']];
+            $cats[] = [$data['iid'], $data['name']];
         }
 
         return $cats;
@@ -65,20 +64,20 @@ class LearnpathLink extends AbstractLink
         $result = Database::query($sql);
         $number = Database::fetch_array($result, 'NUM');
 
-        return $number[0] != 0;
+        return 0 != $number[0];
     }
 
     /**
      * Get the progress of this learnpath. Only the last attempt are taken into account.
      *
-     * @param $stud_id student id (default: all students who have results - then the average is returned)
+     * @param $studentId student id (default: all students who have results - then the average is returned)
      * @param $type The type of score we want to get: best|average|ranking
      *
      * @return array (score, max) if student is given
      *               array (sum of scores, number of scores) otherwise
      *               or null if no scores available
      */
-    public function calc_score($stud_id = null, $type = null)
+    public function calc_score($studentId = null, $type = null)
     {
         $tbl_stats = Database::get_course_table(TABLE_LP_VIEW);
         $session_id = $this->get_session_id();
@@ -92,8 +91,8 @@ class LearnpathLink extends AbstractLink
                     lp_id = ".$this->get_ref_id()." AND
                     session_id = $session_id ";
 
-        if (isset($stud_id)) {
-            $sql .= ' AND user_id = '.intval($stud_id);
+        if (isset($studentId)) {
+            $sql .= ' AND user_id = '.intval($studentId);
         }
 
         // order by id, that way the student's first attempt is accessed first
@@ -101,7 +100,7 @@ class LearnpathLink extends AbstractLink
 
         $scores = Database::query($sql);
         // for 1 student
-        if (isset($stud_id)) {
+        if (isset($studentId)) {
             if ($data = Database::fetch_assoc($scores)) {
                 return [$data['progress'], 100];
             } else {
@@ -128,7 +127,7 @@ class LearnpathLink extends AbstractLink
                 }
             }
 
-            if ($rescount == 0) {
+            if (0 == $rescount) {
                 return [null, null];
             } else {
                 switch ($type) {
@@ -139,7 +138,7 @@ class LearnpathLink extends AbstractLink
                         return [$sumResult / $rescount, 100];
                         break;
                     case 'ranking':
-                        return AbstractLink::getCurrentUserRanking($stud_id, $students);
+                        return AbstractLink::getCurrentUserRanking($studentId, $students);
                         break;
                     default:
                         return [$sum, $rescount];
@@ -156,11 +155,11 @@ class LearnpathLink extends AbstractLink
     {
         $session_id = $this->get_session_id();
         $url = api_get_path(WEB_CODE_PATH).'lp/lp_controller.php?'.api_get_cidreq_params(
-            $this->get_course_code(),
+            $this->getCourseId(),
                 $session_id
         ).'&gradebook=view';
 
-        if (!api_is_allowed_to_edit() || $this->calc_score(api_get_user_id()) == null) {
+        if (!api_is_allowed_to_edit() || null == $this->calc_score(api_get_user_id())) {
             $url .= '&action=view&lp_id='.$this->get_ref_id();
         } else {
             $url .= '&action=build&lp_id='.$this->get_ref_id();
@@ -194,12 +193,12 @@ class LearnpathLink extends AbstractLink
      */
     public function is_valid_link()
     {
-        $sql = 'SELECT count(id) FROM '.$this->get_learnpath_table().'
+        $sql = 'SELECT count(iid) FROM '.$this->get_learnpath_table().'
                 WHERE c_id = '.$this->course_id.' AND id = '.$this->get_ref_id().' ';
         $result = Database::query($sql);
         $number = Database::fetch_row($result, 'NUM');
 
-        return $number[0] != 0;
+        return 0 != $number[0];
     }
 
     public function get_type_name()
@@ -249,7 +248,7 @@ class LearnpathLink extends AbstractLink
     {
         if (!isset($this->learnpath_data)) {
             $sql = 'SELECT * FROM '.$this->get_learnpath_table().'
-                    WHERE c_id = '.$this->course_id.' AND id = '.$this->get_ref_id().' ';
+                    WHERE c_id = '.$this->course_id.' AND iid = '.$this->get_ref_id().' ';
             $result = Database::query($sql);
             $this->learnpath_data = Database::fetch_array($result);
         }

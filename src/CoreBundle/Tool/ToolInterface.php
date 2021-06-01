@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Tool;
@@ -9,23 +11,11 @@ namespace Chamilo\CoreBundle\Tool;
  */
 interface ToolInterface
 {
-    /**
-     * @return string
-     */
-    public function getName();
+    public function getName(): string;
 
-    /**
-     * @return string
-     */
-    public function getLink();
+    public function getLink(): string;
 
-    /**
-     * @return string
-     */
-    public function getTarget();
+    public function getTarget(): string;
 
-    /**
-     * @return string
-     */
-    public function getCategory();
+    public function getCategory(): string;
 }

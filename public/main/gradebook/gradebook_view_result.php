@@ -1,13 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- * Script.
- *
- * @package chamilo.gradebook
- */
 require_once __DIR__.'/../inc/global.inc.php';
-require_once api_get_path(SYS_CODE_PATH).'gradebook/lib/fe/exportgradebook.php';
+require_once __DIR__.'/lib/fe/exportgradebook.php';
 
 api_block_anonymous_users();
 $isDrhOfCourse = CourseManager::isUserSubscribedInCourseAsDrh(
@@ -27,9 +23,11 @@ $interbreadcrumb[] = [
 //load the evaluation & category
 $select_eval = (int) $_GET['selecteval'];
 if (empty($select_eval)) {
-    api_not_allowed();
+    api_not_allowed(true);
 }
 
+$_course = api_get_course_info();
+$_user = api_get_user_info();
 $displayscore = ScoreDisplay::instance();
 $eval = Evaluation::load($select_eval);
 $overwritescore = 0;
@@ -95,7 +93,7 @@ if (isset($_GET['action'])) {
 
                 $url = api_get_self().'?selecteval='.$select_eval.'&'.api_get_cidreq().'&editres='.$result->get_id();
                 $form = new FormValidator('attempt', 'post', $url.'&action=add_attempt');
-                $form->addHeader(get_lang('Grade learners'));
+                $form->addHeader(get_lang('AddResult'));
                 $form->addLabel(get_lang('CurrentScore'), $result->get_score());
 
                 $form->addFloat(
@@ -185,7 +183,7 @@ if (isset($_GET['editres'])) {
         $result->set_user_id($values['hid_user_id']);
         $result->set_evaluation_id($select_eval);
         $row_value = isset($values['score']) ? $values['score'] : 0;
-        if (!empty($row_value) || $row_value == 0) {
+        if (!empty($row_value) || 0 == $row_value) {
             $row_value = api_number_format(
                 $row_value,
                 api_get_setting('gradebook_number_decimals')
@@ -193,7 +191,6 @@ if (isset($_GET['editres'])) {
             $result->set_score($row_value);
         }
         $result->save();
-
         if ($allowMultipleAttempts && !empty($result->get_id())) {
             $table = Database::get_main_table(TABLE_MAIN_GRADEBOOK_RESULT_ATTEMPT);
             $now = api_get_utc_datetime();
@@ -262,7 +259,7 @@ if (isset($_GET['import'])) {
                         }
                     }
                 }
-                if ($importedresult['user_id'] == null) {
+                if (null == $importedresult['user_id']) {
                     header('Location: gradebook_view_result.php?selecteval='.$select_eval.'&incorrectdata=');
                     exit;
                 }
@@ -276,7 +273,7 @@ if (isset($_GET['import'])) {
                         exit;
                     }
                 }
-                if ($added != '1') {
+                if ('1' != $added) {
                     if ($importedresult['score'] > $eval[0]->get_max()) {
                         header('Location: gradebook_view_result.php?selecteval='.$select_eval.'&overwritemax=');
                         exit;
@@ -309,7 +306,7 @@ if (isset($_GET['import'])) {
             header('Location: '.api_get_self().'?import=&selecteval='.$select_eval.'&importnofile=');
             exit;
         }
-        if ($overwritescore != 0) {
+        if (0 != $overwritescore) {
             Display::addFlash(
                 Display::return_message(
                     get_lang('The import should overwrite the score.').' '.$overwritescore
@@ -318,7 +315,7 @@ if (isset($_GET['import'])) {
             header('Location: '.api_get_self().'?selecteval='.$select_eval.'&importoverwritescore='.$overwritescore);
             exit;
         }
-        if ($nr_results_added == 0) {
+        if (0 == $nr_results_added) {
             Display::addFlash(
                 Display::return_message(
                     get_lang('There was a problem sending your file. Nothing has been received.'),
@@ -365,7 +362,7 @@ if (isset($_GET['export'])) {
         $filename = 'export_results_'.gmdate('Y-m-d_H-i-s');
         $results = Result::load(null, null, $select_eval);
         $data = []; //when file type is csv, add a header to the output file
-        if ($file_type == 'csv') {
+        if ('csv' === $file_type) {
             $alldata[] = [
                 'username',
                 'official_code',
@@ -377,7 +374,7 @@ if (isset($_GET['export'])) {
         }
 
         // export results to pdf file
-        if ($file_type == 'pdf') {
+        if ('pdf' === $file_type) {
             $number_decimals = api_get_setting('gradebook_number_decimals');
             $datagen = new ResultsDataGenerator($eval[0], $allresults);
 
@@ -416,7 +413,7 @@ if (isset($_GET['export'])) {
                 [$head_ape_name, 40],
                 [get_lang('Score'), 12],
             ];
-            if ($number_decimals == null) {
+            if (null == $number_decimals) {
                 $head_table[] = [get_lang('Letters'), 15];
             }
             $head_display_score = '';
@@ -457,7 +454,7 @@ if (isset($_GET['export'])) {
                 } else {
                     $result[] = $user_info['lastname'].', '.$user_info['firstname'];
                 }
-                if ($number_decimals == null) {
+                if (null == $number_decimals) {
                     if (empty($data['scoreletter']) && !is_numeric($data['score'])) {
                         $result[] = get_lang('The user did not take the exam.');
                     } else {
@@ -525,7 +522,7 @@ if (isset($_GET['resultdelete'])) {
 
 if (isset($_POST['action'])) {
     $number_of_selected_items = count($_POST['id']);
-    if ($number_of_selected_items == '0') {
+    if ('0' == $number_of_selected_items) {
         Display::addFlash(
             Display::return_message(
                 get_lang('No resource selected'),
@@ -674,7 +671,7 @@ if (isset($_GET['import_score_error'])) {
     );
 }
 
-if ($file_type == null) {
+if (null == $file_type) {
     //show the result header
     if (isset($export_result_form) && !(isset($edit_res_form))) {
         echo $export_result_form->display();

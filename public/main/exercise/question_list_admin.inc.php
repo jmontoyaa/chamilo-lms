@@ -1,11 +1,10 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use ChamiloSession as Session;
 
 /**
- * @package chamilo.exercise
- *
  * @author Olivier Brouckaert & Julio Montoya & Hubert Borderiou 21-10-2011 (Question by category)
  *    QUESTION LIST ADMINISTRATION
  *
@@ -32,7 +31,7 @@ if ($deleteQuestion) {
     // destruction of the Question object
     unset($objQuestionTmp);
 }
-$ajax_url = api_get_path(WEB_AJAX_PATH).'exercise.ajax.php?'.api_get_cidreq().'&exercise_id='.intval($exerciseId);
+$ajax_url = api_get_path(WEB_AJAX_PATH).'exercise.ajax.php?'.api_get_cidreq().'&exercise_id='.(int) $exerciseId;
 ?>
 <div id="dialog-confirm"
      title="<?php echo get_lang('Please confirm your choice'); ?>"
@@ -162,6 +161,7 @@ if (!$inATest) {
         // In the building exercise mode show question list ordered as is.
         $objExercise->setCategoriesGrouping(false);
 
+        $originalQuestionSelectType = $objExercise->questionSelectionType;
         // In building mode show all questions not render by teacher order.
         $objExercise->questionSelectionType = EX_Q_SELECTION_ORDERED;
         $allowQuestionOrdering = true;
@@ -175,7 +175,6 @@ if (!$inATest) {
             $questionList = $objExercise->getQuestionForTeacher($start, $length);
             $paginator = new Knp\Component\Pager\Paginator();
             $pagination = $paginator->paginate([]);
-
             $pagination->setTotalItemCount($nbrQuestions);
             $pagination->setItemNumberPerPage($length);
             $pagination->setCurrentPageNumber($page);
@@ -197,6 +196,7 @@ if (!$inATest) {
             // Classic order
             $questionList = $objExercise->selectQuestionList(true, true);
         }
+        $objExercise->questionSelectionType = $originalQuestionSelectType;
 
         echo '
             <div class="row hidden-xs">
@@ -236,7 +236,7 @@ if (!$inATest) {
                     ['class' => 'btn btn-default btn-sm']
                 );
 
-                $edit_link = $objQuestionTmp->selectType() == CALCULATED_ANSWER && $objQuestionTmp->isAnswered()
+                $edit_link = CALCULATED_ANSWER == $objQuestionTmp->selectType() && $objQuestionTmp->isAnswered()
                     ? Display::span(
                         Display::return_icon(
                             'edit_na.png',
@@ -262,7 +262,7 @@ if (!$inATest) {
                         ['class' => 'btn btn-default btn-sm']
                     );
                 $delete_link = null;
-                if ($objExercise->edit_exercise_in_lp == true) {
+                if (true == $objExercise->edit_exercise_in_lp) {
                     $delete_link = Display::url(
                         Display::return_icon(
                             'delete.png',
@@ -287,7 +287,7 @@ if (!$inATest) {
                     $delete_link = '';
                 }
 
-                $btnDetail = implode(
+                $btnActions = implode(
                     PHP_EOL,
                     [$edit_link, $clone_link, $delete_link]
                 );
@@ -305,18 +305,17 @@ if (!$inATest) {
                         '.$move.' '.cut($title, 42).'
                     </a>';
 
-                // Question type
-                $typeImg = $objQuestionTmp->getTypePicture();
-                $typeExpl = $objQuestionTmp->getExplanation();
-
-                $questionType = Display::return_icon($typeImg, $typeExpl);
+                $questionType = Display::return_icon(
+                    $objQuestionTmp->getTypePicture(),
+                    $objQuestionTmp->getExplanation()
+                );
 
                 // Question category
-                $txtQuestionCat = Security::remove_XSS(
-                    TestCategory::getCategoryNameForQuestion($objQuestionTmp->id)
+                $questionCategory = Security::remove_XSS(
+                    TestCategory::getCategoryNameForQuestion($objQuestionTmp->getId())
                 );
-                if (empty($txtQuestionCat)) {
-                    $txtQuestionCat = '-';
+                if (empty($questionCategory)) {
+                    $questionCategory = '-';
                 }
 
                 // Question level
@@ -330,7 +329,7 @@ if (!$inATest) {
                 $questionScore = $objQuestionTmp->selectWeighting();
 
                 echo '<div id="question_id_list_'.$id.'">
-                        <div class="header_operations" data-exercise="'.$objExercise->selectId().'"
+                        <div class="header_operations" data-exercise="'.$objExercise->getId().'"
                             data-question="'.$id.'">
                             <div class="row">
                                 <div class="question col-sm-5 col-xs-12">'
@@ -340,9 +339,9 @@ if (!$inATest) {
                                     <span class="visible-xs-inline">'.get_lang('Type').' </span>'
                                     .$questionType.'
                                 </div>
-                                <div class="category col-sm-2 col-xs-12" title="'.$txtQuestionCat.'">
+                                <div class="category col-sm-2 col-xs-12" title="'.$questionCategory.'">
                                     <span class="visible-xs-inline">'.get_lang('Category').' </span>'
-                                    .cut($txtQuestionCat, 42).'
+                                    .cut($questionCategory, 42).'
                                 </div>
                                 <div class="level text-right col-sm-1 col-xs-6">
                                     <span class="visible-xs-inline">'.get_lang('Difficulty').' </span>'
@@ -353,7 +352,7 @@ if (!$inATest) {
                                     .$questionScore.'
                                 </div>
                                 <div class="btn-actions text-right col-sm-2 col-xs-6">
-                                    <div class="edition">'.$btnDetail.'</div>
+                                    <div class="edition">'.$btnActions.'</div>
                                 </div>
                             </div>
                         </div>

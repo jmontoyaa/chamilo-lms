@@ -1,88 +1,73 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Chamilo\CourseBundle\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * CBlogPost.
  *
  * @ORM\Table(
- *  name="c_blog_post",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"})
- *  }
+ *     name="c_blog_post",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CBlogPost
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="blog_id", type="integer", nullable=false)
      */
-    protected $blogId;
+    protected int $blogId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="title", type="string", length=250, nullable=false)
      */
-    protected $title;
+    protected string $title;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="full_text", type="text", nullable=false)
      */
-    protected $fullText;
+    protected string $fullText;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="date_creation", type="datetime", nullable=false)
      */
-    protected $dateCreation;
+    protected DateTime $dateCreation;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="author_id", type="integer", nullable=false)
      */
-    protected $authorId;
+    protected int $authorId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="post_id", type="integer")
      */
-    protected $postId;
+    protected int $postId;
 
     /**
      * Set title.
      *
-     * @param string $title
-     *
      * @return CBlogPost
      */
-    public function setTitle($title)
+    public function setTitle(string $title)
     {
         $this->title = $title;
 
@@ -102,11 +87,9 @@ class CBlogPost
     /**
      * Set fullText.
      *
-     * @param string $fullText
-     *
      * @return CBlogPost
      */
-    public function setFullText($fullText)
+    public function setFullText(string $fullText)
     {
         $this->fullText = $fullText;
 
@@ -126,11 +109,9 @@ class CBlogPost
     /**
      * Set dateCreation.
      *
-     * @param \DateTime $dateCreation
-     *
      * @return CBlogPost
      */
-    public function setDateCreation($dateCreation)
+    public function setDateCreation(DateTime $dateCreation)
     {
         $this->dateCreation = $dateCreation;
 
@@ -140,7 +121,7 @@ class CBlogPost
     /**
      * Get dateCreation.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getDateCreation()
     {
@@ -150,11 +131,9 @@ class CBlogPost
     /**
      * Set blogId.
      *
-     * @param int $blogId
-     *
      * @return CBlogPost
      */
-    public function setBlogId($blogId)
+    public function setBlogId(int $blogId)
     {
         $this->blogId = $blogId;
 
@@ -174,11 +153,9 @@ class CBlogPost
     /**
      * Set authorId.
      *
-     * @param int $authorId
-     *
      * @return CBlogPost
      */
-    public function setAuthorId($authorId)
+    public function setAuthorId(int $authorId)
     {
         $this->authorId = $authorId;
 
@@ -198,11 +175,9 @@ class CBlogPost
     /**
      * Set postId.
      *
-     * @param int $postId
-     *
      * @return CBlogPost
      */
-    public function setPostId($postId)
+    public function setPostId(int $postId)
     {
         $this->postId = $postId;
 
@@ -222,11 +197,9 @@ class CBlogPost
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CBlogPost
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 

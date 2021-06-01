@@ -1,12 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
-use Chamilo\UserBundle\Entity\User;
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation as Gedmo;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Message.
@@ -18,7 +23,6 @@ use Doctrine\ORM\Mapping as ORM;
  *     @ORM\Index(name="idx_message_user_receiver_status", columns={"user_receiver_id", "msg_status"}),
  *     @ORM\Index(name="idx_message_receiver_status_send_date", columns={"user_receiver_id", "msg_status", "send_date"}),
  *     @ORM\Index(name="idx_message_group", columns={"group_id"}),
- *     @ORM\Index(name="idx_message_parent", columns={"parent_id"}),
  *     @ORM\Index(name="idx_message_status", columns={"msg_status"})
  * })
  * @ORM\Entity(repositoryClass="Chamilo\CoreBundle\Repository\MessageRepository")
@@ -26,129 +30,113 @@ use Doctrine\ORM\Mapping as ORM;
 class Message
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="bigint")
      * @ORM\Id
      * @ORM\GeneratedValue()
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var User
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\UserBundle\Entity\User", inversedBy="sentMessages")
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="sentMessages")
      * @ORM\JoinColumn(name="user_sender_id", referencedColumnName="id", nullable=false)
      */
-    protected $userSender;
+    protected User $userSender;
 
     /**
-     * @var User
-     *
-     * @ORM\ManyToOne(targetEntity="Chamilo\UserBundle\Entity\User", inversedBy="receivedMessages")
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="receivedMessages")
      * @ORM\JoinColumn(name="user_receiver_id", referencedColumnName="id", nullable=true)
      */
-    protected $userReceiver;
+    protected User $userReceiver;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(name="msg_status", type="smallint", nullable=false)
      */
-    protected $msgStatus;
+    protected int $msgStatus;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="send_date", type="datetime", nullable=false)
      */
-    protected $sendDate;
+    protected DateTime $sendDate;
 
     /**
-     * @var string
-     *
+     * @Assert\NotBlank
      * @ORM\Column(name="title", type="string", length=255, nullable=false)
      */
-    protected $title;
+    protected string $title;
 
     /**
-     * @var string
+     * @Assert\NotBlank
      *
      * @ORM\Column(name="content", type="text", nullable=false)
      */
-    protected $content;
+    protected string $content;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="group_id", type="integer", nullable=false)
      */
-    protected $groupId;
+    protected int $groupId;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="parent_id", type="integer", nullable=false)
+     * @var Collection|Message[]
+     * @ORM\OneToMany(targetEntity="Message", mappedBy="parent")
      */
-    protected $parentId;
+    protected Collection $children;
 
     /**
-     * @var \DateTime
-     *
+     * @ORM\ManyToOne(targetEntity="Message", inversedBy="children")
+     * @ORM\JoinColumn(name="parent_id", referencedColumnName="id")
+     */
+    protected ?Message $parent = null;
+
+    /**
+     * @Gedmo\Timestampable(on="update")
      * @ORM\Column(name="update_date", type="datetime", nullable=true)
      */
-    protected $updateDate;
+    protected ?DateTime $updateDate;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="votes", type="integer", nullable=true)
      */
-    protected $votes;
+    protected ?int $votes;
 
     /**
-     * @var ArrayCollection
+     * @var Collection|MessageAttachment[]
      *
-     * @ORM\OneToMany(targetEntity="Chamilo\CoreBundle\Entity\MessageAttachment", mappedBy="message")
+     * @ORM\OneToMany(targetEntity="MessageAttachment", mappedBy="message")
      */
-    protected $attachments;
+    protected Collection $attachments;
 
     /**
-     * Message constructor.
+     * @var Collection|MessageFeedback[]
+     *
+     * @ORM\OneToMany(targetEntity="MessageFeedback", mappedBy="message", orphanRemoval=true)
      */
+    protected Collection $likes;
+
     public function __construct()
     {
+        $this->sendDate = new DateTime('now');
+        $this->updateDate = $this->sendDate;
+        $this->content = '';
         $this->attachments = new ArrayCollection();
+        $this->children = new ArrayCollection();
+        $this->likes = new ArrayCollection();
+        $this->votes = 0;
     }
 
-    /**
-     * Set userSender.
-     *
-     * @return Message
-     */
-    public function setUserSender(User $userSender)
+    public function setUserSender(User $userSender): self
     {
         $this->userSender = $userSender;
 
         return $this;
     }
 
-    /**
-     * Get userSender.
-     *
-     * @return User
-     */
-    public function getUserSender()
+    public function getUserSender(): User
     {
         return $this->userSender;
     }
 
-    /**
-     * Set userReceiver.
-     *
-     * @return Message
-     */
-    public function setUserReceiver(User $userReceiver)
+    public function setUserReceiver(User $userReceiver): self
     {
         $this->userReceiver = $userReceiver;
 
@@ -165,38 +153,19 @@ class Message
         return $this->userReceiver;
     }
 
-    /**
-     * Set msgStatus.
-     *
-     * @param bool $msgStatus
-     *
-     * @return Message
-     */
-    public function setMsgStatus($msgStatus)
+    public function setMsgStatus(int $msgStatus): self
     {
         $this->msgStatus = $msgStatus;
 
         return $this;
     }
 
-    /**
-     * Get msgStatus.
-     *
-     * @return bool
-     */
-    public function getMsgStatus()
+    public function getMsgStatus(): int
     {
         return $this->msgStatus;
     }
 
-    /**
-     * Set sendDate.
-     *
-     * @param \DateTime $sendDate
-     *
-     * @return Message
-     */
-    public function setSendDate($sendDate)
+    public function setSendDate(DateTime $sendDate): self
     {
         $this->sendDate = $sendDate;
 
@@ -206,45 +175,26 @@ class Message
     /**
      * Get sendDate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getSendDate()
     {
         return $this->sendDate;
     }
 
-    /**
-     * Set title.
-     *
-     * @param string $title
-     *
-     * @return Message
-     */
-    public function setTitle($title)
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
         return $this;
     }
 
-    /**
-     * Get title.
-     *
-     * @return string
-     */
-    public function getTitle()
+    public function getTitle(): string
     {
         return $this->title;
     }
 
-    /**
-     * Set content.
-     *
-     * @param string $content
-     *
-     * @return Message
-     */
-    public function setContent($content)
+    public function setContent(string $content): self
     {
         $this->content = $content;
 
@@ -261,14 +211,7 @@ class Message
         return $this->content;
     }
 
-    /**
-     * Set groupId.
-     *
-     * @param int $groupId
-     *
-     * @return Message
-     */
-    public function setGroupId($groupId)
+    public function setGroupId(int $groupId): self
     {
         $this->groupId = $groupId;
 
@@ -285,38 +228,7 @@ class Message
         return $this->groupId;
     }
 
-    /**
-     * Set parentId.
-     *
-     * @param int $parentId
-     *
-     * @return Message
-     */
-    public function setParentId($parentId)
-    {
-        $this->parentId = $parentId;
-
-        return $this;
-    }
-
-    /**
-     * Get parentId.
-     *
-     * @return int
-     */
-    public function getParentId()
-    {
-        return $this->parentId;
-    }
-
-    /**
-     * Set updateDate.
-     *
-     * @param \DateTime $updateDate
-     *
-     * @return Message
-     */
-    public function setUpdateDate($updateDate)
+    public function setUpdateDate(DateTime $updateDate): self
     {
         $this->updateDate = $updateDate;
 
@@ -326,7 +238,7 @@ class Message
     /**
      * Get updateDate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getUpdateDate()
     {
@@ -343,26 +255,14 @@ class Message
         return $this->id;
     }
 
-    /**
-     * Set votes.
-     *
-     * @param int $votes
-     *
-     * @return Message
-     */
-    public function setVotes($votes)
+    public function setVotes(int $votes): self
     {
         $this->votes = $votes;
 
         return $this;
     }
 
-    /**
-     * Get votes.
-     *
-     * @return int
-     */
-    public function getVotes()
+    public function getVotes(): int
     {
         return $this->votes;
     }
@@ -370,21 +270,63 @@ class Message
     /**
      * Get attachments.
      *
-     * @return ArrayCollection
+     * @return Collection|MessageAttachment[]
      */
     public function getAttachments()
     {
         return $this->attachments;
     }
 
+    public function addAttachment(MessageAttachment $attachment): self
+    {
+        $this->attachments->add($attachment);
+        $attachment->setMessage($this);
+
+        return $this;
+    }
+
+    public function getParent(): ?self
+    {
+        return $this->parent;
+    }
+
+    /**
+     * @return Collection|Message[]
+     */
+    public function getChildren()
+    {
+        return $this->children;
+    }
+
+    public function addChild(self $child): self
+    {
+        $this->children[] = $child;
+        $child->setParent($this);
+
+        return $this;
+    }
+
+    public function setParent(self $parent = null): self
+    {
+        $this->parent = $parent;
+
+        return $this;
+    }
+
+    /**
+     * @return MessageFeedback[]|Collection
+     */
+    public function getLikes()
+    {
+        return $this->likes;
+    }
+
     /**
      * Get an excerpt from the content.
      *
      * @param int $length Optional. Length of the excerpt.
-     *
-     * @return string
      */
-    public function getExcerpt($length = 50)
+    public function getExcerpt(int $length = 50): string
     {
         $striped = strip_tags($this->content);
         $replaced = str_replace(["\r\n", "\n"], ' ', $striped);

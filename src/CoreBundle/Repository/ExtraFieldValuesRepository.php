@@ -1,25 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Repository;
 
 use Chamilo\CoreBundle\Entity\ExtraFieldValues;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\ORM\Query\Expr\Join;
+use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * ExtraFieldValuesRepository class.
- *
  *
  * @author Angel Fernando Quiroz Campos <angel.quiroz@beeznest.com>
  */
 class ExtraFieldValuesRepository extends ServiceEntityRepository
 {
-    /**
-     * ExtraFieldValuesRepository constructor.
-     */
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, ExtraFieldValues::class);
@@ -33,7 +31,7 @@ class ExtraFieldValuesRepository extends ServiceEntityRepository
      *
      * @return array
      */
-    public function getVisibleValues($extraFieldType, $itemId)
+    public function getVisibleValues(int $extraFieldType, int $itemId)
     {
         $queryBuilder = $this->createQueryBuilder('fv');
 
@@ -46,8 +44,8 @@ class ExtraFieldValuesRepository extends ServiceEntityRepository
             )
             ->where(
                 $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->eq('f.extraFieldType', (int) $extraFieldType),
-                    $queryBuilder->expr()->eq('fv.itemId', (int) $itemId),
+                    $queryBuilder->expr()->eq('f.extraFieldType', $extraFieldType),
+                    $queryBuilder->expr()->eq('fv.itemId', $itemId),
                     $queryBuilder->expr()->eq('f.visibleToSelf', true)
                 )
             )

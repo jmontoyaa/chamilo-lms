@@ -7,8 +7,6 @@
  * Extends FormValidator with add&edit forms for evaluations
  *
  * @author Stijn Konings
- *
- * @package chamilo.gradebook
  */
 class EvalForm extends FormValidator
 {
@@ -29,7 +27,7 @@ class EvalForm extends FormValidator
      *
      * @param int        $form_type         1=add, 2=edit,3=move,4=result_add
      * @param Evaluation $evaluation_object the category object
-     * @param obj        $result_object     the result object
+     * @param            $result_object     the result object
      * @param string     $form_name
      * @param string     $method
      * @param string     $action
@@ -87,9 +85,9 @@ class EvalForm extends FormValidator
         parent::display();
     }
 
-    public function setDefaults($defaults = [], $filter = null)
+    public function setDefaults($defaultValues = [], $filter = null)
     {
-        parent::setDefaults($defaults, $filter);
+        parent::setDefaults($defaultValues, $filter);
     }
 
     public function sort_by_user($item1, $item2)
@@ -98,12 +96,12 @@ class EvalForm extends FormValidator
         $user2 = $item2['user'];
         if (api_sort_by_first_name()) {
             $result = api_strcmp($user1['firstname'], $user2['firstname']);
-            if ($result == 0) {
+            if (0 == $result) {
                 return api_strcmp($user1['lastname'], $user2['lastname']);
             }
         } else {
             $result = api_strcmp($user1['lastname'], $user2['lastname']);
-            if ($result == 0) {
+            if (0 == $result) {
                 return api_strcmp($user1['firstname'], $user2['firstname']);
             }
         }
@@ -116,9 +114,8 @@ class EvalForm extends FormValidator
      */
     protected function build_add_user_to_eval()
     {
-        $this->addElement('header', get_lang('Choose users for this evaluation'));
-        $select = $this->addElement(
-            'select',
+        $this->addHeader(get_lang('Choose users for this evaluation'));
+        $select = $this->addSelect(
             'firstLetterUser',
             get_lang('First letter'),
             null,
@@ -135,8 +132,7 @@ class EvalForm extends FormValidator
                 $select->addOption($letter, $letter);
             }
         }
-        $select = $this->addElement(
-            'select',
+        $select = $this->addSelect(
             'add_users',
             null,
             null,
@@ -149,7 +145,7 @@ class EvalForm extends FormValidator
         foreach ($this->evaluation_object->get_not_subscribed_students() as $user) {
             if ((!isset($this->extra)) || empty($this->extra) || api_strtoupper(api_substr($user[1], 0, 1)) == $this->extra
             ) {
-                $select->addoption($user[1].' '.$user[2].' ('.$user[3].')', $user[0]);
+                $select->addOption($user[1].' '.$user[2].' ('.$user[3].')', $user[0]);
             }
         }
         $this->addButtonCreate(get_lang('Add users to evaluation'), 'submit_button');
@@ -165,8 +161,9 @@ class EvalForm extends FormValidator
         $renderer = &$this->defaultRenderer();
         // set new form template
         $form_template = '<form{attributes}>
-                    <table class="data_table" border="0" cellpadding="5" cellspacing="5">{content}
-                    </table>
+                <div class="table-responsive">
+                    <table class="data_table" border="0" cellpadding="5" cellspacing="5">{content}</table>
+                </div>
                 </form>';
         $renderer->setFormTemplate($form_template);
 
@@ -291,13 +288,13 @@ class EvalForm extends FormValidator
         $renderer->setCustomElementTemplate('<span>{element}</span> ');
         $this->addElement('static', null, null, '"'.$this->evaluation_object->get_name().'" ');
         $this->addElement('static', null, null, get_lang('Move to').' : ');
-        $select = $this->addElement('select', 'move_cat', null, null);
+        $select = $this->addSelect('move_cat', null, null);
         $line = '';
         foreach ($this->evaluation_object->get_target_categories() as $cat) {
             for ($i = 0; $i < $cat[2]; $i++) {
                 $line .= '&mdash;';
             }
-            $select->addoption($line.' '.$cat[1], $cat[0]);
+            $select->addOption($line.' '.$cat[1], $cat[0]);
             $line = '';
         }
         $this->addButtonSave(get_lang('Validate'), 'submit');
@@ -311,9 +308,11 @@ class EvalForm extends FormValidator
         $renderer = &$this->defaultRenderer();
         $renderer->setFormTemplate(
             '<form{attributes}>
-		      <table class="data_table">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped data_table">
               {content}
 		      </table>
+            </div>
 		   </form>'
         );
 
@@ -471,7 +470,7 @@ class EvalForm extends FormValidator
             ]
         );
         $this->build_basic_form();
-        if ($this->evaluation_object->get_course_code() == null) {
+        if (null == $this->evaluation_object->get_course_code()) {
             $this->addElement('checkbox', 'adduser', null, get_lang('Add users to evaluation'));
         } else {
             $this->addElement('checkbox', 'addresult', null, get_lang('Grade learners'));
@@ -486,7 +485,7 @@ class EvalForm extends FormValidator
     {
         $parent_cat = Category::load($this->evaluation_object->get_category_id());
         //@TODO $weight_mask is replaced?
-        if ($parent_cat[0]->get_parent_id() == 0) {
+        if (0 == $parent_cat[0]->get_parent_id()) {
             $weight_mask = $this->evaluation_object->get_weight();
         } else {
             $cat = Category::load($parent_cat[0]->get_parent_id());
@@ -522,7 +521,7 @@ class EvalForm extends FormValidator
     private function build_basic_form($edit = 0)
     {
         $form_title = get_lang('Add classroom activity');
-        if (!empty($_GET['editeval']) && $_GET['editeval'] == 1) {
+        if (!empty($_GET['editeval']) && 1 == $_GET['editeval']) {
             $form_title = get_lang('Edit evaluation');
         }
 
@@ -554,11 +553,10 @@ class EvalForm extends FormValidator
             false
         );
 
-        if (count($all_categories) == 1) {
+        if (1 == count($all_categories)) {
             $this->addElement('hidden', 'hid_category_id', $cat_id);
         } else {
-            $select_gradebook = $this->addElement(
-                'select',
+            $select_gradebook = $this->addSelect(
                 'hid_category_id',
                 get_lang('Select assessment'),
                 [],
@@ -571,16 +569,16 @@ class EvalForm extends FormValidator
                     if ($my_cat->get_course_code() == api_get_course_id()) {
                         $grade_model_id = $my_cat->get_grade_model_id();
                         if (empty($grade_model_id)) {
-                            if ($my_cat->get_parent_id() == 0) {
+                            if (0 == $my_cat->get_parent_id()) {
                                 $default_weight = $my_cat->get_weight();
-                                $select_gradebook->addoption(get_lang('Default'), $my_cat->get_id());
+                                $select_gradebook->addOption(get_lang('Default'), $my_cat->get_id());
                                 $cats_added[] = $my_cat->get_id();
                             } else {
-                                $select_gradebook->addoption($my_cat->get_name(), $my_cat->get_id());
+                                $select_gradebook->addOption($my_cat->get_name(), $my_cat->get_id());
                                 $cats_added[] = $my_cat->get_id();
                             }
                         } else {
-                            $select_gradebook->addoption(get_lang('Select'), 0);
+                            $select_gradebook->addOption(get_lang('Select'), 0);
                         }
                         if ($this->evaluation_object->get_category_id() == $my_cat->get_id()) {
                             $default_weight = $my_cat->get_weight();
@@ -697,7 +695,7 @@ class EvalForm extends FormValidator
         );
         $setting = api_get_setting('tool_visible_by_default_at_creation');
         $visibility_default = 1;
-        if (isset($setting['gradebook']) && $setting['gradebook'] == 'false') {
+        if (isset($setting['gradebook']) && 'false' == $setting['gradebook']) {
             $visibility_default = 0;
         }
         $this->setDefaults(['visible' => $visibility_default]);
@@ -719,7 +717,7 @@ class EvalForm extends FormValidator
         if ($this->evaluation_object->get_category_id() < 0) {
             $link = LinkFactory::get_evaluation_link($this->evaluation_object->get_id());
             $doc_url = $link->get_view_url($id);
-            if ($doc_url != null) {
+            if (null != $doc_url) {
                 $opendocurl_start .= '<a href="'.$doc_url.'" target="_blank">';
                 $opendocurl_end = '</a>';
             }

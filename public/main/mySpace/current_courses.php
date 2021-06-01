@@ -1,14 +1,13 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
 /**
  * Report for current courses followed by the user.
- *
- * @package chamilo.reporting
  */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 $this_section = SECTION_TRACKING;
-
 $filename = 'reporting';
 
 if (!api_is_allowed_to_create_course()) {
@@ -21,7 +20,6 @@ $array = [];
 
 $i = 0;
 $session_id = 0;
-
 if (!empty($my_courses)) {
     foreach ($my_courses as $course) {
         $course_code = $course['code'];
@@ -29,7 +27,7 @@ if (!empty($my_courses)) {
         $course_info = api_get_course_info($course_code);
 
         //Only show open courses
-        if ($course_info['visibility'] == 0) {
+        if (0 == $course_info['visibility']) {
             continue;
         }
 
@@ -48,7 +46,7 @@ if (!empty($my_courses)) {
         $students = [];
         foreach ($tmp_students as $student) {
             $user_info = api_get_user_info($student['user_id']);
-            if ($user_info['status'] != STUDENT) {
+            if (STUDENT != $user_info['status']) {
                 continue;
             }
             $students[] = $student['user_id'];
@@ -96,7 +94,7 @@ if (!empty($my_courses)) {
                         $myavg_temp = Tracking::get_avg_student_score($student_id, $course_code, [$lp_id], $session_id);
                         $avg_progress_in_course = Tracking::get_avg_student_progress($student_id, $course_code, [$lp_id], $session_id);
 
-                        if (intval($avg_progress_in_course) == 100) {
+                        if (100 == intval($avg_progress_in_course)) {
                             $count_students_complete_all_activities++;
                         }
                         if (intval($avg_progress_in_course) > 0 && intval($avg_progress_in_course) <= 50) {
@@ -223,7 +221,7 @@ if (isset($_GET['export'])) {
 $interbreadcrumb[] = ['url' => 'index.php', 'name' => get_lang('Reporting')];
 Display::display_header(get_lang('Current courses'));
 
-$table = new HTML_Table(['class' => 'data_table']);
+$table = new HTML_Table(['class' => 'table table-hover table-striped data_table']);
 $row = 0;
 $column = 0;
 foreach ($headers as $header) {

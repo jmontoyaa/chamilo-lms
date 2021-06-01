@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
@@ -12,61 +14,47 @@ use Doctrine\ORM\Mapping as ORM;
  * @ORM\Table(name="message_attachment")
  * @ORM\Entity
  */
-class MessageAttachment
+class MessageAttachment extends AbstractResource implements ResourceInterface
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="IDENTITY")
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="path", type="string", length=255, nullable=false)
      */
-    protected $path;
+    protected string $path;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="comment", type="text", nullable=true)
      */
-    protected $comment;
+    protected ?string $comment = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="size", type="integer", nullable=false)
      */
-    protected $size;
+    protected int $size;
 
     /**
-     * @var Message
-     *
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Message", inversedBy="attachments")
      * @ORM\JoinColumn(name="message_id", referencedColumnName="id", nullable=false)
      */
-    protected $message;
+    protected Message $message;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="filename", type="string", length=255, nullable=false)
      */
-    protected $filename;
+    protected string $filename;
 
-    /**
-     * Set path.
-     *
-     * @param string $path
-     *
-     * @return MessageAttachment
-     */
-    public function setPath($path)
+    public function __toString(): string
+    {
+        return $this->getFilename();
+    }
+
+    public function setPath(string $path): self
     {
         $this->path = $path;
 
@@ -83,14 +71,7 @@ class MessageAttachment
         return $this->path;
     }
 
-    /**
-     * Set comment.
-     *
-     * @param string $comment
-     *
-     * @return MessageAttachment
-     */
-    public function setComment($comment)
+    public function setComment(string $comment): self
     {
         $this->comment = $comment;
 
@@ -107,14 +88,7 @@ class MessageAttachment
         return $this->comment;
     }
 
-    /**
-     * Set size.
-     *
-     * @param int $size
-     *
-     * @return MessageAttachment
-     */
-    public function setSize($size)
+    public function setSize(int $size): self
     {
         $this->size = $size;
 
@@ -131,48 +105,26 @@ class MessageAttachment
         return $this->size;
     }
 
-    /**
-     * Set message.
-     *
-     * @return MessageAttachment
-     */
-    public function setMessage(Message $message)
+    public function setMessage(Message $message): self
     {
         $this->message = $message;
 
         return $this;
     }
 
-    /**
-     * Get message.
-     *
-     * @return Message
-     */
-    public function getMessage()
+    public function getMessage(): Message
     {
         return $this->message;
     }
 
-    /**
-     * Set filename.
-     *
-     * @param string $filename
-     *
-     * @return MessageAttachment
-     */
-    public function setFilename($filename)
+    public function setFilename(string $filename): self
     {
         $this->filename = $filename;
 
         return $this;
     }
 
-    /**
-     * Get filename.
-     *
-     * @return string
-     */
-    public function getFilename()
+    public function getFilename(): string
     {
         return $this->filename;
     }
@@ -185,5 +137,20 @@ class MessageAttachment
     public function getId()
     {
         return $this->id;
+    }
+
+    public function getResourceIdentifier(): int
+    {
+        return $this->getId();
+    }
+
+    public function getResourceName(): string
+    {
+        return $this->getFilename();
+    }
+
+    public function setResourceName(string $name): self
+    {
+        return $this->setFilename($name);
     }
 }

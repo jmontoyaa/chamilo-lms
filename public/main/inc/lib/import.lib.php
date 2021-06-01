@@ -1,15 +1,13 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-use Ddeboer\DataImport\Reader\ExcelReader;
 use League\Csv\Reader;
 
 /**
  * Class Import
  * This class provides some functions which can be used when importing data from
  * external files into Chamilo.
- *
- * @package chamilo.library
  */
 class Import
 {
@@ -80,9 +78,10 @@ class Import
             return [];
         }
 
-        $file = new \SplFileObject($filename);
-        $reader = new ExcelReader($file, 0);
+        $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xls();
+        $spreadsheet = $reader->load($filename);
+        $sheet = $spreadsheet->getActiveSheet();
 
-        return $reader;
+        return $sheet->toArray();
     }
 }

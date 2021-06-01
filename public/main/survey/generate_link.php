@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -44,7 +45,7 @@ echo '<div class="row">';
     echo get_lang('By copying the link below and pasting it in an e-mail or on a website, you will allow any anonymous person to enter and answer this survey.');
 
     echo '<pre>';
-    echo  $link;
+    echo $link;
     echo '</pre>';
 
     echo '</div>';

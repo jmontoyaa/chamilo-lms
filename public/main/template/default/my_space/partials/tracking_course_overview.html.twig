@@ -1,4 +1,4 @@
-{% import '@ChamiloTheme/Macros/box.html.twig' as display %}
+{% import '@ChamiloCore/Macros/box.html.twig' as display %}
 
 {% set content %}
     <div class="summary-course" id="summary-{{ data.id }}">
@@ -71,7 +71,7 @@
                         <span title="{{ 'TotalNumberOfAssignments'|get_lang }}">{{ 'TotalNumberOfAssignments'|get_lang }}</span>
                     </dt>
                     <dd>
-                        <span class="text-color"><i class="fa fa-pencil" aria-hidden="true"></i></span>
+                        <span class="text-color"><i class="fas fa-pencil-alt" aria-hidden="true"></i></span>
                         <span class="text-color">{{ data.number_assignments }}</span>
                     </dd>
                     <dt>

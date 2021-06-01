@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 $cidReset = true;
@@ -8,7 +9,7 @@ $this_section = SECTION_PLATFORM_ADMIN;
 
 api_protect_admin_script();
 
-if (api_get_setting('gradebook_enable_grade_model') != 'true') {
+if ('true' != api_get_setting('gradebook_enable_grade_model')) {
     api_not_allowed(true);
 }
 
@@ -23,10 +24,10 @@ $action = isset($_GET['action']) ? $_GET['action'] : null;
 $check = Security::check_token('request');
 $token = Security::get_token();
 
-if ($action === 'add') {
+if ('add' === $action) {
     $interbreadcrumb[] = ['url' => 'grade_models.php', 'name' => get_lang('Grading model')];
     $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Add')];
-} elseif ($action == 'edit') {
+} elseif ('edit' == $action) {
     $interbreadcrumb[] = ['url' => 'grade_models.php', 'name' => get_lang('Grading model')];
     $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Edit')];
 } else {
@@ -50,11 +51,8 @@ function plusItem(item) {
 function minItem(item) {
     if (item != 1) {
         document.getElementById(item).style.display = "none";
-        //document.getElementById("txta-"+item).value = "";
-        //document.getElementById("txtb-"+item).value = "";
         document.getElementById("plus-"+item).style.display = "inline";
         document.getElementById("min-"+(item-1)).style.display = "inline";
-        //document.getElementById("txta-"+(item-1)).value = "100";
         $("input").removeClass("form-control");
 	}
 	if (item = 1) {
@@ -136,7 +134,7 @@ $obj = new GradeModel();
 // Action handling: Add
 switch ($action) {
     case 'add':
-        if (api_get_session_id() != 0 && !api_is_allowed_to_session_edit(false, true)) {
+        if (0 != api_get_session_id() && !api_is_allowed_to_session_edit(false, true)) {
             api_not_allowed();
         }
 

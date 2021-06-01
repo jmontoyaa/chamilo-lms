@@ -1,7 +1,7 @@
 <?php
 /* For licensing terms, see /license.txt */
 
-use Chamilo\UserBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\User;
 use Doctrine\Common\Collections\Criteria;
 use Doctrine\ORM\Query\Expr\Join;
 
@@ -39,33 +39,41 @@ switch ($action) {
         $user_info = api_get_user_info($_REQUEST['user_id']);
         $isAnonymous = api_is_anonymous();
 
+        if ($isAnonymous && $courseId) {
+            if ('false' === api_get_setting('course_catalog_published')) {
+                break;
+            }
+
+            $coursesNotInCatalog = CoursesAndSessionsCatalog::getCoursesToAvoid();
+
+            if (in_array($courseId, $coursesNotInCatalog)) {
+                break;
+            }
+        }
         echo '<div class="row">';
         echo '<div class="col-sm-5">';
         echo '<div class="thumbnail">';
-        echo '<img src="'.$user_info['avatar'].'" /> ';
+        echo Display::img($user_info['avatar'], $user_info['complete_name']);
         echo '</div>';
         echo '</div>';
 
         echo '<div class="col-sm-7">';
 
-        if (api_get_setting('show_email_addresses') == 'false') {
-            $user_info['mail'] = ' ';
-        } else {
-            $user_info['mail'] = ' '.$user_info['mail'].' ';
-        }
-
-        if ($isAnonymous) {
+        if ($isAnonymous || 'false' == api_get_setting('show_email_addresses')) {
             $user_info['mail'] = ' ';
         }
 
-        $userData = '<h3>'.$user_info['complete_name'].'</h3>'.$user_info['mail'].$user_info['official_code'];
+        $userData = '<h3>'.$user_info['complete_name'].'</h3>'
+            .PHP_EOL
+            .$user_info['mail']
+            .PHP_EOL
+            .$user_info['official_code'];
+
         if ($isAnonymous) {
             // Only allow anonymous users to see user popup if the popup user
             // is a teacher (which might be necessary to illustrate a course)
-            if ($user_info['status'] === COURSEMANAGER) {
+            if (COURSEMANAGER === (int) $user_info['status']) {
                 echo $userData;
-            } else {
-                echo '<h3>-</h3>';
             }
         } else {
             echo Display::url(
@@ -76,10 +84,18 @@ switch ($action) {
         echo '</div>';
         echo '</div>';
 
-        $url = api_get_path(WEB_AJAX_PATH).'message.ajax.php?a=send_message&user_id='.$user_info['user_id'].'&course_id='.$courseId.'&session_id='.$sessionId;
+        $url = api_get_path(WEB_AJAX_PATH).'message.ajax.php?'
+            .http_build_query(
+                [
+                    'a' => 'send_message',
+                    'user_id' => $user_info['user_id'],
+                    'course_id' => $courseId,
+                    'session_id' => $sessionId,
+                ]
+            );
 
-        if ($isAnonymous === false &&
-            api_get_setting('allow_message_tool') == 'true'
+        if (false === $isAnonymous &&
+            'true' == api_get_setting('allow_message_tool')
         ) {
             echo '<script>';
             echo '
@@ -171,13 +187,13 @@ switch ($action) {
 
             if (!empty($user_id)) {
                 $user_table = Database::get_main_table(TABLE_MAIN_USER);
-                $sql = "UPDATE $user_table 
-                        SET active = '".$status."' 
+                $sql = "UPDATE $user_table
+                        SET active = '".$status."'
                         WHERE user_id = '".$user_id."'";
                 $result = Database::query($sql);
 
                 // Send and email if account is active
-                if ($status == 1) {
+                if (1 == $status) {
                     $user_info = api_get_user_info($user_id);
                     $recipientName = api_get_person_name(
                         $user_info['firstname'],
@@ -227,18 +243,6 @@ switch ($action) {
                         false,
                         $additionalParameters
                     );
-
-                    /*$result = api_mail_html(
-                        $recipientName,
-                        $user_info['mail'],
-                        $subject,
-                        $body,
-                        $sender_name,
-                        $emailAdmin,
-                        null,
-                        null,
-                        $additionalParameters
-                    );*/
                     Event::addEvent(LOG_USER_ENABLE, LOG_USER_ID, $user_id);
                 } else {
                     Event::addEvent(LOG_USER_DISABLE, LOG_USER_ID, $user_id);
@@ -252,6 +256,9 @@ switch ($action) {
     case 'user_by_role':
         api_block_anonymous_users(false);
 
+        $status = isset($_REQUEST['status']) ? (int) $_REQUEST['status'] : DRH;
+        $active = isset($_REQUEST['active']) ? (int) $_REQUEST['active'] : null;
+
         $criteria = new Criteria();
         $criteria
             ->where(
@@ -262,9 +269,12 @@ switch ($action) {
                 )
             )
             ->andWhere(
-                Criteria::expr()->eq('status', DRH)
+                Criteria::expr()->eq('status', $status)
             );
 
+        if (null !== $active) {
+            $criteria->andWhere(Criteria::expr()->eq('active', $active));
+        }
         $users = UserManager::getRepository()->matching($criteria);
 
         if (!$users->count()) {

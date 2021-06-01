@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -9,11 +10,8 @@
 class MatchingDraggable extends Question
 {
     public $typePicture = 'matchingdrag.png';
-    public $explanationLangVar = 'MatchingDraggable';
+    public $explanationLangVar = 'Match by dragging';
 
-    /**
-     * Class constructor.
-     */
     public function __construct()
     {
         parent::__construct();
@@ -21,9 +19,6 @@ class MatchingDraggable extends Question
         $this->isContent = $this->getIsContent();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function createAnswersForm($form)
     {
         $defaults = [];
@@ -206,7 +201,7 @@ class MatchingDraggable extends Question
         if (!empty($this->id)) {
             $form->setDefaults($defaults);
         } else {
-            if ($this->isContent == 1) {
+            if (1 == $this->isContent) {
                 $form->setDefaults($defaults);
             }
         }
@@ -219,9 +214,6 @@ class MatchingDraggable extends Question
         );
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function processAnswersCreation($form, $exercise)
     {
         $nb_matches = $form->getSubmitValue('nb_matches');
@@ -257,9 +249,6 @@ class MatchingDraggable extends Question
         $this->save($exercise);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function return_header(Exercise $exercise, $counter = null, $score = [])
     {
         $header = parent::return_header($exercise, $counter, $score);

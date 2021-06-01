@@ -1,27 +1,26 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
  * This page allows the administrator to manage the system announcements.
- *
- * @package chamilo.admin.announcement
  */
 
 // Resetting the course id.
 $cidReset = true;
 
-// Including the global initialization file.
 require_once __DIR__.'/../inc/global.inc.php';
 
 // Setting the section (for the tabs).
 $this_section = SECTION_PLATFORM_ADMIN;
 $_SESSION['this_section'] = $this_section;
 
-$action = isset($_GET['action']) ? $_GET['action'] : null;
+$action = $_GET['action'] ?? null;
 $action_todo = false;
 
-// Access restrictions
 api_protect_admin_script(true);
+
+$allowCareers = api_get_configuration_value('allow_careers_in_global_announcements');
 
 // Setting breadcrumbs.
 $interbreadcrumb[] = [
@@ -41,44 +40,70 @@ if (!empty($action)) {
         "url" => "system_announcements.php",
         "name" => get_lang('Portal news'),
     ];
-    if ($action == 'add') {
+    if ('add' === $action) {
         $interbreadcrumb[] = [
             "url" => '#',
             "name" => get_lang('Add an announcement'),
         ];
     }
-    if ($action == 'edit') {
-        $interbreadcrumb[] = ["url" => '#', "name" => get_lang('Edit')];
+    if ('edit' === $action) {
+        $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Edit')];
     }
 } else {
     $tool_name = get_lang('Portal news');
 }
+$url = api_get_path(WEB_AJAX_PATH).'career.ajax.php';
 
-// Displaying the header.
-Display :: display_header($tool_name);
-if ($action != 'add' && $action != 'edit') {
-    echo '<div class="actions">';
-    echo '<a href="?action=add">'.Display::return_icon('add.png', get_lang('Add an announcement'), [], 32).'</a>';
-    echo '</div>';
+$htmlHeadXtra[] = '<script>
+function showCareer() {
+    $("#promotion").show();
+    var url = "'.$url.'";
+    var id = $(\'#career_id\').val();
+
+    $.getJSON(
+        url, {
+            "career_id" : id,
+            "a" : "get_promotions"
+        }
+    )
+    .done(function(data) {
+        $("#promotion_id").empty();
+        $("#promotion_id").append(
+            $("<option>", {value: "0", text: "'.addslashes(get_lang('All')).'"})
+        );
+        $.each(data, function(index, value) {
+            $("#promotion_id").append(
+                $("<option>", {value: value.id, text: value.name})
+            );
+        });
+        $("#promotion_id").selectpicker("refresh");
+    });
+}
+</script>';
+
+Display::display_header($tool_name);
+if ('add' !== $action && 'edit' !== $action) {
+    $actions = '<a href="?action=add">'.
+        Display::return_icon('add.png', get_lang('Add an announcement'), [], 32).'</a>';
+    echo Display::toolbarAction('toolbar', [$actions]);
 }
 
-/* MAIN CODE */
 $show_announcement_list = true;
-$action = isset($_REQUEST['action']) ? $_REQUEST['action'] : null;
+$action = $_REQUEST['action'] ?? null;
 
 // Form was posted?
 if (isset($_POST['action'])) {
     $action_todo = true;
 }
 
-// Actions
 switch ($action) {
     case 'make_visible':
     case 'make_invisible':
         $status = false;
-        if ($action == 'make_visible') {
+        if ('make_visible' === $action) {
             $status = true;
         }
+
         SystemAnnouncementManager::set_visibility(
             $_GET['id'],
             $_GET['person'],
@@ -126,6 +151,10 @@ switch ($action) {
                 $values[$key] = $data[$key];
             }
         }
+        if ($allowCareers) {
+            $values['career_id'] = $announcement->career_id;
+            $values['promotion_id'] = $announcement->promotion_id;
+        }
 
         $values['lang'] = $announcement->lang;
         $values['action'] = 'edit';
@@ -136,15 +165,15 @@ switch ($action) {
 }
 
 if ($action_todo) {
-    if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'add') {
+    if ('add' === $action) {
         $form_title = get_lang('Add news');
         $url = api_get_self();
-    } elseif (isset($_REQUEST['action']) && $_REQUEST['action'] == 'edit') {
+    } elseif ('edit' === $action) {
         $form_title = get_lang('Edit News');
         $url = api_get_self().'?id='.intval($_GET['id']);
     }
     $form = new FormValidator('system_announcement', 'post', $url);
-    $form->addElement('header', '', $form_title);
+    $form->addHeader($form_title);
     $form->addText('title', get_lang('Title'), true);
 
     $extraOption = [];
@@ -167,10 +196,53 @@ if ($action_todo) {
             'Height' => '300',
         ]
     );
+    $form->addDateRangePicker(
+        'range',
+        get_lang('Start'),
+        true,
+        ['id' => 'range']
+    );
+
+    if ($allowCareers) {
+        $career = new Career();
+        $careerList = $career->get_all();
+        $list = array_column($careerList, 'name', 'id');
+
+        $form->addSelect(
+            'career_id',
+            get_lang('Career'),
+            $list,
+            [
+                'onchange' => 'javascript: showCareer();',
+                'placeholder' => get_lang('SelectAnOption'),
+                'id' => 'career_id',
+            ]
+        );
+
+        $display = 'none;';
+        $options = [];
+        if (isset($values['promotion_id'])) {
+            $promotion = new Promotion();
+            $promotion = $promotion->get($values['promotion_id']);
+            if ($promotion) {
+                $options = [$promotion['id'] => $promotion['name']];
+                $display = 'block';
+            }
+        }
+
+        $form->addHtml('<div id="promotion" style="display:'.$display.';">');
+        $form->addSelect(
+            'promotion_id',
+            get_lang('Promotion'),
+            $options,
+            ['id' => 'promotion_id']
+        );
+        $form->addHtml('</div>');
+    }
 
     // Add Picture Announcements
     try {
-        $form->addFile(
+        /*$form->addFile(
             'picture',
             [
                 get_lang('Add Picture'),
@@ -194,23 +266,16 @@ if ($action_todo) {
         if (file_exists($store_path.'/announcement_'.$announcement->id.'.png')) {
             $announcementsPath = api_get_path(WEB_UPLOAD_PATH).'announcements'; // announcement web path
             $announcementsImage = $announcementsPath.'/announcement_'.$announcement->id.'_100x100.png?'.rand(1, 1000); // redimensioned image 85x85
-            $image = '<div class="row"><label class="col-md-2 control-label">'.get_lang('Image').'</label> 
+            $image = '<div class="row"><label class="col-md-2 control-label">'.get_lang('Image').'</label>
                     <div class="col-md-8"><img class="img-thumbnail" src="'.$announcementsImage.'" /></div></div>';
 
             $form->addHtml($image);
             $form->addElement('checkbox', 'delete_picture', null, get_lang('Delete picture'));
-        }
+        }*/
     } catch (Exception $e) {
-    } catch (HTML_QuickForm_Error $e) {
         error_log($e);
     }
 
-    $form->addDateRangePicker(
-        'range',
-        get_lang('Start'),
-        true,
-        ['id' => 'range']
-    );
 
     $group = [];
     foreach ($visibleList as $key => $name) {
@@ -241,12 +306,12 @@ if ($action_todo) {
     $values['group'] = isset($values['group']) ? $values['group'] : '0';
     $form->addElement('checkbox', 'send_mail', null, get_lang('Send mail'));
 
-    if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'add') {
+    if ('add' === $action) {
         $form->addElement('checkbox', 'add_to_calendar', null, get_lang('Add to calendar'));
         $text = get_lang('Add news');
         $class = 'add';
         $form->addElement('hidden', 'action', 'add');
-    } elseif (isset($_REQUEST['action']) && $_REQUEST['action'] == 'edit') {
+    } elseif ('edit' === $action) {
         $text = get_lang('Edit News');
         $class = 'save';
         $form->addElement('hidden', 'action', 'edit');
@@ -265,7 +330,7 @@ if ($action_todo) {
             $visibilityResult[$key] = (int) $values[$key];
         }
 
-        if ($values['lang'] == 'all') {
+        if ('all' === $values['lang']) {
             $values['lang'] = null;
         }
 
@@ -285,7 +350,8 @@ if ($action_todo) {
                     empty($values['send_email_test']) ? false : true
                 );
 
-                if ($announcement_id !== false) {
+                if (false !== $announcement_id) {
+                    /*
                     // ADD Picture
                     $picture = $_FILES['picture'];
                     if (!empty($picture['name'])) {
@@ -294,22 +360,22 @@ if ($action_todo) {
                             $picture['tmp_name'],
                             $values['picture_crop_result']
                         );
-                    }
+                    }*/
 
                     if (isset($values['group'])) {
                         SystemAnnouncementManager::announcement_for_groups(
                             $announcement_id,
                             [$values['group']]
                         );
-                        echo Display::return_message(
-                            get_lang('Announcement has been added'),
-                            'confirmation'
-                        );
                     }
-                } else {
-                    $show_announcement_list = false;
-                    $form->display();
+                    Display::addFlash(Display::return_message(
+                        get_lang('Announcement has been added'),
+                        'confirmation'
+                    ));
                 }
+
+                api_location(api_get_self());
+
                 break;
             case 'edit':
                 $sendMailTest = isset($values['send_email_test']) ? $values['send_email_test'] : null;
@@ -345,15 +411,17 @@ if ($action_todo) {
                             $values['id'],
                             [$values['group']]
                         );
-                        echo Display::return_message(
+                    }
+                    Display::addFlash(
+                        Display::return_message(
                             get_lang('AnnouncementUpdate successful'),
                             'confirmation'
-                        );
-                    }
-                } else {
-                    $show_announcement_list = false;
-                    $form->display();
+                        )
+                    );
                 }
+
+                api_location(api_get_self());
+
                 break;
             default:
                 break;
@@ -388,7 +456,13 @@ if ($show_announcement_list) {
         $row[] = "<a href=\"?id=".$announcement->id."&person=".SystemAnnouncementManager::VISIBLE_GUEST."&action=".($announcement->visible_guest ? 'make_invisible' : 'make_visible')."\">".Display::return_icon(($announcement->visible_guest ? 'eyes.png' : 'eyes-close.png'), get_lang('Show/Hide'))."</a>";*/
 
         $row[] = $announcement->lang;
-        $row[] = "<a href=\"?action=edit&id=".$announcement->id."\">".Display::return_icon('edit.png', get_lang('Edit'), [], ICON_SIZE_SMALL)."</a> <a href=\"?action=delete&id=".$announcement->id."\" title=".addslashes(api_htmlentities(get_lang('Please confirm your choice')))." class='delete-swal' >".Display::return_icon('delete.png', get_lang('Delete'), [], ICON_SIZE_SMALL)."</a>";
+        $row[] = "<a href=\"?action=edit&id=".$announcement->id."\">".
+            Display::return_icon('edit.png', get_lang('Edit'), [], ICON_SIZE_SMALL)."</a>
+            <a
+                href=\"?action=delete&id=".$announcement->id."\"
+                title=".addslashes(api_htmlentities(get_lang('Please confirm your choice')))." class='delete-swal' >".
+            Display::return_icon('delete.png', get_lang('Delete'), [], ICON_SIZE_SMALL).
+            "</a>";
         $announcement_data[] = $row;
     }
     $table = new SortableTableFromArray($announcement_data);
@@ -412,4 +486,4 @@ if ($show_announcement_list) {
     $table->display();
 }
 
-Display :: display_footer();
+Display::display_footer();

@@ -1,9 +1,9 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
-/**
- *  @package chamilo.admin
- */
+use Chamilo\CoreBundle\Framework\Container;
+
 $cidReset = true;
 
 require_once __DIR__.'/../inc/global.inc.php';
@@ -36,10 +36,10 @@ $columns = [
 //Column config
 $column_model = [
     ['name' => 'name', 'index' => 'name', 'width' => '35', 'align' => 'left'],
-    ['name' => 'users', 'index' => 'users', 'width' => '15', 'align' => 'left'],
-    ['name' => 'courses', 'index' => 'courses', 'width' => '15', 'align' => 'left'],
-    ['name' => 'sessions', 'index' => 'sessions', 'width' => '15', 'align' => 'left'],
-    ['name' => 'group_type', 'index' => 'group_type', 'width' => '15', 'align' => 'center'],
+    ['name' => 'users', 'index' => 'users', 'width' => '15', 'align' => 'left', 'search' => 'false'],
+    ['name' => 'courses', 'index' => 'courses', 'width' => '15', 'align' => 'left', 'search' => 'false'],
+    ['name' => 'sessions', 'index' => 'sessions', 'width' => '15', 'align' => 'left', 'search' => 'false'],
+    ['name' => 'group_type', 'index' => 'group_type', 'width' => '15', 'align' => 'center', 'search' => 'false'],
     [
         'name' => 'actions',
         'index' => 'actions',
@@ -47,6 +47,7 @@ $column_model = [
         'align' => 'center',
         'sortable' => 'false',
         'formatter' => 'action_formatter',
+        'search' => 'false',
     ],
 ];
 
@@ -75,7 +76,7 @@ switch ($action) {
         $interbreadcrumb[] = ['url' => 'usergroups.php', 'name' => get_lang('Classes')];
         $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Add')];
 
-        if (api_get_session_id() != 0 && !api_is_allowed_to_session_edit(false, true)) {
+        if (0 != api_get_session_id() && !api_is_allowed_to_session_edit(false, true)) {
             api_not_allowed();
         }
         $form = new FormValidator(
@@ -104,10 +105,9 @@ switch ($action) {
             header('Location: '.api_get_self());
             exit;
         } else {
-            $content .= '<div class="actions">';
-            $content .= '<a href="'.api_get_self().'">'.
+            $actions = '<a href="'.api_get_self().'">'.
                 Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM).'</a>';
-            $content .= '</div>';
+            $content .= Display::toolbarAction('toolbar', [$actions]);
             $token = Security::get_token();
             $form->addElement('hidden', 'sec_token');
             $form->setConstants(['sec_token' => $token]);
@@ -119,6 +119,10 @@ switch ($action) {
         $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Edit')];
 
         $defaults = $usergroup->get($userGroupId);
+        if (empty($defaults)) {
+            api_not_allowed(true);
+        }
+
         $usergroup->protectScript($defaults);
 
         $form = new FormValidator(
@@ -127,7 +131,8 @@ switch ($action) {
             api_get_self().'?action='.$action.'&id='.$userGroupId
         );
 
-        $usergroup->setForm($form, 'edit', $defaults);
+        $repo = Container::getUsergroupRepository();
+        $usergroup->setForm($form, 'edit', $repo->find($userGroupId));
 
         // Setting the form elements
         $form->addElement('hidden', 'id', $userGroupId);
@@ -151,14 +156,13 @@ switch ($action) {
             header('Location: '.api_get_self());
             exit;
         } else {
-            $content .= '<div class="actions">';
-            $content .= '<a href="'.api_get_self().'">'.Display::return_icon(
+            $actions = '<a href="'.api_get_self().'">'.Display::return_icon(
                 'back.png',
                 get_lang('Back'),
                 '',
                 ICON_SIZE_MEDIUM
             ).'</a>';
-            $content .= '</div>';
+            $content .= Display::toolbarAction('toolbar', [$actions]);
             $content .= $form->returnForm();
         }
         break;
@@ -178,7 +182,6 @@ switch ($action) {
         break;
 }
 
-// The header.
 Display::display_header();
 
 ?>
@@ -197,6 +200,11 @@ Display::display_header();
                 true
             );
             ?>
+
+            $('#usergroups').jqGrid(
+                'filterToolbar',
+                {stringResult: true, searchOnEnter: false, defaultSearch : "cn"}
+            );
         });
     </script>
 <?php

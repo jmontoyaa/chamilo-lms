@@ -1,26 +1,32 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Controller\Admin;
 
-use Chamilo\SettingsBundle\Manager\SettingsManager;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
-use Sylius\Bundle\SettingsBundle\Controller\SettingsController as SyliusSettingsController;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Chamilo\CoreBundle\Controller\BaseController;
+use Chamilo\CoreBundle\Entity\AccessUrl;
+use Chamilo\CoreBundle\Traits\ControllerTrait;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use Symfony\Component\Form\Extension\Core\Type\ButtonType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Exception\ValidatorException;
 
 /**
- * Class SettingsController.
+ * @Route("/admin")
  */
-class SettingsController extends SyliusSettingsController
+class SettingsController extends BaseController
 {
+    use ControllerTrait;
+
     /**
-     * @Security("has_role('ROLE_ADMIN')")
+     * @IsGranted("ROLE_ADMIN")
      *
      * @Route("/settings", name="admin_settings")
      */
@@ -30,7 +36,7 @@ class SettingsController extends SyliusSettingsController
         $schemas = $manager->getSchemas();
 
         return $this->render(
-            '@ChamiloTheme/Admin/Settings/index.html.twig',
+            '@ChamiloCore/Admin/Settings/index.html.twig',
             [
                 'schemas' => $schemas,
             ]
@@ -40,7 +46,7 @@ class SettingsController extends SyliusSettingsController
     /**
      * Edit configuration with given namespace.
      *
-     * @Security("has_role('ROLE_ADMIN')")
+     * @IsGranted("ROLE_ADMIN")
      *
      * @Route("/settings/search_settings", name="chamilo_platform_settings_search")
      */
@@ -74,8 +80,8 @@ class SettingsController extends SyliusSettingsController
                 $schemaAlias = $manager->convertNameSpaceToService($category);
                 $form = $this->getSettingsFormFactory()->create($schemaAlias);
 
-                foreach ($settings->getParameters() as $name => $value) {
-                    if (!in_array($name, $list)) {
+                foreach (array_keys($settings->getParameters()) as $name) {
+                    if (!\in_array($name, $list, true)) {
                         $form->remove($name);
                         $settings->remove($name);
                     }
@@ -88,7 +94,7 @@ class SettingsController extends SyliusSettingsController
         $schemas = $manager->getSchemas();
 
         return $this->render(
-            '@ChamiloTheme/Admin/Settings/search.html.twig',
+            '@ChamiloCore/Admin/Settings/search.html.twig',
             [
                 'keyword' => $keyword,
                 'schemas' => $schemas,
@@ -102,23 +108,22 @@ class SettingsController extends SyliusSettingsController
     /**
      * Edit configuration with given namespace.
      *
-     * @Security("has_role('ROLE_ADMIN')")
+     * @IsGranted("ROLE_ADMIN")
      *
      * @Route("/settings/{namespace}", name="chamilo_platform_settings")
-     *
-     * @param string $namespace
      */
-    public function updateSettingAction(Request $request, $namespace): Response
+    public function updateSettingAction(Request $request, string $namespace): Response
     {
         $manager = $this->getSettingsManager();
         // @todo improve get the current url entity
         $urlId = $request->getSession()->get('access_url_id');
-        $url = $this->getDoctrine()->getRepository('ChamiloCoreBundle:AccessUrl')->find($urlId);
+        $url = $this->getDoctrine()->getRepository(AccessUrl::class)->find($urlId);
         $manager->setUrl($url);
         $schemaAlias = $manager->convertNameSpaceToService($namespace);
         $searchForm = $this->getSearchForm();
 
         $keyword = '';
+        $settingsFromKeyword = null;
         $searchForm->handleRequest($request);
         if ($searchForm->isSubmitted() && $searchForm->isValid()) {
             $values = $searchForm->getData();
@@ -132,7 +137,9 @@ class SettingsController extends SyliusSettingsController
         $keywordFromGet = $request->query->get('keyword');
         if ($keywordFromGet) {
             $keyword = $keywordFromGet;
-            $searchForm->setData(['keyword' => $keyword]);
+            $searchForm->setData([
+                'keyword' => $keyword,
+            ]);
             $settingsFromKeyword = $manager->getParametersFromKeyword(
                 $schemaAlias,
                 $keywordFromGet
@@ -144,8 +151,8 @@ class SettingsController extends SyliusSettingsController
 
         if (!empty($keyword)) {
             $params = $settings->getParameters();
-            foreach ($params as $name => $value) {
-                if (!in_array($name, array_keys($settingsFromKeyword))) {
+            foreach (array_keys($params) as $name) {
+                if (!\array_key_exists($name, $settingsFromKeyword)) {
                     $form->remove($name);
                 }
             }
@@ -159,9 +166,10 @@ class SettingsController extends SyliusSettingsController
 
             try {
                 $manager->save($form->getData());
-                $message = $this->getTranslator()->trans('Update');
-            } catch (ValidatorException $exception) {
-                $message = $this->getTranslator()->trans($exception->getMessage(), [], 'validators');
+                $message = $this->trans('Settings have been successfully updated');
+            } catch (ValidatorException $validatorException) {
+                //$message = $this->trans($exception->getMessage(), [], 'validators');
+                $message = $this->trans($validatorException->getMessage());
                 $messageType = 'error';
             }
 
@@ -173,7 +181,7 @@ class SettingsController extends SyliusSettingsController
         $schemas = $manager->getSchemas();
 
         return $this->render(
-            '@ChamiloTheme/Admin/Settings/default.html.twig',
+            '@ChamiloCore/Admin/Settings/default.html.twig',
             [
                 'schemas' => $schemas,
                 'settings' => $settings,
@@ -187,32 +195,24 @@ class SettingsController extends SyliusSettingsController
     /**
      * Sync settings from classes with the database.
      */
-    public function syncSettings(Request $request)
+    public function syncSettings(Request $request): void
     {
         $manager = $this->getSettingsManager();
         // @todo improve get the current url entity
         $urlId = $request->getSession()->get('access_url_id');
-        $url = $this->getDoctrine()->getRepository('ChamiloCoreBundle:AccessUrl')->find($urlId);
+        $url = $this->getDoctrine()->getRepository(AccessUrl::class)->find($urlId);
         $manager->setUrl($url);
         $manager->installSchemas($url);
     }
 
     /**
-     * @return SettingsManager
-     */
-    protected function getSettingsManager()
-    {
-        return $this->get('chamilo.settings.manager');
-    }
-
-    /**
-     * @return \Symfony\Component\Form\FormInterface
+     * @return FormInterface
      */
     private function getSearchForm()
     {
         $builder = $this->container->get('form.factory')->createNamedBuilder('search');
         $builder->add('keyword', TextType::class);
-        $builder->add('search', SubmitType::class);
+        $builder->add('search', ButtonType::class);
 
         return $builder->getForm();
     }

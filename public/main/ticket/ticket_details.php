@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 $cidReset = true;
@@ -116,48 +117,38 @@ $htmlHeadXtra[] = '<style>
 }
 </style>';
 
-$ticket_id = (int) $_REQUEST['ticket_id'];
-$ticket = TicketManager::get_ticket_detail_by_id($ticket_id);
-if (!isset($ticket['ticket']) ||
-    // make sure it's either a user assigned to this ticket, or the reporter, or and admin
-    !($ticket['ticket']['assigned_last_user'] == $user_id ||
-      $ticket['ticket']['sys_insert_user_id'] == $user_id ||
-      $isAdmin)
-    ) {
-    api_not_allowed(true);
-}
 if (!isset($_REQUEST['ticket_id'])) {
     header('Location: '.api_get_path(WEB_CODE_PATH).'ticket/tickets.php');
     exit;
 }
 
-/*if (isset($_POST['response'])) {
-    if ($user_id == $ticket['ticket']['assigned_last_user'] || api_is_platform_admin()) {
-        $response = $_POST['response'] === '1' ? true : false;
-        $newStatus = TicketManager::STATUS_PENDING;
-        if ($response) {
-            $newStatus = TicketManager::STATUS_CLOSE;
+$userInfo = api_get_user_info();
+$ticket_id = (int) $_REQUEST['ticket_id'];
+$ticket = TicketManager::get_ticket_detail_by_id($ticket_id);
+if (empty($ticket)) {
+    api_not_allowed(true);
         }
-        TicketManager::update_ticket_status(
-            TicketManager::getStatusIdFromCode($newStatus),
-            $ticket_id,
-            $user_id
-        );
-        Display::addFlash(Display::return_message(get_lang('Update successful')));
-        header("Location:".api_get_self()."?ticket_id=".$ticket_id);
-        exit;
+$projectId = $ticket['ticket']['project_id'];
+$userIsAllowInProject = TicketManager::userIsAllowInProject($userInfo, $projectId);
+$allowEdition = $ticket['ticket']['assigned_last_user'] == $user_id ||
+    $ticket['ticket']['sys_insert_user_id'] == $user_id ||
+    $isAdmin;
+
+if (false === $userIsAllowInProject) {
+    // make sure it's either a user assigned to this ticket, or the reporter, or and admin
+    if (false === $allowEdition) {
+        api_not_allowed(true);
     }
-}*/
+}
 
 $title = 'Ticket #'.$ticket['ticket']['code'];
 
-if (isset($_REQUEST['close'])) {
+if ($allowEdition && isset($_REQUEST['close'])) {
     TicketManager::close_ticket($ticket_id, $user_id);
     $ticket['ticket']['status_id'] = TicketManager::STATUS_CLOSE;
     $ticket['ticket']['status'] = get_lang('Closed');
 }
 
-$projectId = $ticket['ticket']['project_id'];
 $messages = $ticket['messages'];
 $counter = 1;
 $messageToShow = '';
@@ -210,12 +201,9 @@ foreach ($messages as $message) {
 
 $subject = get_lang('Re:').': '.Security::remove_XSS($ticket['ticket']['subject']);
 
-if ($ticket['ticket']['status_id'] != TicketManager::STATUS_FORWARDED &&
+if ($allowEdition &&
+    $ticket['ticket']['status_id'] != TicketManager::STATUS_FORWARDED &&
     $ticket['ticket']['status_id'] != TicketManager::STATUS_CLOSE
-) {
-    if ($ticket['ticket']['assigned_last_user'] == $user_id ||
-        $ticket['ticket']['sys_insert_user_id'] == $user_id ||
-        $isAdmin
     ) {
         $form = getForm($ticket['ticket']);
         $formToShow = $form->returnForm();
@@ -330,11 +318,10 @@ if ($ticket['ticket']['status_id'] != TicketManager::STATUS_FORWARDED &&
             );
 
             Display::addFlash(Display::return_message(get_lang('Saved.')));
-            header("Location:".api_get_self()."?ticket_id=".$ticket_id);
+            header('Location:'.api_get_self().'?ticket_id='.$ticket_id);
             exit;
         }
     }
-}
 
 Display::display_header();
 echo '<div class="actions">';
@@ -344,7 +331,7 @@ echo Display::url(
 );
 echo '</div>';
 $bold = '';
-if ($ticket['ticket']['status_id'] == TicketManager::STATUS_CLOSE) {
+if (TicketManager::STATUS_CLOSE == $ticket['ticket']['status_id']) {
     $bold = 'style = "font-weight: bold;"';
 }
 $senderData = get_lang('added by').' '.$ticket['usuario']['complete_name_with_message_link'];
@@ -391,7 +378,7 @@ if (!empty($ticket['ticket']['assigned_last_user'])) {
             <td><p><b>'.get_lang('Assigned to').': </b>-<p></td>
         </tr>';
 }
-if ($ticket['ticket']['course_url'] != null) {
+if (null != $ticket['ticket']['course_url']) {
     if (!empty($ticket['ticket']['session_id'])) {
         $sessionInfo = api_get_session_info($ticket['ticket']['session_id']);
         echo '<tr>
@@ -406,6 +393,23 @@ if ($ticket['ticket']['course_url'] != null) {
             <td></td>
             <td colspan="2"></td>
           </tr>';
+    if (api_get_configuration_value('ticket_lp_quiz_info_add')) {
+        if (!empty($ticket['ticket']['exercise_url'])) {
+            echo '<tr>
+                <td><b>'.get_lang('Exercise').':</b> '.$ticket['ticket']['exercise_url'].' </td>
+                <td></td>
+                <td colspan="2"></td>
+              </tr>';
+        }
+
+        if (!empty($ticket['ticket']['lp_id'])) {
+            echo '<tr>
+                <td><b>'.get_lang('LearningPath').':</b> '.$ticket['ticket']['lp_url'].' </td>
+                <td></td>
+                <td colspan="2"></td>
+              </tr>';
+        }
+    }
 }
 
 echo '<tr>

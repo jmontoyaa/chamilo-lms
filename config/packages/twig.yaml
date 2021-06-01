@@ -1,17 +1,16 @@
 twig:
-    debug: '%kernel.debug%'
-    paths: ['%kernel.project_dir%/var/templates', '%kernel.project_dir%/public/main/template/', '%kernel.project_dir%/public/plugin/']
+    cache:
+        '%kernel.cache_dir%/twig'
+    paths:
+        - '%kernel.project_dir%/var/templates'
+        - '%kernel.project_dir%/public/main/template'
+        - '%kernel.project_dir%/public/plugin'
+        - '%kernel.project_dir%/src/CoreBundle/Resources/views/Layout'
     form_themes:
-        - 'bootstrap_4_layout.html.twig'
-        - '@SonataFormatter/Form/formatter.html.twig'
-        - '@SonataCore/Form/datepicker.html.twig'
-        - '@SonataCore/Form/color.html.twig'
-    exception_controller: 'Chamilo\ThemeBundle\Controller\ExceptionController::showAction'
+        - 'form-theme.html.twig'
+
     globals:
-        show_toolbar: true
-        show_footer: true
         software_name: Chamilo
-        version: 2
         messages_count:
         message_link:
         execution_stats:
@@ -23,3 +22,13 @@ twig:
         message:
         show_media_element: 1
         footer_extra_content:
+        legacy_javascript:
+        section_name:
+        course:
+        session:
+        plugin_main_top:
+        plugin_content_top:
+        plugin_content_bottom:
+        plugin_main_bottom:
+        flash_messages:
+        shuffle_answers:

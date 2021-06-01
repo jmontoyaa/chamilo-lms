@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Form;
@@ -7,11 +9,11 @@ namespace Chamilo\CoreBundle\Form;
 use Chamilo\CoreBundle\Entity\Session;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class SessionType extends AbstractType
 {
-    public function buildForm(FormBuilderInterface $builder, array $options)
+    public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
             ->add('name', 'text')
@@ -19,7 +21,7 @@ class SessionType extends AbstractType
                 'general_coach',
                 'entity',
                 [
-                    'class' => 'ChamiloUserBundle:User',
+                    'class' => 'ChamiloCoreBundle:User',
                     'property' => 'username',
                 ]
             )
@@ -27,14 +29,16 @@ class SessionType extends AbstractType
                 'session_admin_id',
                 'entity',
                 [
-                    'class' => 'ChamiloUserBundle:User',
+                    'class' => 'ChamiloCoreBundle:User',
                     'property' => 'username',
                 ]
             )
             ->add(
                 'visibility',
                 'choice',
-                ['choices' => Session::getStatusList()]
+                [
+                    'choices' => Session::getStatusList(),
+                ]
             )
             ->add(
                 'session_category_id',
@@ -58,22 +62,22 @@ class SessionType extends AbstractType
             ->add('access_end_date', 'sonata_type_datetime_picker')
             ->add('coach_access_start_date', 'sonata_type_datetime_picker')
             ->add('coach_access_end_date', 'sonata_type_datetime_picker')
-            ->add('save', 'submit', ['label' => 'Update']);
+            ->add('save', 'submit', [
+                'label' => 'Update',
+            ])
+        ;
     }
 
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
+    public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults(
             [
-                'data_class' => 'Chamilo\CoreBundle\Entity\Session',
+                'data_class' => Session::class,
             ]
         );
     }
 
-    /**
-     * @return string
-     */
-    public function getName()
+    public function getName(): string
     {
         return 'session';
     }

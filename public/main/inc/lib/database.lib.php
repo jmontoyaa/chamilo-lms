@@ -1,16 +1,15 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Doctrine\Common\Annotations\AnnotationRegistry;
+use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
-use Symfony\Component\Debug\ExceptionHandler;
 
-/**
- * Class Database.
- */
 class Database
 {
     /**
@@ -20,44 +19,103 @@ class Database
     private static $connection;
 
     /**
-     * Only used by the installer.
+     * Setup doctrine only for the installation.
      *
      * @param array  $params
      * @param string $entityRootPath
-     *
-     * @throws \Doctrine\ORM\ORMException
      */
-    public function connect(
-        $params = [],
-        $entityRootPath = ''
-    ) {
+    public function connect($params = [], $entityRootPath = '')
+    {
         $config = self::getDoctrineConfig($entityRootPath);
         $config->setAutoGenerateProxyClasses(true);
         $config->setEntityNamespaces(
             [
-                'ChamiloUserBundle' => 'Chamilo\UserBundle\Entity',
                 'ChamiloCoreBundle' => 'Chamilo\CoreBundle\Entity',
                 'ChamiloCourseBundle' => 'Chamilo\CourseBundle\Entity',
-                'ChamiloSkillBundle' => 'Chamilo\SkillBundle\Entity',
-                'ChamiloTicketBundle' => 'Chamilo\TicketBundle\Entity',
-                'ChamiloPluginBundle' => 'Chamilo\PluginBundle\Entity',
             ]
         );
 
         $params['charset'] = 'utf8';
-        $entityManager = EntityManager::create($params, $config);
-        $connection = $entityManager->getConnection();
-
-        //$sysPath = !empty($sysPath) ? $sysPath : api_get_path(SYS_PATH);
         $sysPath = api_get_path(SYMFONY_SYS_PATH);
-        AnnotationRegistry::registerFile(
-            $sysPath."vendor/symfony/doctrine-bridge/Validator/Constraints/UniqueEntity.php"
+
+        $cache = new Doctrine\Common\Cache\ArrayCache();
+        // standard annotation reader
+        $annotationReader = new Doctrine\Common\Annotations\AnnotationReader();
+        $cachedAnnotationReader = new Doctrine\Common\Annotations\CachedReader(
+            $annotationReader, // use reader
+            $cache // and a cache driver
         );
 
-        // Registering gedmo extensions
-        AnnotationRegistry::registerAutoloadNamespace(
-            'Gedmo\Mapping\Annotation',
-            $sysPath."vendor/gedmo/doctrine-extensions/lib"
+        $evm = new EventManager();
+        $timestampableListener = new Gedmo\Timestampable\TimestampableListener();
+        $timestampableListener->setAnnotationReader($cachedAnnotationReader);
+        $evm->addEventSubscriber($timestampableListener);
+
+        $driverChain = new \Doctrine\Persistence\Mapping\Driver\MappingDriverChain();
+        // load superclass metadata mapping only, into driver chain
+        // also registers Gedmo annotations.NOTE: you can personalize it
+        Gedmo\DoctrineExtensions::registerAbstractMappingIntoDriverChainORM(
+            $driverChain, // our metadata driver chain, to hook into
+            $cachedAnnotationReader // our cached annotation reader
+        );
+
+        AnnotationRegistry::registerLoader(
+            function ($class) use ($sysPath) {
+                $file = str_replace("\\", DIRECTORY_SEPARATOR, $class).".php";
+                $file = str_replace('Symfony/Component/Validator', '', $file);
+                $file = str_replace('Symfony\Component\Validator', '', $file);
+                $file = str_replace('Symfony/Component/Serializer', '', $file);
+
+                $fileToInclude = $sysPath.'vendor/symfony/validator/'.$file;
+
+                if (file_exists($fileToInclude)) {
+                    // file exists makes sure that the loader fails silently
+                    require_once $fileToInclude;
+
+                    return true;
+                }
+
+                $fileToInclude = $sysPath.'vendor/symfony/validator/Constraints/'.$file;
+                if (file_exists($fileToInclude)) {
+                    // file exists makes sure that the loader fails silently
+                    require_once $fileToInclude;
+
+                    return true;
+                }
+
+                $fileToInclude = $sysPath.'vendor/symfony/serializer/'.$file;
+
+                if (file_exists($fileToInclude)) {
+                    // file exists makes sure that the loader fails silently
+                    require_once $fileToInclude;
+
+                    return true;
+                }
+            }
+        );
+
+        AnnotationRegistry::registerFile(
+            $sysPath.'vendor/api-platform/core/src/Annotation/ApiResource.php'
+        );
+        AnnotationRegistry::registerFile(
+            $sysPath.'vendor/api-platform/core/src/Annotation/ApiFilter.php'
+        );
+        AnnotationRegistry::registerFile(
+            $sysPath.'vendor/api-platform/core/src/Annotation/ApiProperty.php'
+        );
+        AnnotationRegistry::registerFile(
+            $sysPath.'vendor/api-platform/core/src/Annotation/ApiSubresource.php'
+        );
+
+        $entityManager = EntityManager::create($params, $config, $evm);
+
+        if (false === Type::hasType('uuid')) {
+            Type::addType('uuid', \Symfony\Bridge\Doctrine\Types\UuidType::class);
+        }
+
+        $connection = $entityManager->getConnection();
+        AnnotationRegistry::registerFile(
+            $sysPath.'vendor/symfony/doctrine-bridge/Validator/Constraints/UniqueEntity.php'
         );
 
         $this->setConnection($connection);
@@ -148,7 +206,7 @@ class Database
      *
      * @return int
      */
-    public static function affected_rows(Statement $result)
+    public static function affected_rows($result)
     {
         return $result->rowCount();
     }
@@ -178,9 +236,9 @@ class Database
      *
      * @return array|mixed
      */
-    public static function fetch_array(Statement $result, $option = 'BOTH')
+    public static function fetch_array($result, $option = 'BOTH')
     {
-        if ($result === false) {
+        if (false === $result) {
             return [];
         }
 
@@ -192,7 +250,7 @@ class Database
      *
      * @return array
      */
-    public static function fetch_assoc(Statement $result)
+    public static function fetch_assoc($result)
     {
         return $result->fetch(PDO::FETCH_ASSOC);
     }
@@ -203,7 +261,7 @@ class Database
      *
      * @return mixed
      */
-    public static function fetch_object(Statement $result)
+    public static function fetch_object($result)
     {
         return $result->fetch(PDO::FETCH_OBJ);
     }
@@ -214,9 +272,9 @@ class Database
      *
      * @return mixed
      */
-    public static function fetch_row(Statement $result)
+    public static function fetch_row($result)
     {
-        if ($result === false) {
+        if (false === $result) {
             return [];
         }
 
@@ -236,9 +294,9 @@ class Database
     /**
      * @return int
      */
-    public static function num_rows(Statement $result)
+    public static function num_rows($result)
     {
-        if ($result === false) {
+        if (false === $result) {
             return 0;
         }
 
@@ -254,7 +312,7 @@ class Database
      *
      * @return mixed
      */
-    public static function result(Statement $resource, $row, $field = '')
+    public static function result($resource, $row, $field = '')
     {
         if ($resource->rowCount() > 0) {
             $result = $resource->fetchAll(PDO::FETCH_BOTH);
@@ -288,15 +346,13 @@ class Database
      */
     public static function handleError($e)
     {
-        $debug = api_get_setting('server_type') == 'test';
+        $debug = 'test' === api_get_setting('server_type');
         if ($debug) {
-            // We use Symfony exception handler for better error information
-            $handler = new ExceptionHandler();
-            $handler->handle($e);
+            throw $e;
             exit;
         } else {
             error_log($e->getMessage());
-            api_not_allowed(false, get_lang('An error has occured. Please contact your system administrator.'));
+            api_not_allowed(false, get_lang('An error has occurred. Please contact your system administrator.'));
             exit;
         }
     }
@@ -332,7 +388,7 @@ class Database
      *
      * @return array - the value returned by the query
      */
-    public static function store_result(Statement $result, $option = 'BOTH')
+    public static function store_result($result, $option = 'BOTH')
     {
         return $result->fetchAll(self::customOptionToDoctrineOption($option));
     }
@@ -439,21 +495,21 @@ class Database
     /**
      * Experimental useful database finder.
      *
-     * @todo lot of stuff to do here
-     * @todo known issues, it doesn't work when using LIKE conditions
+     * @param mixed|array $columns
+     * @param string      $table_name
+     * @param array       $conditions
+     * @param string      $type_result
+     * @param string      $option
+     * @param bool        $debug
+     *
+     * @return array
+     *
+     * @todo    lot of stuff to do here
+     * @todo    known issues, it doesn't work when using LIKE conditions
      *
      * @example array('where'=> array('course_code LIKE "?%"'))
      * @example array('where'=> array('type = ? AND category = ?' => array('setting', 'Plugins'))
      * @example array('where'=> array('name = "Julio" AND lastname = "montoya"'))
-     *
-     * @param array  $columns
-     * @param string $table_name
-     * @param array  $conditions
-     * @param string $type_result
-     * @param string $option
-     * @param bool   $debug
-     *
-     * @return array
      */
     public static function select(
         $columns,
@@ -463,27 +519,42 @@ class Database
         $option = 'ASSOC',
         $debug = false
     ) {
+        if ($type_result === 'count') {
+            $conditions['LIMIT'] = null;
+            $conditions['limit'] = null;
+        }
         $conditions = self::parse_conditions($conditions);
 
         //@todo we could do a describe here to check the columns ...
         if (is_array($columns)) {
             $clean_columns = implode(',', $columns);
         } else {
-            if ($columns == '*') {
+            if ('*' === $columns) {
                 $clean_columns = '*';
             } else {
                 $clean_columns = (string) $columns;
             }
         }
 
+        if ($type_result === 'count') {
+            $clean_columns = ' count(*) count ';
+        }
         $sql = "SELECT $clean_columns FROM $table_name $conditions";
         if ($debug) {
             var_dump($sql);
         }
         $result = self::query($sql);
+        if ($type_result === 'count') {
+            $row = self::fetch_array($result, $option);
+            if ($row) {
+                return (int) $row['count'];
+            }
+
+            return 0;
+        }
         $array = [];
 
-        if ($type_result === 'all') {
+        if ('all' === $type_result) {
             while ($row = self::fetch_array($result, $option)) {
                 if (isset($row['id'])) {
                     $array[$row['id']] = $row;
@@ -515,7 +586,7 @@ class Database
         }
         $return_value = $where_return = '';
         foreach ($conditions as $type_condition => $condition_data) {
-            if ($condition_data == false) {
+            if (false == $condition_data) {
                 continue;
             }
             $type_condition = strtolower($type_condition);
@@ -530,10 +601,10 @@ class Database
                             }
                         } else {
                             $value_array = self::escape_string($value_array);
-                            $clean_values = $value_array;
+                            $clean_values = [$value_array];
                         }
 
-                        if (!empty($condition) && $clean_values != '') {
+                        if (!empty($condition) && '' != $clean_values) {
                             $condition = str_replace('%', "'@percentage@'", $condition); //replace "%"
                             $condition = str_replace("'?'", "%s", $condition);
                             $condition = str_replace("?", "%s", $condition);
@@ -558,7 +629,7 @@ class Database
 
                     if (!empty($order_array)) {
                         // 'order' => 'id desc, name desc'
-                        $order_array = self::escape_string($order_array, null, false);
+                        $order_array = self::escape_string($order_array);
                         $new_order_array = explode(',', $order_array);
                         $temp_value = [];
 
@@ -573,10 +644,10 @@ class Database
                                 if (in_array($element[1], ['desc', 'asc'])) {
                                     $order = $element[1];
                                 }
-                                $temp_value[] = $element[0].' '.$order.' ';
+                                $temp_value[] = ' `'.$element[0].'` '.$order.' ';
                             } else {
                                 //by default DESC
-                                $temp_value[] = $element[0].' DESC ';
+                                $temp_value[] = ' `'.$element[0].'` DESC ';
                             }
                         }
                         if (!empty($temp_value)) {
@@ -636,41 +707,29 @@ class Database
      *
      * @param string $path
      *
-     * @return \Doctrine\ORM\Configuration
+     * @return Configuration
      */
     public static function getDoctrineConfig($path)
     {
         $isDevMode = true; // Forces doctrine to use ArrayCache instead of apc/xcache/memcache/redis
         $isSimpleMode = false; // related to annotations @Entity
         $cache = null;
-        $path = !empty($path) ? $path : api_get_path(SYS_PATH);
+        $path = !empty($path) ? $path : api_get_path(SYMFONY_SYS_PATH);
 
         $paths = [
-            //$path.'src/Chamilo/ClassificationBundle/Entity',
-            //$path.'src/Chamilo/MediaBundle/Entity',
-            //$path.'src/Chamilo/PageBundle/Entity',
             $path.'src/Chamilo/CoreBundle/Entity',
-            $path.'src/Chamilo/UserBundle/Entity',
             $path.'src/Chamilo/CourseBundle/Entity',
-            $path.'src/Chamilo/TicketBundle/Entity',
-            $path.'src/Chamilo/SkillBundle/Entity',
-            $path.'src/Chamilo/PluginBundle/Entity',
-            //$path.'vendor/sonata-project/user-bundle/Entity',
-            //$path.'vendor/sonata-project/user-bundle/Model',
-            //$path.'vendor/friendsofsymfony/user-bundle/FOS/UserBundle/Entity',
         ];
 
         $proxyDir = $path.'var/cache/';
 
-        $config = \Doctrine\ORM\Tools\Setup::createAnnotationMetadataConfiguration(
+        return \Doctrine\ORM\Tools\Setup::createAnnotationMetadataConfiguration(
             $paths,
             $isDevMode,
             $proxyDir,
             $cache,
             $isSimpleMode
         );
-
-        return $config;
     }
 
     /**
@@ -691,5 +750,10 @@ class Database
     public static function listTableColumns($table)
     {
         return self::getManager()->getConnection()->getSchemaManager()->listTableColumns($table);
+    }
+
+    public static function escapeField($field): string
+    {
+        return self::escape_string(preg_replace("/[^a-zA-Z0-9_.]/", '', $field));
     }
 }

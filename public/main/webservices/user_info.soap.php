@@ -1,13 +1,13 @@
 <?php
+
 /* For licensing terms, see /license.txt */
+
 /**
  * This script provides the caller service with user details.
  * It is set to work with the Chamilo module for Drupal:
  * http://drupal.org/project/chamilo.
  *
  * @author Yannick Warnier <yannick.warnier@dokeos.com>
- *
- * @package chamilo.webservices
  */
 require_once __DIR__.'/../inc/global.inc.php';
 // Create the server instance
@@ -209,7 +209,7 @@ function WSEventsList($username, $signature, $datestart = 0, $dateend = 0)
     $events_list = [];
 
     $user_id = UserManager::get_user_id_from_username($username);
-    if ($user_id === false) {
+    if (false === $user_id) {
         return $events_list;
     } // Error in user id recovery.
     $ds = substr($datestart, 0, 4).'-'.substr($datestart, 4, 2).'-'.substr($datestart, 6, 2).' 00:00:00';

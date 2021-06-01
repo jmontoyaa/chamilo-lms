@@ -1,77 +1,75 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Controller\ExceptionController;
+use Symfony\Component\ErrorHandler\Exception\FlattenException;
 use Chamilo\CoreBundle\Framework\Container;
-use Patchwork\Utf8\Bootup;
 use Symfony\Component\Dotenv\Dotenv;
+use Symfony\Component\ErrorHandler\Debug;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
  * All legacy Chamilo scripts should include this important file.
  */
-
-// Specification for user names:
-// 1. ASCII-letters, digits, "." (dot), "_" (underscore) are acceptable, 40 characters maximum length.
-// 2. Empty username is formally valid, but it is reserved for the anonymous user.
-// 3. Checking the login_is_email portal setting in order to accept 100 chars maximum
 define('USERNAME_MAX_LENGTH', 100);
 
 require_once __DIR__.'/../../../vendor/autoload.php';
 
-try {
-    // Check the PHP version
-    api_check_php_version();
-
-    // Get settings from .env.local file created.
-    $envFile = __DIR__.'/../../../.env.local';
-    if (file_exists($envFile)) {
-        (new Dotenv())->load($envFile);
-    } else {
-        throw new \RuntimeException('APP_ENV environment variable is not defined.
+// Get settings from .env.local file created.
+$envFile = __DIR__.'/../../../.env.local';
+if (file_exists($envFile)) {
+    (new Dotenv())->load($envFile);
+} else {
+    throw new \RuntimeException('APP_ENV environment variable is not defined.
         You need to define environment variables for configuration to load variables from a .env.local file.');
-    }
+}
 
-    $env = $_SERVER['APP_ENV'] ?? 'dev';
+$env = $_SERVER['APP_ENV'] ?? 'dev';
+$debug = 'dev' === $env;
+if ($debug) {
+    Debug::enable();
+}
 
-    $kernel = new Chamilo\Kernel($env, true);
-    // Loading Request from Sonata. In order to use Sonata Pages Bundle.
-    $request = Sonata\PageBundle\Request\RequestFactory::createFromGlobals('host_with_path_by_locale');
+$kernel = new Chamilo\Kernel($env, $debug);
+// Loading Request from Sonata. In order to use Sonata Pages Bundle.
+$request = Request::createFromGlobals();
+// This 'load_legacy' variable is needed to know that symfony is loaded using old style legacy mode,
+// and not called from a symfony controller from public/
+$request->request->set('load_legacy', true);
+$currentBaseUrl = $request->getBaseUrl();
+$kernel->boot();
 
-    // This 'load_legacy' variable is needed to know that symfony is loaded using old style legacy mode,
-    // and not called from a symfony controller from public/
-    $request->request->set('load_legacy', true);
+$container = $kernel->getContainer();
+$router = $container->get('router');
+$context = $router->getContext();
+$router->setContext($context);
+/** @var FlashBag $flashBag */
+$saveFlashBag = null;
+$flashBag = $container->get('session')->getFlashBag();
+if (!empty($flashBag->keys())) {
+    $saveFlashBag = $flashBag->all();
+}
 
-    $currentBaseUrl = $request->getBaseUrl();
-    $kernel->boot();
+$response = $kernel->handle($request, HttpKernelInterface::MAIN_REQUEST, false);
+$context = Container::getRouter()->getContext();
 
-    $container = $kernel->getContainer();
-    $router = $container->get('router');
-    $context = $router->getContext();
+$pos = strpos($currentBaseUrl, 'main');
+if (false === $pos) {
+    echo 'Cannot load current URL';
+    exit;
+}
+$newBaseUrl = substr($currentBaseUrl, 0, $pos - 1);
+$context->setBaseUrl($newBaseUrl);
 
-    $router->setContext($context);
-
-    $response = $kernel->handle($request);
-    $context = Container::getRouter()->getContext();
-
-    $pos = strpos($currentBaseUrl, 'main');
-    if ($pos === false) {
-        echo 'Cannot load current URL';
-        exit;
-    }
-    $newBaseUrl = substr($currentBaseUrl, 0, $pos - 1);
-    $request->setBaseUrl($newBaseUrl);
-    $context->setBaseUrl($newBaseUrl);
-
-    $container = $kernel->getContainer();
-
+try {
+    // Load legacy configuration.php
     if ($kernel->isInstalled()) {
         require_once $kernel->getConfigurationFile();
     } else {
         throw new Exception('Chamilo is not installed');
-    }
-
-    //$kernel->setApi($_configuration);
-    if (!isset($GLOBALS['_configuration'])) {
-        $GLOBALS['_configuration'] = $_configuration;
     }
 
     // Do not over-use this variable. It is only for this script's local use.
@@ -81,6 +79,14 @@ try {
     // Symfony uses request_stack now
     $container->get('request_stack')->push($request);
 
+    if (!empty($saveFlashBag)) {
+        foreach ($saveFlashBag as $typeMessage => $messageList) {
+            foreach ($messageList as $message) {
+                Container::getSession()->getFlashBag()->add($typeMessage, $message);
+            }
+        }
+    }
+
     // Connect Chamilo with the Symfony container
     // Container::setContainer($container);
     // Container::setLegacyServices($container);
@@ -89,8 +95,6 @@ try {
     // src/CoreBundle/EventListener/LegacyListener.php
     // This is called when when doing the $kernel->handle
     $charset = 'UTF-8';
-    // Enables the portability layer and configures PHP for UTF-8
-    Bootup::initAll();
     ini_set('log_errors', '1');
     $this_section = SECTION_GLOBAL;
     //Default quota for the course documents folder
@@ -100,14 +104,8 @@ try {
         $default_quota = 100000000;
     }
     define('DEFAULT_DOCUMENT_QUOTA', $default_quota);*/
+    define('DEFAULT_DOCUMENT_QUOTA', 100000000);
 } catch (Exception $e) {
-    var_dump($e->getMessage());
-    var_dump($e->getCode());
-    var_dump($e->getLine());
-    /*echo $e->getMessage();    exit;
-    var_dump($e->getMessage());
-    var_dump($e->getCode());
-    var_dump($e->getLine());
-    echo $e->getTraceAsString();
-    exit;*/
+    $controller = new ExceptionController();
+    $controller->showAction($e);
 }

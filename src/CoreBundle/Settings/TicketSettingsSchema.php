@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Settings;
@@ -8,12 +10,9 @@ use Chamilo\CoreBundle\Form\Type\YesNoType;
 use Sylius\Bundle\SettingsBundle\Schema\AbstractSettingsBuilder;
 use Symfony\Component\Form\FormBuilderInterface;
 
-/**
- * Class GradebookSettingsSchema.
- */
 class TicketSettingsSchema extends AbstractSettingsSchema
 {
-    public function buildSettings(AbstractSettingsBuilder $builder)
+    public function buildSettings(AbstractSettingsBuilder $builder): void
     {
         $builder
             ->setDefaults(
@@ -24,7 +23,8 @@ class TicketSettingsSchema extends AbstractSettingsSchema
                     'ticket_send_warning_to_all_admins' => 'false',
                     'ticket_warn_admin_no_user_in_category' => 'false',
                 ]
-            );
+            )
+        ;
 
         $allowedTypes = [
             'show_terms_if_profile_completed' => ['string'],
@@ -32,7 +32,7 @@ class TicketSettingsSchema extends AbstractSettingsSchema
         $this->setMultipleAllowedTypes($allowedTypes, $builder);
     }
 
-    public function buildForm(FormBuilderInterface $builder)
+    public function buildForm(FormBuilderInterface $builder): void
     {
         $builder
             ->add('show_terms_if_profile_completed', YesNoType::class)

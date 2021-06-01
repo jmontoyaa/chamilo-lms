@@ -1,14 +1,16 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CourseBundle\Entity\CQuizQuestion;
 use ChamiloSession as Session;
 
 /**
- * @package chamilo.exercise
- *
  * @author Julio Montoya <gugli100@gmail.com>
  */
 require_once __DIR__.'/../inc/global.inc.php';
+$current_course_tool = TOOL_QUIZ;
 
 api_protect_course_script();
 
@@ -37,7 +39,36 @@ $questionNum = (int) $_GET['num'];
 $questionId = $questionList[$questionNum];
 $choiceValue = isset($_GET['choice']) ? $_GET['choice'] : '';
 $hotSpot = isset($_GET['hotspot']) ? $_GET['hotspot'] : '';
+$tryAgain = isset($_GET['tryagain']) && 1 === (int) $_GET['tryagain'];
+
+$repo = Container::getQuestionRepository();
+/** @var CQuizQuestion $question */
+$question = $repo->find($questionId);
+
+$allowTryAgain = false;
+if ($tryAgain) {
+    // Check if try again exists in this question, otherwise only allow one attempt BT#15827.
+    $answerType = $question->getType();
+    $showResult = false;
+    //$objAnswerTmp = new Answer($questionId, api_get_course_int_id());
+    $answers = $question->getAnswers();
+    if (!empty($answers)) {
+        foreach ($answers as $answerData) {
+            $destination = $answerData->getDestination();
+            if (!empty($destination)) {
+                $itemList = explode('@@', $destination);
+                if (isset($itemList[0]) && !empty($itemList[0])) {
+                    $allowTryAgain = true;
+                    break;
+                }
+            }
+        }
+    }
+}
 $loaded = isset($_GET['loaded']);
+if ($allowTryAgain) {
+    unset($exerciseResult[$questionId]);
+}
 
 if (empty($choiceValue) && isset($exerciseResult[$questionId])) {
     $choiceValue = $exerciseResult[$questionId];
@@ -55,6 +86,15 @@ if (!empty($choiceValue)) {
     }
 }
 
+$header = '';
+$exeId = 0;
+if (EXERCISE_FEEDBACK_TYPE_POPUP === $objExercise->getFeedbackType()) {
+    $exeId = Session::read('exe_id');
+    $header = '
+        <div class="modal-header">
+            <h4 class="modal-title" id="global-modal-title">'.get_lang('Incorrect').'</h4>
+        </div>';
+}
 echo '<script>
 function tryAgain() {
     $(function () {
@@ -64,11 +104,11 @@ function tryAgain() {
 
 function SendEx(num) {
     if (num == -1) {
-        window.location.href = "exercise_result.php?'.api_get_cidreq().'&take_session=1&exerciseId='.$exerciseId.'&num="+num+"&learnpath_item_id='.$learnpath_item_id.'&learnpath_id='.$learnpath_id.'";
+        window.location.href = "exercise_result.php?'.api_get_cidreq().'&exe_id='.$exeId.'&take_session=1&exerciseId='.$exerciseId.'&num="+num+"&learnpath_item_id='.$learnpath_item_id.'&learnpath_id='.$learnpath_id.'";
     } else {
         num -= 1;
         window.location.href = "exercise_submit.php?'.api_get_cidreq().'&tryagain=1&exerciseId='.$exerciseId.'&num="+num+"&learnpath_item_id='.$learnpath_item_id.'&learnpath_id='.$learnpath_id.'";
-    }    
+    }
     return false;
 }
 </script>';
@@ -86,7 +126,7 @@ if (empty($choiceValue) && empty($hotSpot) && $loaded) {
     $links = '<a onclick="tryAgain();" href="#">'.get_lang('Try again').'</a>&nbsp;'.$icon.'&nbsp;';
 
     // the link to finish the test
-    if ($destinationId == -1) {
+    if (-1 == $destinationId) {
         $links .= Display::return_icon(
                 'finish.gif',
                 '',
@@ -106,6 +146,7 @@ if (empty($choiceValue) && empty($hotSpot) && $loaded) {
             $links .= $icon;
         }
     }
+    echo $header;
     echo '<div class="row"><div class="col-md-5 col-md-offset-7"><h5 class="pull-right">'.$links.'</h5></div></div>';
     exit;
 }
@@ -113,18 +154,18 @@ if (empty($choiceValue) && empty($hotSpot) && $loaded) {
 if (empty($choiceValue) && empty($hotSpot)) {
     echo "<script>
         // this works for only radio buttons
-        var f = window.document.frm_exercise;        
+        var f = window.document.frm_exercise;
         var choice_js = {answers: []};
         var hotspot = new Array();
         var hotspotcoord = new Array();
         var counter = 0;
-        
-        for (var i = 0; i < f.elements.length; i++) {            
-            if (f.elements[i].type == 'radio' && f.elements[i].checked) {                
+
+        for (var i = 0; i < f.elements.length; i++) {
+            if (f.elements[i].type == 'radio' && f.elements[i].checked) {
                 choice_js.answers.push(f.elements[i].value);
                 counter ++;
             }
-            
+
             if (f.elements[i].type == 'checkbox' && f.elements[i].checked) {
                 choice_js.answers.push(f.elements[i].value);
                 counter ++;
@@ -132,7 +173,7 @@ if (empty($choiceValue) && empty($hotSpot)) {
 
             if (f.elements[i].type == 'hidden') {
                 var name = f.elements[i].name;
-                
+
                 if (name.substr(0,7) == 'hotspot') {
                     hotspot.push(f.elements[i].value);
                 }
@@ -142,9 +183,9 @@ if (empty($choiceValue) && empty($hotSpot)) {
                 }
             }
         }
-        
+
         var my_choice = $('*[name*=\"choice[".$questionId."]\"]').serialize();
-        var hotspot = $('*[name*=\"hotspot[".$questionId."]\"]').serialize();     
+        var hotspot = $('*[name*=\"hotspot[".$questionId."]\"]').serialize();
     ";
 
     // IMPORTANT
@@ -153,16 +194,15 @@ if (empty($choiceValue) && empty($hotSpot)) {
     $url = api_get_path(WEB_CODE_PATH).'exercise/exercise_submit_modal.php?'.api_get_cidreq().$extraUrl;
     echo ' url = "'.addslashes($url).'&hotspotcoord="+ hotspotcoord + "&"+ hotspot + "&"+ my_choice;';
     echo "$('#global-modal .modal-body').load(url);";
-
     echo '</script>';
     exit;
 }
 $choice = [];
 $choice[$questionId] = isset($choiceValue) ? $choiceValue : null;
-
 if (!is_array($exerciseResult)) {
     $exerciseResult = [];
 }
+$saveResults = EXERCISE_FEEDBACK_TYPE_POPUP == (int) $objExercise->getFeedbackType();
 
 // if the user has answered at least one question
 if (is_array($choice)) {
@@ -172,7 +212,7 @@ if (is_array($choice)) {
         $exerciseResult = $choice;
     } else {
         // gets the question ID from $choice. It is the key of the array
-        list($key) = array_keys($choice);
+        [$key] = array_keys($choice);
         // if the user didn't already answer this question
         if (!isset($exerciseResult[$key])) {
             // stores the user answer into the array
@@ -184,12 +224,11 @@ if (is_array($choice)) {
 // the script "exercise_result.php" will take the variable $exerciseResult from the session
 Session::write('exerciseResult', $exerciseResult);
 
-$objQuestionTmp = Question::read($questionId);
-$answerType = $objQuestionTmp->selectType();
+$answerType = $question->getType();
 $showResult = false;
 
 $objAnswerTmp = new Answer($questionId, api_get_course_int_id());
-if ($objExercise->getFeedbackType() === EXERCISE_FEEDBACK_TYPE_DIRECT) {
+if (EXERCISE_FEEDBACK_TYPE_DIRECT === $objExercise->getFeedbackType()) {
     $showResult = true;
 }
 
@@ -198,11 +237,13 @@ switch ($answerType) {
         if (is_array($choiceValue)) {
             $choiceValue = array_combine(array_values($choiceValue), array_values($choiceValue));
         }
+
         break;
     case UNIQUE_ANSWER:
         if (is_array($choiceValue) && isset($choiceValue[0])) {
             $choiceValue = $choiceValue[0];
         }
+
         break;
     case DRAGGABLE:
         break;
@@ -216,24 +257,20 @@ switch ($answerType) {
             $_SESSION['hotspot_coord'][$questionId][1] = $delineation_cord;
             $_SESSION['hotspot_dest'][$questionId][1] = $answer_delineation_destination;
         }
+
         break;
     case CALCULATED_ANSWER:
-        /*$_SESSION['calculatedAnswerId'][$questionId] = mt_rand(
-            1,
-            $nbrAnswers
-        );*/
-        //var_dump($_SESSION['calculatedAnswerId'][$questionId]);
         break;
 }
 
 ob_start();
 $result = $objExercise->manage_answer(
-    0,
+    $exeId,
     $questionId,
     $choiceValue,
     'exercise_result',
-    null,
-    false,
+    [],
+    $saveResults,
     false,
     $showResult,
     null,
@@ -245,40 +282,97 @@ $result = $objExercise->manage_answer(
 $manageAnswerHtmlContent = ob_get_clean();
 $contents = '';
 $answerCorrect = false;
+$partialCorrect = false;
 if (!empty($result)) {
     switch ($answerType) {
-        case UNIQUE_ANSWER:
         case MULTIPLE_ANSWER:
+        case UNIQUE_ANSWER:
         case DRAGGABLE:
         case HOT_SPOT_DELINEATION:
         case CALCULATED_ANSWER:
             if ($result['score'] == $result['weight']) {
                 $answerCorrect = true;
             }
+
+            // Check partial correct
+            if (false === $answerCorrect) {
+                if (!empty($result['score'])) {
+                    $partialCorrect = true;
+                }
+            }
             break;
     }
 }
 
-if ($objExercise->getFeedbackType() === EXERCISE_FEEDBACK_TYPE_DIRECT) {
+$header = '';
+if (EXERCISE_FEEDBACK_TYPE_DIRECT === $objExercise->getFeedbackType()) {
     if (isset($result['correct_answer_id'])) {
-        /** @var Answer $answer */
-        $answerId = $result['correct_answer_id'];
-        $contents = $objAnswerTmp->selectComment($answerId);
+        foreach ($result['correct_answer_id'] as $answerId) {
+            /** @var Answer $answer */
+            $contents .= $objAnswerTmp->selectComment($answerId);
+        }
     }
 } else {
-    $contents = Display::return_message(get_lang('Incorrect'), 'warning');
+    $message = get_lang('Incorrect');
+    //$contents = Display::return_message($message, 'warning');
+
     if ($answerCorrect) {
-        $contents = Display::return_message(get_lang('Correct'), 'success');
+        $message = get_lang('Correct');
+    //$contents = Display::return_message($message, 'success');
+    } else {
+        if ($partialCorrect) {
+            $message = get_lang('PartialCorrect');
+        }
     }
+
+    $comments = '';
+    if (HOT_SPOT_DELINEATION != $answerType) {
+        if (isset($result['correct_answer_id'])) {
+            $table = new HTML_Table(['class' => 'table data_table']);
+            $row = 0;
+            $table->setCellContents($row, 0, get_lang('YourAnswer'));
+            if (DRAGGABLE != $answerType) {
+                $table->setCellContents($row, 1, get_lang('Comment'));
+            }
+
+            $data = [];
+            foreach ($result['correct_answer_id'] as $answerId) {
+                $answer = $objAnswerTmp->getAnswerByAutoId($answerId);
+                if (!empty($answer) && isset($answer['comment'])) {
+                    $data[] = [$answer['answer'], $answer['comment']];
+                } else {
+                    $answer = $objAnswerTmp->selectAnswer($answerId);
+                    $comment = $objAnswerTmp->selectComment($answerId);
+                    $data[] = [$answer, $comment];
+                }
+            }
+
+            if (!empty($data)) {
+                $row = 1;
+                foreach ($data as $dataItem) {
+                    $table->setCellContents($row, 0, $dataItem[0]);
+                    $table->setCellContents($row, 1, $dataItem[1]);
+                    $row++;
+                }
+                $comments = $table->toHtml();
+            }
+        }
+    }
+
+    $contents .= $comments;
+    $header = '
+        <div class="modal-header">
+            <h4 class="modal-title" id="global-modal-title">'.$message.'</h4>
+        </div>';
 }
 
-if ($answerType === HOT_SPOT_DELINEATION) {
+if (HOT_SPOT_DELINEATION === $answerType) {
     $contents = $manageAnswerHtmlContent;
 }
 $links = '';
-if ($objExercise->getFeedbackType() === EXERCISE_FEEDBACK_TYPE_DIRECT) {
-    if (isset($choiceValue) && $choiceValue == -1) {
-        if ($answerType != HOT_SPOT_DELINEATION) {
+if (EXERCISE_FEEDBACK_TYPE_DIRECT === $objExercise->getFeedbackType()) {
+    if (isset($choiceValue) && -1 == $choiceValue) {
+        if (HOT_SPOT_DELINEATION != $answerType) {
             $links .= '<a href="#" onclick="tb_remove();">'.get_lang('Choose an answer').'</a><br />';
         }
     }
@@ -294,7 +388,7 @@ if (isset($result['answer_destination'])) {
 }
 
 // the link to retry the question
-if (isset($try) && $try == 1) {
+if (isset($try) && 1 == $try) {
     $num_value_array = array_keys($questionList, $questionId);
     $links .= Display:: return_icon(
         'reload.gif',
@@ -316,7 +410,7 @@ if (!empty($lp)) {
 $links .= '<br />';
 
 // the link to an external website or link
-if (!empty($url) && $url != -1) {
+if (!empty($url) && -1 != $url) {
     $links .= Display:: return_icon(
         'link.gif',
         '',
@@ -328,7 +422,7 @@ $nextQuestion = $questionNum + 1;
 $destinationId = isset($questionList[$nextQuestion]) ? $questionList[$nextQuestion] : -1;
 
 // the link to finish the test
-if ($destinationId == -1) {
+if (-1 == $destinationId) {
     $links .= Display:: return_icon(
         'finish.gif',
         '',
@@ -350,6 +444,7 @@ if ($destinationId == -1) {
 }
 
 if (!empty($links)) {
+    echo $header;
     echo '<div>'.$contents.'</div>';
     echo '<div style="padding-left: 450px"><h5>'.$links.'</h5></div>';
     echo '</div>';

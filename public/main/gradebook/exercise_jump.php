@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -9,8 +10,6 @@
  * Most code here is ripped from /main/course_home/course_home.php.
  *
  * @author Bert Steppé
- *
- * @package chamilo.gradebook
  */
 require_once __DIR__.'/../inc/global.inc.php';
 api_block_anonymous_users();
@@ -18,8 +17,7 @@ $this_section = SECTION_COURSES;
 
 $gradebook = Security::remove_XSS($_GET['gradebook']);
 $session_id = api_get_session_id();
-$courseId = api_get_course_int_id();
-$cidReq = Security::remove_XSS($_GET['cidReq']);
+$courseId = Security::remove_XSS($_GET['cid']);
 $type = Security::remove_XSS($_GET['type']);
 $doExerciseUrl = '';
 
@@ -56,30 +54,24 @@ if (!empty($doExerciseUrl)) {
         if (!empty($exercise->id)) {
             if ($exercise->exercise_was_added_in_lp) {
                 if (!empty($exercise->lpList)) {
-                    $count = count($exercise->lpList);
-                    if ($count == 1) {
-                        // If the exercise was added once redirect to the LP
-                        $firstLp = current($exercise->lpList);
-                        if (isset($firstLp['lp_id'])) {
-                            $url = api_get_path(WEB_CODE_PATH).'lp/lp_controller.php?'.api_get_cidreq().'&'
-                                .http_build_query(
-                                    [
-                                        'lp_id' => $firstLp['lp_id'],
-                                        'action' => 'view',
-                                        'isStudentView' => 'true',
-                                    ]
-                                );
-                        }
-                    } else {
-                        // If the exercise was added multiple times show the LP list
-                        $url = api_get_path(WEB_CODE_PATH).'lp/lp_controller.php?'.api_get_cidreq().'&action=list';
+                    // If the exercise was added once redirect to the LP
+                    $firstLp = $exercise->getLpBySession($session_id);
+                    if (isset($firstLp['lp_id'])) {
+                        $url = api_get_path(WEB_CODE_PATH).'lp/lp_controller.php?'.api_get_cidreq().'&'
+                            .http_build_query(
+                                [
+                                    'lp_id' => $firstLp['lp_id'],
+                                    'action' => 'view',
+                                    'isStudentView' => 'true',
+                                ]
+                            );
                     }
                 }
             } else {
                 $url = api_get_path(WEB_CODE_PATH).'exercise/overview.php?'.http_build_query(
                     [
-                        'session_id' => $session_id,
-                        'cidReq' => $cidReq,
+                        'sid' => $session_id,
+                        'cid' => $courseId,
                         'gradebook' => $gradebook,
                         'origin' => '',
                         'learnpath_id' => '',

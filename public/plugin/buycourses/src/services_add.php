@@ -3,8 +3,6 @@
 
 /**
  * Create new Services for the Buy Courses plugin.
- *
- * @package chamilo.plugin.buycourses
  */
 $cidReset = true;
 
@@ -17,7 +15,7 @@ $users = UserManager::getRepository()->findAll();
 $userOptions = [];
 if (!empty($users)) {
     foreach ($users as $user) {
-        $userOptions[$user->getId()] = UserManager::formatUserFullName($user, true);
+        $userOptions[$user->getId()] = $user->getCompleteNameWithUsername();
     }
 }
 
@@ -60,14 +58,14 @@ $form->addElement(
 $form->addElement(
     'number',
     'duration_days',
-    [$plugin->get_lang('Duration'), null, get_lang('days')],
+    [$plugin->get_lang('Duration'), null, get_lang('Days')],
     ['step' => 1]
 );
 $form->addElement(
     'radio',
     'applies_to',
     $plugin->get_lang('AppliesTo'),
-    get_lang('none'),
+    get_lang('None'),
     0
 );
 $form->addElement(
@@ -95,7 +93,7 @@ $form->addElement(
     'radio',
     'applies_to',
     null,
-    get_lang('Certificate of completion'),
+    get_lang('TemplateTitleCertificate'),
     4
 );
 $form->addSelect(
@@ -111,7 +109,7 @@ $form->addFile(
     )),
     ['id' => 'picture', 'class' => 'picture-form', 'crop_image' => true, 'crop_ratio' => '16 / 9']
 );
-$form->addText('video_url', get_lang('Video URL'), false);
+$form->addText('video_url', get_lang('VideoUrl'), false);
 $form->addHtmlEditor('service_information', $plugin->get_lang('ServiceInformation'), false);
 $form->addButtonSave(get_lang('Add'));
 $form->setDefaults($formDefaultValues);

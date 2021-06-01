@@ -9,8 +9,8 @@ if (!ctype_alnum($token)) {
     $token = '';
 }
 
-/** @var \Chamilo\UserBundle\Entity\User $user */
-$user = UserManager::getManager()->findUserByConfirmationToken($token);
+/** @var \Chamilo\CoreBundle\Entity\User $user */
+$user = UserManager::getRepository()->findUserByConfirmationToken($token);
 
 if ($user) {
     $user->setActive(1); // Set to 1 to activate the user

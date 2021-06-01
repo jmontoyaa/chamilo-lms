@@ -1,12 +1,11 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use ChamiloSession as Session;
 
 /**
  * Script that displays an error message when no content could be loaded.
- *
- * @package chamilo.learnpath
  *
  * @author Yannick Warnier <ywarnier@beeznest.org>
  */
@@ -44,7 +43,7 @@ $list = $learnPath->get_toc();
 $dir = false;
 
 foreach ($list as $toc) {
-    if ($toc['id'] == $lpItemId && $toc['type'] == 'dir') {
+    if ($toc['id'] == $lpItemId && 'dir' == $toc['type']) {
         $dir = true;
     }
 }
@@ -56,30 +55,43 @@ if ($dir) {
         case 1:
             $learnPath->stop_previous_item();
             $prerequisiteCheck = $learnPath->prerequisites_match($lpItemId);
-            if ($prerequisiteCheck === true) {
+            if (true === $prerequisiteCheck) {
+                if (WhispeakAuthPlugin::isLpItemMarked($lpItemId)) {
+                    ChamiloSession::write(
+                        WhispeakAuthPlugin::SESSION_LP_ITEM,
+                        ['lp' => $learnPath->lp_id, 'lp_item' => $lpItemId, 'src' => $src]
+                    );
+
+                    $src = api_get_path(WEB_PLUGIN_PATH).'whispeakauth/authentify.php';
+                    break;
+                }
                 $src = $learnPath->get_link('http', $lpItemId);
+                if (empty($src)) {
+                    $src = 'blank.php?'.api_get_cidreq().'&error=document_protected';
+                    break;
+                }
                 $learnPath->start_current_item(); // starts time counter manually if asset
                 $src = $learnPath->fixBlockedLinks($src);
                 break;
             }
-            $src = 'blank.php?error=prerequisites&prerequisite_message='.Security::remove_XSS($learnPath->error);
+            $src = 'blank.php?'.api_get_cidreq().'&error=prerequisites&prerequisite_message='.Security::remove_XSS($learnPath->error);
             break;
         case 2:
             $learnPath->stop_previous_item();
             $prerequisiteCheck = $learnPath->prerequisites_match($lpItemId);
 
-            if ($prerequisiteCheck === true) {
+            if (true === $prerequisiteCheck) {
                 $src = $learnPath->get_link('http', $lpItemId);
                 $learnPath->start_current_item(); // starts time counter manually if asset
             } else {
-                $src = 'blank.php?error=prerequisites&prerequisite_message='.Security::remove_XSS($learnPath->error);
+                $src = 'blank.php?'.api_get_cidreq().'&error=prerequisites&prerequisite_message='.Security::remove_XSS($learnPath->error);
             }
             break;
         case 3:
             // save old if asset
             $learnPath->stop_previous_item(); // save status manually if asset
             $prerequisiteCheck = $learnPath->prerequisites_match($lpItemId);
-            if ($prerequisiteCheck === true) {
+            if (true === $prerequisiteCheck) {
                 $src = $learnPath->get_link('http', $lpItemId);
                 $learnPath->start_current_item(); // starts time counter manually if asset
             } else {

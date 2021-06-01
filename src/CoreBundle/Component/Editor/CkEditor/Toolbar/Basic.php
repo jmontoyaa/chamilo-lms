@@ -1,23 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Component\Editor\CkEditor\Toolbar;
 
 use Chamilo\CoreBundle\Component\Editor\Toolbar;
 
-/**
- * Class Basic.
- */
 class Basic extends Toolbar
 {
     /**
      * Default plugins that will be use in all toolbars
      * In order to add a new plugin you have to load it in default/layout/head.tpl.
-     *
-     * @var array
      */
-    public $defaultPlugins = [
+    public array $defaultPlugins = [
         //'adobeair',
         //'ajax',
         'audio',
@@ -67,10 +64,8 @@ class Basic extends Toolbar
 
     /**
      * Plugins this toolbar.
-     *
-     * @var array
      */
-    public $plugins = [];
+    public array $plugins = [];
 
     public function __construct(
         $router,
@@ -78,14 +73,16 @@ class Basic extends Toolbar
         $config = [],
         $prefix = null
     ) {
+        $isAllowedToEdit = api_is_allowed_to_edit();
+        $isPlatformAdmin = api_is_platform_admin();
         // Adding plugins depending of platform conditions
         $plugins = [];
 
-        if ('ismanual' == api_get_setting('show_glossary_in_documents')) {
+        if ('ismanual' === api_get_setting('show_glossary_in_documents')) {
             $plugins[] = 'glossary';
         }
 
-        if ('true' == api_get_setting('youtube_for_students')) {
+        if ('true' === api_get_setting('youtube_for_students')) {
             $plugins[] = 'youtube';
         } else {
             if (api_is_allowed_to_edit() || api_is_platform_admin()) {
@@ -93,29 +90,29 @@ class Basic extends Toolbar
             }
         }
 
-        if ('true' == api_get_setting('enabled_googlemaps')) {
+        if ('true' === api_get_setting('enabled_googlemaps')) {
             $plugins[] = 'leaflet';
         }
 
-        if ('true' == api_get_setting('math_asciimathML')) {
+        if ('true' === api_get_setting('math_asciimathML')) {
             $plugins[] = 'asciimath';
         }
 
-        if ('true' == api_get_setting('enabled_mathjax')) {
+        if ('true' === api_get_setting('enabled_mathjax')) {
             $plugins[] = 'mathjax';
             $config['mathJaxLib'] = api_get_path(WEB_PUBLIC_PATH).'assets/MathJax/MathJax.js?config=TeX-MML-AM_HTMLorMML';
         }
 
-        if ('true' == api_get_setting('enabled_asciisvg')) {
+        if ('true' === api_get_setting('enabled_asciisvg')) {
             $plugins[] = 'asciisvg';
         }
 
-        if ('true' == api_get_setting('enabled_wiris')) {
+        if ('true' === api_get_setting('enabled_wiris')) {
             // Commercial plugin
             $plugins[] = 'ckeditor_wiris';
         }
 
-        if ('true' == api_get_setting('enabled_imgmap')) {
+        if ('true' === api_get_setting('enabled_imgmap')) {
             $plugins[] = 'mapping';
         }
 
@@ -123,14 +120,21 @@ class Basic extends Toolbar
             // Missing
         }*/
 
-        if ('true' == api_get_setting('more_buttons_maximized_mode')) {
+        if ('true' === api_get_setting('more_buttons_maximized_mode')) {
             $plugins[] = 'toolbarswitch';
         }
 
-        if ('true' == api_get_setting('allow_spellcheck')) {
+        if ('true' === api_get_setting('allow_spellcheck')) {
             $plugins[] = 'scayt';
         }
 
+        if (api_get_configuration_sub_value('ckeditor_vimeo_embed/config') && ($isAllowedToEdit || $isPlatformAdmin)) {
+            $plugins[] = 'ckeditor_vimeo_embed';
+        }
+
+        if (api_get_configuration_value('ck_editor_block_image_copy_paste')) {
+            $plugins[] = 'blockimagepaste';
+        }
         $this->defaultPlugins = array_unique(array_merge($this->defaultPlugins, $plugins));
         parent::__construct($router, $toolbar, $config, $prefix);
     }
@@ -149,7 +153,7 @@ class Basic extends Toolbar
         }
 
         $config['customConfig'] = api_get_path(WEB_PUBLIC_PATH).'editor/config?'.api_get_cidreq().'&tool=document&type=files';
-        $config['flash_flvPlayer'] = api_get_path(WEB_LIBRARY_JS_PATH).'ckeditor/plugins/flash/swf/player.swf';
+        //$config['flash_flvPlayer'] = api_get_path(WEB_LIBRARY_JS_PATH).'ckeditor/plugins/flash/swf/player.swf';
 
         /*filebrowserFlashBrowseUrl
         filebrowserFlashUploadUrl
@@ -207,7 +211,7 @@ class Basic extends Toolbar
      */
     public function getNewPageBlock()
     {
-        return  ['NewPage', 'Templates', '-', 'PasteFromWord', 'inserthtml'];
+        return ['NewPage', 'Templates', '-', 'PasteFromWord', 'inserthtml'];
     }
 
     /**
@@ -230,11 +234,23 @@ class Basic extends Toolbar
         return [
             $this->getNewPageBlock(),
             ['Undo', 'Redo'],
-            ['Link', 'Image', 'Video', 'Oembed', 'Flash', 'Youtube', 'Audio', 'Table', 'Asciimath', 'Asciisvg'],
+            [
+                'Link',
+                'Image',
+                'Video',
+                'Oembed',
+                'Flash',
+                'Youtube',
+                'VimeoEmbed',
+                'Audio',
+                'Table',
+                'Asciimath',
+                'Asciisvg',
+            ],
             ['BulletedList', 'NumberedList', 'HorizontalRule'],
             ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
             ['Styles', 'Format', 'Font', 'FontSize', 'Bold', 'Italic', 'Underline', 'TextColor', 'BGColor'],
-            'true' == api_get_setting('enabled_wiris') ? ['ckeditor_wiris_formulaEditor', 'ckeditor_wiris_CAS'] : [''],
+            'true' === api_get_setting('enabled_wiris') ? ['ckeditor_wiris_formulaEditor', 'ckeditor_wiris_CAS'] : [''],
             ['Toolbarswitch', 'Source'],
         ];
     }
@@ -258,6 +274,7 @@ class Basic extends Toolbar
                 'Oembed',
                 'Flash',
                 'Youtube',
+                'VimeoEmbed',
                 'Audio',
                 'leaflet',
                 'Smiley',
@@ -270,10 +287,10 @@ class Basic extends Toolbar
             ['BulletedList', 'NumberedList', 'HorizontalRule', '-', 'Outdent', 'Indent', 'Blockquote'],
             ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
             ['Bold', 'Italic', 'Underline', 'Strike', '-', 'Subscript', 'Superscript', '-', 'TextColor', 'BGColor'],
-            ['true' == api_get_setting('allow_spellcheck') ? 'Scayt' : ''],
+            ['true' === api_get_setting('allow_spellcheck') ? 'Scayt' : ''],
             ['Styles', 'Format', 'Font', 'FontSize'],
             ['PageBreak', 'ShowBlocks'],
-            'true' == api_get_setting('enabled_wiris') ? ['ckeditor_wiris_formulaEditor', 'ckeditor_wiris_CAS'] : [''],
+            'true' === api_get_setting('enabled_wiris') ? ['ckeditor_wiris_formulaEditor', 'ckeditor_wiris_CAS'] : [''],
             ['Toolbarswitch', 'Source'],
         ];
     }

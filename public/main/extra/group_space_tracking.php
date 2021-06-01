@@ -38,19 +38,19 @@ $forums_of_groups = get_forums_of_group($current_group['id']);
 $forum_state_public = 0;
 if (is_array($forums_of_groups)) {
     foreach ($forums_of_groups as $key => $value) {
-        if ($value['forum_group_public_private'] == 'public') {
+        if ('public' == $value['forum_group_public_private']) {
             $forum_state_public = 1;
         }
     }
 }
 
-if ($current_group['doc_state'] != 1 &&
-    $current_group['calendar_state'] != 1 &&
-    $current_group['work_state'] != 1 &&
-    $current_group['announcements_state'] != 1 &&
-    $current_group['wiki_state'] != 1 &&
-    $current_group['chat_state'] != 1 &&
-    $forum_state_public != 1
+if (1 != $current_group['doc_state'] &&
+    1 != $current_group['calendar_state'] &&
+    1 != $current_group['work_state'] &&
+    1 != $current_group['announcements_state'] &&
+    1 != $current_group['wiki_state'] &&
+    1 != $current_group['chat_state'] &&
+    1 != $forum_state_public
 ) {
     if (!api_is_allowed_to_edit(null, true) &&
         !GroupManager::is_user_in_group($user_id, $group_id)) {
@@ -63,18 +63,19 @@ Display::display_header($nameTools.' '.Security::remove_XSS($current_group['name
 Display::display_introduction_section(TOOL_GROUP);
 
 $course_code = api_get_course_id();
-$is_course_member = CourseManager::is_user_subscribed_in_real_or_linked_course(
-    api_get_user_id(),
-    $course_code
-);
-
+$session_id = api_get_session_id();
+if (empty($session_id)) {
+    $is_course_member = CourseManager::is_user_subscribed_in_course($user_id, $course_code);
+} else {
+    $is_course_member = CourseManager::is_user_subscribed_in_course($user_id, $course_code, true, $session_id);
+}
 /*
  * List all the tutors of the current group
  */
 $tutors = GroupManager::get_subscribed_tutors($current_group['id']);
 
 $tutor_info = '';
-if (count($tutors) == 0) {
+if (0 == count($tutors)) {
     $tutor_info = get_lang('(none)');
 } else {
     isset($origin) ? $my_origin = $origin : $my_origin = '';
@@ -164,14 +165,14 @@ $tbl_group_course_info = Database:: get_course_table(TABLE_GROUP);
 $course_id = api_get_course_int_id();
 
 //on trouve le vrai groupID
-$sql = "SELECT iid FROM ".$tbl_group_course_info."  
+$sql = "SELECT iid FROM ".$tbl_group_course_info."
         WHERE c_id=".$course_id." and id=".$current_group['id'];
 $current_group_result = Database::query($sql);
 $current_group = Database::fetch_assoc($current_group_result)['iid'];
 //on trouve les user dans le groupe
 $sql = "SELECT *
-        FROM ".$table_user." user, ".$table_group_user." group_rel_user 
-        WHERE group_rel_user.c_id = $course_id AND group_rel_user.user_id = user.user_id 
+        FROM ".$table_user." user, ".$table_group_user." group_rel_user
+        WHERE group_rel_user.c_id = $course_id AND group_rel_user.user_id = user.user_id
         AND group_rel_user.group_id = ".$current_group." order by lastname
   ";
 $result = Database::query($sql);
@@ -254,7 +255,7 @@ while ($resulta = Database::fetch_array($result)) {
         //on sort le temps passé dans chaque cours
         $sql = "SELECT  SUM(UNIX_TIMESTAMP(logout_course_date) - UNIX_TIMESTAMP(login_course_date)) as nb_seconds
                 FROM track_e_course_access
-                WHERE UNIX_TIMESTAMP(logout_course_date) > UNIX_TIMESTAMP(login_course_date) AND c_id = $course_id AND user_id = '$user_in_groupe' 
+                WHERE UNIX_TIMESTAMP(logout_course_date) > UNIX_TIMESTAMP(login_course_date) AND c_id = $course_id AND user_id = '$user_in_groupe'
                 ";
         //echo($sql);
         $rs = Database::query($sql);
@@ -283,7 +284,7 @@ while ($resulta = Database::fetch_array($result)) {
             $lp_id_view = $result3['id'];
             $c_id_view = $result3['c_id'];
 
-            $Req4 = "SELECT id, lp_id ,title ,item_type 
+            $Req4 = "SELECT id, lp_id ,title ,item_type
                     FROM  c_lp_item
                  WHERE lp_id =  '$lp_id'
                  AND title LIKE '(+)%'
@@ -331,13 +332,13 @@ while ($resulta = Database::fetch_array($result)) {
     //si rien n'est inscrit cette journée dans l'agenda, recule de -1
     unset($jour_agenda);
     $tour = -1;
-    while ($jour_agenda == '') {
+    while ('' == $jour_agenda) {
         $tour++;
         $date = date("Y-m-d", mktime(0, 0, 0, date("m"), date("d") - $tour, date("Y")));
         $sql4 = "SELECT *  FROM $tbl_personal_agenda
-                 WHERE user = '$user_in_groupe' AND 
+                 WHERE user = '$user_in_groupe' AND
                  text='Pour le calendrier, ne pas effacer'
-                 AND date like '".$date." %:%'       
+                 AND date like '".$date." %:%'
                   ";
         $result4 = Database::query($sql4);
         $res4 = Database::fetch_array($result4);
@@ -367,7 +368,7 @@ while ($resulta = Database::fetch_array($result)) {
 
     $diff = abs($diff);
     $last_connection_date = Tracking:: get_last_connection_date($user_in_groupe, true);
-    if ($last_connection_date == '') {
+    if ('' == $last_connection_date) {
         $last_connection_date = get_lang('No connection');
     }
     // on présente tous les résultats
@@ -421,6 +422,6 @@ function user_name_filter($name, $url_params, $row)
 
 // Footer
 $orig = isset($origin) ? $origin : '';
-if ($orig != 'learnpath') {
+if ('learnpath' != $orig) {
     Display::display_footer();
 }

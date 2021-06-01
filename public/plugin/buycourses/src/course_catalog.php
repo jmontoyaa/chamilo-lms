@@ -3,16 +3,14 @@
 
 /**
  * List of courses.
- *
- * @package chamilo.plugin.buycourses
  */
 $cidReset = true;
 
 require_once __DIR__.'/../../../main/inc/global.inc.php';
 
 $plugin = BuyCoursesPlugin::create();
-$includeSessions = $plugin->get('include_sessions') === 'true';
-$includeServices = $plugin->get('include_services') === 'true';
+$includeSessions = 'true' === $plugin->get('include_sessions');
+$includeServices = 'true' === $plugin->get('include_services');
 
 $nameFilter = '';
 $minFilter = 0;
@@ -35,7 +33,7 @@ if ($form->validate()) {
 }
 
 $form->addHeader($plugin->get_lang('SearchFilter'));
-$form->addText('name', get_lang('Course name'), false);
+$form->addText('name', get_lang('CourseName'), false);
 $form->addElement(
     'number',
     'min',
@@ -74,7 +72,7 @@ if (api_is_platform_admin()) {
 } else {
     $interbreadcrumb[] = [
         'url' => 'course_panel.php',
-        'name' => get_lang('Dashboard'),
+        'name' => get_lang('TabsDashboard'),
     ];
 }
 

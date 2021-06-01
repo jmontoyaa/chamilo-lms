@@ -6,8 +6,6 @@ use ChamiloSession as Session;
 /**
  * Script that displays a blank page (with later a message saying why).
  *
- * @package chamilo.learnpath
- *
  * @author Yannick Warnier <ywarnier@beeznest.org>
  */
 // Flag to allow for anonymous user - needs to be set before global.inc.php.
@@ -22,12 +20,23 @@ body { background: none;}
 $message = '';
 if (isset($_GET['error'])) {
     switch ($_GET['error']) {
+        case 'document_protected':
+            $message = Display::return_message(get_lang('Protected document'), 'warning');
+            break;
         case 'document_deleted':
-            $message = Display::return_message(get_lang('The document cannot be displayed because it has been deleted'), 'error');
+            $message = Display::return_message(
+                get_lang('The document cannot be displayed because it has been deleted'),
+                'error'
+            );
             break;
         case 'prerequisites':
-            $prerequisiteMessage = isset($_GET['prerequisite_message']) ? $_GET['prerequisite_message'] : '';
-            $message = Display::return_message(get_lang('This learning object cannot display because the course prerequisites are not completed. This happens when a course imposes that you follow it step by step or get a minimum score in tests before you reach the next steps.'), 'warning');
+            $prerequisiteMessage = $_GET['prerequisite_message'] ?? '';
+            $message = Display::return_message(
+                get_lang(
+                    'This learning object cannot display because the course prerequisites are not completed. This happens when a course imposes that you follow it step by step or get a minimum score in tests before you reach the next steps.'
+                ),
+                'warning'
+            );
             if (!empty($prerequisiteMessage)) {
                 $message = Display::return_message(Security::remove_XSS($prerequisiteMessage), 'warning');
             }
@@ -37,7 +46,10 @@ if (isset($_GET['error'])) {
             $message = Display::return_message(get_lang('The file was not found'), 'warning');
             break;
         case 'reached_one_attempt':
-            $message = Display::return_message(get_lang('You can not take this test because you have already reached one attempt'), 'warning');
+            $message = Display::return_message(
+                get_lang('You can not take this test because you have already reached one attempt'),
+                'warning'
+            );
             break;
         case 'x_frames_options':
             $src = Session::read('x_frame_source');
@@ -58,7 +70,7 @@ if (isset($_GET['error'])) {
         default:
             break;
     }
-} elseif (isset($_GET['msg']) && $_GET['msg'] == 'exerciseFinished') {
+} elseif (isset($_GET['msg']) && 'exerciseFinished' == $_GET['msg']) {
     $message = Display::return_message(get_lang('Test Finished'));
 }
 

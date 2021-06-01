@@ -3,8 +3,6 @@
  * This file is part of student block plugin for dashboard,
  * it should be required inside dashboard controller for showing it into dashboard interface from plattform.
  *
- * @package chamilo.dashboard
- *
  * @author Christian Fasanando
  */
 
@@ -12,8 +10,6 @@
  * This class is used like controller for student block plugin,
  * the class name must be registered inside path.info file
  * (e.g: controller = "BlockStudent"), so dashboard controller will be instantiate it.
- *
- * @package chamilo.dashboard
  */
 class BlockStudent extends Block
 {
@@ -36,7 +32,7 @@ class BlockStudent extends Block
     /**
      * This method check if a user is allowed to see the block inside dashboard interface.
      *
-     * @param int        User id
+     * @param int $user_id User id
      *
      * @return bool Is block visible for user
      */
@@ -100,7 +96,7 @@ class BlockStudent extends Block
                 $count_courses = count($courses_by_user);
                 $rowspan = $count_courses ? $count_courses + 1 : 2;
 
-                if ($i % 2 == 0) {
+                if (0 == $i % 2) {
                     $style = ' style="background-color:#F2F2F2" ';
                 } else {
                     $style = ' style="background-color:#FFF" ';
@@ -170,7 +166,10 @@ class BlockStudent extends Block
                 // get average of faults in attendances by student
                 $results_faults_avg = $attendance->get_faults_average_inside_courses($student_id);
                 if (!empty($results_faults_avg)) {
-                    $attendances_faults_avg = '<a title="'.get_lang('Go to learner details').'" href="'.api_get_path(WEB_CODE_PATH).'mySpace/myStudents.php?student='.$student_id.'">'.$results_faults_avg['faults'].'/'.$results_faults_avg['total'].' ('.$results_faults_avg['porcent'].'%)</a>';
+                    $attendances_faults_avg = '<a
+                        title="'.get_lang('Go to learner details').'"
+                        href="'.api_get_path(WEB_CODE_PATH).'mySpace/myStudents.php?student='.$student_id.'">'.
+                        $results_faults_avg['faults'].'/'.$results_faults_avg['total'].' ('.$results_faults_avg['percent'].'%)</a>';
                 } else {
                     $attendances_faults_avg = '0%';
                 }
@@ -201,10 +200,10 @@ class BlockStudent extends Block
                 }
 
                 if (!empty($weight)) {
-                    $evaluations_avg = '<a title="'.get_lang('Go to learner details').'" href="'.api_get_path(WEB_CODE_PATH).'mySpace/myStudents.php?student='.$student_id.'">'.round($score, 2).'/'.round($weight, 2).'('.round(($score / $weight) * 100, 2).' %)</a>';
+                    $evaluations_avg = '<a title="'.get_lang('Go to learner details').'" href="'.api_get_path(WEB_CODE_PATH).'mySpace/myStudents.php?student='.$student_id.'">'.round($score, 2).'/'.round($weight, 2).'('.round($score / $weight * 100, 2).' %)</a>';
                 }
 
-                if ($i % 2 == 0) {
+                if (0 == $i % 2) {
                     $class_tr = 'row_odd';
                 } else {
                     $class_tr = 'row_even';

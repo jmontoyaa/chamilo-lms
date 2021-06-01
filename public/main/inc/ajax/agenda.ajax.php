@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 /**
@@ -6,25 +7,22 @@
  */
 $type = isset($_REQUEST['type']) && in_array($_REQUEST['type'], ['personal', 'course', 'admin']) ? $_REQUEST['type'] : 'personal';
 
-if ($type == 'personal') {
+if ('personal' === $type) {
     $cidReset = true; // fixes #5162
 }
 
 require_once __DIR__.'/../global.inc.php';
 
-$action = isset($_REQUEST['a']) ? $_REQUEST['a'] : null;
+$action = $_REQUEST['a'] ?? null;
 $group_id = api_get_group_id();
 
-if ($type == 'course') {
+if ('course' === $type) {
     api_protect_course_script(true);
 }
 
 $logInfo = [
     'tool' => TOOL_CALENDAR_EVENT,
-    'tool_id' => 0,
-    'tool_id_detail' => 0,
     'action' => $action,
-    'info' => '',
 ];
 Event::registerLog($logInfo);
 
@@ -37,11 +35,14 @@ switch ($action) {
         if (!$agenda->getIsAllowedToEdit()) {
             break;
         }
-        $add_as_announcement = isset($_REQUEST['add_as_annonuncement']) ? $_REQUEST['add_as_annonuncement'] : null;
-        $title = isset($_REQUEST['title']) ? $_REQUEST['title'] : null;
-        $content = isset($_REQUEST['content']) ? $_REQUEST['content'] : null;
-        $comment = isset($_REQUEST['comment']) ? $_REQUEST['comment'] : null;
-        $userToSend = isset($_REQUEST['users_to_send']) ? $_REQUEST['users_to_send'] : [];
+        if (false === Security::check_token('get')) {
+            exit;
+        }
+        $add_as_announcement = $_REQUEST['add_as_annonuncement'] ?? null;
+        $title = $_REQUEST['title'] ?? null;
+        $content = $_REQUEST['content'] ?? null;
+        $comment = $_REQUEST['comment'] ?? null;
+        $userToSend = $_REQUEST['users_to_send'] ?? [];
 
         echo $agenda->addEvent(
             $_REQUEST['start'],
@@ -61,8 +62,13 @@ switch ($action) {
         if (!$agenda->getIsAllowedToEdit()) {
             break;
         }
+        if (false === Security::check_token('get')) {
+            exit;
+        }
         $id_list = explode('_', $_REQUEST['id']);
         $id = $id_list[1];
+        $title = $_REQUEST['title'] ?? null;
+        $content = $_REQUEST['content'] ?? null;
         $agenda->editEvent(
             $id,
             $_REQUEST['start'],
@@ -76,6 +82,9 @@ switch ($action) {
         if (!$agenda->getIsAllowedToEdit()) {
             break;
         }
+        if (false === Security::check_token('get')) {
+            exit;
+        }
         $id_list = explode('_', $_REQUEST['id']);
         $id = $id_list[1];
         $deleteAllEventsFromSerie = isset($_REQUEST['delete_all_events']) ? true : false;
@@ -84,6 +93,9 @@ switch ($action) {
     case 'resize_event':
         if (!$agenda->getIsAllowedToEdit()) {
             break;
+        }
+        if (false === Security::check_token('get')) {
+            exit;
         }
         $minute_delta = $_REQUEST['minute_delta'];
         $id = explode('_', $_REQUEST['id']);
@@ -94,6 +106,9 @@ switch ($action) {
         if (!$agenda->getIsAllowedToEdit()) {
             break;
         }
+        if (false === Security::check_token('get')) {
+            exit;
+        }
         $minute_delta = $_REQUEST['minute_delta'];
         $allDay = $_REQUEST['all_day'];
         $id = explode('_', $_REQUEST['id']);
@@ -101,8 +116,8 @@ switch ($action) {
         $agenda->move_event($id, $minute_delta, $allDay);
         break;
     case 'get_events':
-        $filter = isset($_REQUEST['user_id']) ? $_REQUEST['user_id'] : null;
-        $sessionId = isset($_REQUEST['session_id']) ? $_REQUEST['session_id'] : null;
+        $filter = $_REQUEST['user_id'] ?? null;
+        $sessionId = $_REQUEST['session_id'] ?? null;
         $result = $agenda->parseAgendaFilter($filter);
 
         $groupId = current($result['groups']);
@@ -111,7 +126,7 @@ switch ($action) {
         $start = isset($_REQUEST['start']) ? api_strtotime($_REQUEST['start']) : null;
         $end = isset($_REQUEST['end']) ? api_strtotime($_REQUEST['end']) : null;
 
-        if ($type == 'personal' && !empty($sessionId)) {
+        if ('personal' === $type && !empty($sessionId)) {
             $agenda->setSessionId($sessionId);
         }
 
@@ -126,7 +141,7 @@ switch ($action) {
         echo $events;
         break;
     case 'get_user_agenda':
-        //Used in the admin user list
+        // Used in the admin user list.
         api_protect_admin_script();
 
         if (api_is_allowed_to_edit(null, true)) {
@@ -142,15 +157,15 @@ switch ($action) {
             }
             $today = getdate();
             $year = (!empty($_GET['year']) ? (int) $_GET['year'] : null);
-            if ($year == null) {
+            if (null === $year) {
                 $year = $today['year'];
             }
             $month = (!empty($_GET['month']) ? (int) $_GET['month'] : null);
-            if ($month == null) {
+            if (null === $month) {
                 $month = $today['mon'];
             }
             $day = (!empty($_GET['day']) ? (int) $_GET['day'] : null);
-            if ($day == null) {
+            if (null === $day) {
                 $day = $today['mday'];
             }
             $monthName = $MonthsLong[$month - 1];
@@ -171,7 +186,7 @@ switch ($action) {
                 "month_view"
             );
 
-            if (api_get_setting('allow_personal_agenda') == 'true') {
+            if ('true' === api_get_setting('allow_personal_agenda')) {
                 $agendaitems = Agenda::get_personal_agenda_items(
                     $user_id,
                     $agendaitems,

@@ -3,9 +3,6 @@
 
 use Chamilo\CoreBundle\Entity\ExtraFieldOptionRelFieldOption;
 
-/**
- *  @package chamilo.admin
- */
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -20,43 +17,46 @@ $interbreadcrumb[] = ['url' => 'index.php', 'name' => get_lang('Administration')
 $tool_name = null;
 
 $action = isset($_GET['action']) ? $_GET['action'] : null;
-$field_id = isset($_GET['field_id']) ? $_GET['field_id'] : null;
+$fieldId = isset($_GET['field_id']) ? (int) $_GET['field_id'] : null;
 
-if (empty($field_id)) {
+if (empty($fieldId)) {
     api_not_allowed();
 }
 if (!in_array($type, ExtraField::getValidExtraFieldTypes())) {
     api_not_allowed();
 }
 
+$em = Database::getManager();
+$repoExtraField = $em->getRepository(\Chamilo\CoreBundle\Entity\ExtraField::class);
+$extraFieldEntity = $repoExtraField->find($fieldId);
+
 $extraField = new ExtraField($type);
-$extraFieldInfo = $extraField->get($field_id);
 
 $check = Security::check_token('request');
 $token = Security::get_token();
 
-if ($action == 'add') {
+if ('add' === $action) {
     $interbreadcrumb[] = ['url' => 'extra_fields.php?type='.$extraField->type, 'name' => $extraField->pageName];
     $interbreadcrumb[] = [
-        'url' => 'extra_fields.php?type='.$extraField->type.'&action=edit&id='.$extraFieldInfo['id'],
-        'name' => $extraFieldInfo['display_text'],
+        'url' => 'extra_fields.php?type='.$extraField->type.'&action=edit&id='.$fieldId,
+        'name' => $extraFieldEntity->getDisplayText(),
     ];
     $interbreadcrumb[] = [
-        'url' => 'extra_field_options.php?type='.$extraField->type.'&field_id='.$extraFieldInfo['id'],
+        'url' => 'extra_field_options.php?type='.$extraField->type.'&field_id='.$fieldId,
         'name' => get_lang('Edit extra field options'),
     ];
     $interbreadcrumb[] = ['url' => '#', 'name' => get_lang('Add')];
-} elseif ($action == 'edit') {
+} elseif ('edit' === $action) {
     $interbreadcrumb[] = [
         'url' => 'extra_fields.php?type='.$extraField->type,
         'name' => $extraField->pageName,
     ];
     $interbreadcrumb[] = [
-        'url' => 'extra_fields.php?type='.$extraField->type.'&action=edit&id='.$extraFieldInfo['id'],
-        'name' => $extraFieldInfo['display_text'],
+        'url' => 'extra_fields.php?type='.$extraField->type.'&action=edit&id='.$fieldId,
+        'name' => $extraFieldEntity->getDisplayText(),
     ];
     $interbreadcrumb[] = [
-        'url' => 'extra_field_options.php?type='.$extraField->type.'&field_id='.$extraFieldInfo['id'],
+        'url' => 'extra_field_options.php?type='.$extraField->type.'&field_id='.$fieldId,
         'name' => get_lang('Edit extra field options'),
     ];
 
@@ -67,8 +67,8 @@ if ($action == 'add') {
         'name' => $extraField->pageName,
     ];
     $interbreadcrumb[] = [
-        'url' => 'extra_fields.php?type='.$extraField->type.'&action=edit&id='.$extraFieldInfo['id'],
-        'name' => $extraFieldInfo['display_text'],
+        'url' => 'extra_fields.php?type='.$extraField->type.'&action=edit&id='.$fieldId,
+        'name' => $extraFieldEntity->getDisplayText(),
     ];
     $interbreadcrumb[] = [
         'url' => '#',
@@ -76,11 +76,11 @@ if ($action == 'add') {
     ];
 }
 
-$roleId = isset($_REQUEST['roleId']) ? $_REQUEST['roleId'] : null;
+$roleId = isset($_REQUEST['roleId']) ? (int) $_REQUEST['roleId'] : null;
 
 //jqgrid will use this URL to do the selects
-$params = 'field_id='.$field_id.'&type='.$extraField->type.'&roleId='.$roleId;
-$paramsNoRole = 'field_id='.$field_id.'&type='.$extraField->type;
+$params = 'field_id='.$fieldId.'&type='.$extraField->type.'&roleId='.$roleId;
+$paramsNoRole = 'field_id='.$fieldId.'&type='.$extraField->type;
 
 // The order is important you need to check the the $column variable in the model.ajax.php file
 $columns = [get_lang('Name'), get_lang('Value'), get_lang('Order'), get_lang('Detail')];
@@ -96,20 +96,20 @@ $htmlHeadXtra[] = '<script>
         }
     }
 
-    $(function() {        
+    $(function() {
         $("#workflow_status").on("change", function() {
-            var roleId = $(this).find(":selected").val();            
+            var roleId = $(this).find(":selected").val();
             if (roleId != 0) {
                 window.location.replace("'.api_get_self().'?'.$paramsNoRole.'&roleId="+roleId);
             }
         });
-        
+
         $("[name=select_all]").on("click", function() {
             $("#workflow :checkbox").prop("checked", 1);
             $("#workflow :hidden").prop("value", 1);
             return false;
         });
-        
+
         $("[name=unselect_all]").on("click", function() {
             $("#workflow :checkbox").prop("checked", 0);
             $("#workflow :hidden").prop("value", 0);
@@ -124,7 +124,7 @@ $result = Database::select(
     '*',
     $obj->table,
     [
-        'where' => ['field_id = ? ' => $field_id],
+        'where' => ['field_id = ? ' => $fieldId],
         'order' => 'option_order ASC',
     ]
 );
@@ -149,16 +149,14 @@ $options[COURSEMANAGER] = get_lang('Trainer');
 ksort($options);
 $form->addElement('select', 'status', get_lang('Select role'), $options);
 
-$em = Database::getManager();
-$repo = $em->getRepository('ChamiloCoreBundle:ExtraFieldOptionRelFieldOption');
+$repo = $em->getRepository(ExtraFieldOptionRelFieldOption::class);
 
-$checks = $repo->findBy(
-    ['fieldId' => $field_id, 'roleId' => $roleId]
-);
+$checks = $repo->findBy(['fieldId' => $fieldId, 'roleId' => $roleId]);
 $includedFields = [];
 if (!empty($checks)) {
+    /** @var ExtraFieldOptionRelFieldOption $availableField */
     foreach ($checks as $availableField) {
-        $includedFields[$availableField->getFieldOptionId()][] = $availableField->getRelatedFieldOptionId();
+        $includedFields[$availableField->getExtraFieldOption()->getId()][] = $availableField->getRelatedFieldOption()->getId();
     }
 }
 
@@ -224,23 +222,25 @@ if ($form->validate()) {
 
     if (!empty($result)) {
         foreach ($result as $id => $items) {
+            $relatedExtraField = $repoExtraField->find($id);
             foreach ($items as $subItemId => $value) {
+                $subExtraField = $repoExtraField->find($subItemId);
                 $extraFieldOptionRelFieldOption = $repo->findOneBy(
                     [
-                        'fieldId' => $field_id,
+                        'fieldId' => $fieldId,
                         'fieldOptionId' => $subItemId,
                         'roleId' => $roleId,
                         'relatedFieldOptionId' => $id,
                     ]
                 );
 
-                if ($value == 1) {
+                if (1 == $value) {
                     if (empty($extraFieldOptionRelFieldOption)) {
                         $extraFieldOptionRelFieldOption = new ExtraFieldOptionRelFieldOption();
                         $extraFieldOptionRelFieldOption
-                            ->setFieldId($field_id)
-                            ->setFieldOptionId($subItemId)
-                            ->setRelatedFieldOptionId($id)
+                            ->setField($extraFieldEntity)
+                            ->setExtraFieldOption($subExtraField)
+                            ->setRelatedFieldOption($relatedExtraField)
                             ->setRoleId($roleId)
                         ;
 
@@ -262,7 +262,7 @@ if ($form->validate()) {
 }
 
 Display::display_header($tool_name);
-echo Display::page_header($extraFieldInfo['display_text']);
+echo Display::page_header($extraFieldEntity->getDisplayText());
 $form->display();
 
 Display::display_footer();

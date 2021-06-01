@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CourseBundle\Entity\CForumPost;
@@ -6,12 +7,9 @@ use Chamilo\CourseBundle\Entity\CForumPost;
 /**
  * Responses to AJAX calls for forum attachments.
  *
- * @package chamilo/forum
- *
  * @author Daniel Barreto Alva <daniel.barreto@beeznest.com>
  */
 require_once __DIR__.'/../global.inc.php';
-require_once api_get_path(SYS_CODE_PATH).'forum/forumfunction.inc.php';
 
 // First, protect this script
 api_protect_course_script(false);
@@ -40,8 +38,8 @@ if (!empty($action)) {
                 // They are several pieces for clarity.
                 if (!api_is_allowed_to_edit(null, true) &&
                     (
-                        ($current_forum_category && $current_forum_category['visibility'] == 0) ||
-                        $current_forum['visibility'] == 0
+                        ($current_forum_category && 0 == $current_forum_category['visibility']) ||
+                        0 == $current_forum['visibility']
                     )
                 ) {
                     $json['errorMessage'] = '1. the forum category, forum or thread is invisible (visibility==0)';
@@ -49,14 +47,14 @@ if (!empty($action)) {
                 }
                 if (!api_is_allowed_to_edit(null, true) &&
                     (
-                        ($current_forum_category && $current_forum_category['locked'] != 0) ||
-                        $current_forum['locked'] != 0 || $current_thread['locked'] != 0
+                        ($current_forum_category && 0 != $current_forum_category['locked']) ||
+                        0 != $current_forum['locked'] || 0 != $current_thread['locked']
                     )
                 ) {
                     $json['errorMessage'] = '2. the forum category, forum or thread is locked (locked <>0)';
                     break;
                 }
-                if (api_is_anonymous() && $current_forum['allow_anonymous'] == 0) {
+                if (api_is_anonymous() && 0 == $current_forum['allow_anonymous']) {
                     $json['errorMessage'] = '3. if anonymous posts are not allowed';
                     break;
                 }
@@ -77,7 +75,7 @@ if (!empty($action)) {
                 ) {
                     // Save forum attachment
                     $attachId = add_forum_attachment_file('', $postId);
-                    if ($attachId !== false) {
+                    if (false !== $attachId) {
                         // Get prepared array of attachment data
                         $array = getAttachedFiles(
                             $forumId,
@@ -114,8 +112,8 @@ if (!empty($action)) {
                 // They are several pieces for clarity.
                 if (!api_is_allowed_to_edit(null, true) &&
                     (
-                        ($current_forum_category && $current_forum_category['visibility'] == 0) ||
-                        $current_forum['visibility'] == 0
+                        ($current_forum_category && 0 == $current_forum_category['visibility']) ||
+                        0 == $current_forum['visibility']
                     )
                 ) {
                     $json['errorMessage'] = '1. the forum category, forum or thread is invisible (visibility==0)';
@@ -123,22 +121,22 @@ if (!empty($action)) {
                 }
                 if (!api_is_allowed_to_edit(null, true) &&
                     (
-                        ($current_forum_category && $current_forum_category['locked'] != 0) ||
-                        $current_forum['locked'] != 0 || $current_thread['locked'] != 0
+                        ($current_forum_category && 0 != $current_forum_category['locked']) ||
+                        0 != $current_forum['locked'] || 0 != $current_thread['locked']
                     )
                 ) {
                     $json['errorMessage'] = '2. the forum category, forum or thread is locked (locked <>0)';
                     break;
                 }
-                if (api_is_anonymous() && $current_forum['allow_anonymous'] == 0) {
+                if (api_is_anonymous() && 0 == $current_forum['allow_anonymous']) {
                     $json['errorMessage'] = '3. if anonymous posts are not allowed';
                     break;
                 }
                 $group_id = api_get_group_id();
-                $groupInfo = GroupManager::get_group_properties($group_id);
+                $groupEntity = api_get_group_entity();
                 if (!api_is_allowed_to_edit(null, true) &&
-                    $current_forum['allow_edit'] == 0 &&
-                    ($group_id && !GroupManager::is_tutor_of_group(api_get_user_id(), $groupInfo))
+                    0 == $current_forum['allow_edit'] &&
+                    ($group_id && !GroupManager::isTutorOfGroup(api_get_user_id(), $groupEntity))
                 ) {
                     $json['errorMessage'] = '4. if editing of replies is not allowed';
                     break;
@@ -165,9 +163,9 @@ if (!empty($action)) {
                 $postId = str_replace('status_post_', '', $postId);
                 $em = Database::getManager();
                 /** @var CForumPost $post */
-                $post = $em->find('ChamiloCourseBundle:CForumPost', $postId);
+                $post = $em->find(CForumPost::class, $postId);
                 if ($post) {
-                    $forum = get_forums($post->getForumId(), api_get_course_id());
+                    $forum = $post->getForum();
                     $status = $post->getStatus();
                     if (empty($status)) {
                         $status = CForumPost::STATUS_WAITING_MODERATION;

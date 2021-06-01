@@ -1,128 +1,123 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
 use Chamilo\CoreBundle\Traits\CourseTrait;
+use Chamilo\CoreBundle\Traits\UserTrait;
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * GradebookLink.
  *
  * @ORM\Table(name="gradebook_link",
- *  indexes={
- *     @ORM\Index(name="idx_gl_cat", columns={"category_id"}),
- *  }
+ *     indexes={
+ *         @ORM\Index(name="idx_gl_cat", columns={"category_id"}),
+ *     }
  * )
  * @ORM\Entity
  */
 class GradebookLink
 {
     use CourseTrait;
+    use UserTrait;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * @var int
-     *
+     * @Assert\NotBlank()
      * @ORM\Column(name="type", type="integer", nullable=false)
      */
-    protected $type;
+    protected int $type;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="ref_id", type="integer", nullable=false)
      */
-    protected $refId;
+    protected int $refId;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="user_id", type="integer", nullable=false)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="gradeBookLinks")
+     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $userId;
+    protected User $user;
 
     /**
      * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course", inversedBy="gradebookLinks")
      * @ORM\JoinColumn(name="c_id", referencedColumnName="id")
      */
-    protected $course;
+    protected Course $course;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="category_id", type="integer", nullable=false)
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\GradebookCategory", inversedBy="links")
+     * @ORM\JoinColumn(name="category_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    protected $categoryId;
+    protected GradebookCategory $category;
 
     /**
-     * @var \DateTime
-     *
      * @Gedmo\Timestampable(on="create")
-     *
      * @ORM\Column(name="created_at", type="datetime", nullable=false)
      */
-    protected $createdAt;
+    protected DateTime $createdAt;
 
     /**
-     * @var float
-     *
      * @ORM\Column(name="weight", type="float", precision=10, scale=0, nullable=false)
      */
-    protected $weight;
+    protected float $weight;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="visible", type="integer", nullable=false)
      */
-    protected $visible;
+    protected int $visible;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="locked", type="integer", nullable=false)
      */
-    protected $locked;
+    protected int $locked;
 
     /**
-     * GradebookEvaluation constructor.
+     * @ORM\Column(name="best_score", type="float", precision=6, scale=2, nullable=true)
      */
+    protected ?float $bestScore = null;
+
+    /**
+     * @ORM\Column(name="average_score", type="float", precision=6, scale=2, nullable=true)
+     */
+    protected ?float $averageScore = null;
+
+    /**
+     * @ORM\Column(name="score_weight", type="float", precision=6, scale=2, nullable=true)
+     */
+    protected ?float $scoreWeight = null;
+
+    /**
+     * @ORM\Column(name="user_score_list", type="array", nullable=true)
+     */
+    protected ?array $userScoreList = null;
+
     public function __construct()
     {
         $this->locked = 0;
     }
 
-    /**
-     * Set type.
-     *
-     * @param int $type
-     *
-     * @return GradebookLink
-     */
-    public function setType($type)
+    public function setType(int $type): self
     {
         $this->type = $type;
 
         return $this;
     }
 
-    /**
-     * Get type.
-     *
-     * @return int
-     */
-    public function getType()
+    public function getType(): int
     {
         return $this->type;
     }
@@ -130,11 +125,9 @@ class GradebookLink
     /**
      * Set refId.
      *
-     * @param int $refId
-     *
      * @return GradebookLink
      */
-    public function setRefId($refId)
+    public function setRefId(int $refId)
     {
         $this->refId = $refId;
 
@@ -151,62 +144,7 @@ class GradebookLink
         return $this->refId;
     }
 
-    /**
-     * Set userId.
-     *
-     * @param int $userId
-     *
-     * @return GradebookLink
-     */
-    public function setUserId($userId)
-    {
-        $this->userId = $userId;
-
-        return $this;
-    }
-
-    /**
-     * Get userId.
-     *
-     * @return int
-     */
-    public function getUserId()
-    {
-        return $this->userId;
-    }
-
-    /**
-     * Set categoryId.
-     *
-     * @param int $categoryId
-     *
-     * @return GradebookLink
-     */
-    public function setCategoryId($categoryId)
-    {
-        $this->categoryId = $categoryId;
-
-        return $this;
-    }
-
-    /**
-     * Get categoryId.
-     *
-     * @return int
-     */
-    public function getCategoryId()
-    {
-        return $this->categoryId;
-    }
-
-    /**
-     * Set createdAt.
-     *
-     * @param \DateTime $createdAt
-     *
-     * @return GradebookLink
-     */
-    public function setCreatedAt($createdAt)
+    public function setCreatedAt(DateTime $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -216,21 +154,14 @@ class GradebookLink
     /**
      * Get createdAt.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreatedAt()
     {
         return $this->createdAt;
     }
 
-    /**
-     * Set weight.
-     *
-     * @param float $weight
-     *
-     * @return GradebookLink
-     */
-    public function setWeight($weight)
+    public function setWeight(float $weight): self
     {
         $this->weight = $weight;
 
@@ -247,14 +178,7 @@ class GradebookLink
         return $this->weight;
     }
 
-    /**
-     * Set visible.
-     *
-     * @param int $visible
-     *
-     * @return GradebookLink
-     */
-    public function setVisible($visible)
+    public function setVisible(int $visible): self
     {
         $this->visible = $visible;
 
@@ -271,14 +195,7 @@ class GradebookLink
         return $this->visible;
     }
 
-    /**
-     * Set locked.
-     *
-     * @param int $locked
-     *
-     * @return GradebookLink
-     */
-    public function setLocked($locked)
+    public function setLocked(int $locked): self
     {
         $this->locked = $locked;
 
@@ -303,5 +220,81 @@ class GradebookLink
     public function getId()
     {
         return $this->id;
+    }
+
+    /**
+     * @return float
+     */
+    public function getBestScore()
+    {
+        return $this->bestScore;
+    }
+
+    public function setBestScore(float $bestScore): self
+    {
+        $this->bestScore = $bestScore;
+
+        return $this;
+    }
+
+    /**
+     * @return float
+     */
+    public function getAverageScore()
+    {
+        return $this->averageScore;
+    }
+
+    public function setAverageScore(float $averageScore): self
+    {
+        $this->averageScore = $averageScore;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getUserScoreList()
+    {
+        if (empty($this->userScoreList)) {
+            return [];
+        }
+
+        return $this->userScoreList;
+    }
+
+    public function setUserScoreList(array $userScoreList): self
+    {
+        $this->userScoreList = $userScoreList;
+
+        return $this;
+    }
+
+    /**
+     * @return float
+     */
+    public function getScoreWeight()
+    {
+        return $this->scoreWeight;
+    }
+
+    public function setScoreWeight(float $scoreWeight): self
+    {
+        $this->scoreWeight = $scoreWeight;
+
+        return $this;
+    }
+
+    public function getCategory(): GradebookCategory
+    {
+        return $this->category;
+    }
+
+    public function setCategory(GradebookCategory $category): self
+    {
+        $this->category = $category;
+
+        return $this;
     }
 }

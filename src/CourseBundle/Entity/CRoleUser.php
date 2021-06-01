@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
@@ -10,61 +12,49 @@ use Doctrine\ORM\Mapping as ORM;
  * CRoleUser.
  *
  * @ORM\Table(
- *  name="c_role_user",
- *  indexes={
- *      @ORM\Index(name="course", columns={"c_id"}),
- *      @ORM\Index(name="user", columns={"user_id"})
- *  }
+ *     name="c_role_user",
+ *     indexes={
+ *         @ORM\Index(name="course", columns={"c_id"}),
+ *         @ORM\Index(name="user", columns={"user_id"})
+ *     }
  * )
  * @ORM\Entity
  */
 class CRoleUser
 {
     /**
-     * @var int
-     *
      * @ORM\Column(name="iid", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue
      */
-    protected $iid;
+    protected int $iid;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="c_id", type="integer")
      */
-    protected $cId;
+    protected int $cId;
 
     /**
-     * @var string
-     *
      * @ORM\Column(name="scope", type="string", length=20, nullable=false)
      */
-    protected $scope;
+    protected string $scope;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="role_id", type="integer")
      */
-    protected $roleId;
+    protected int $roleId;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="user_id", type="integer")
      */
-    protected $userId;
+    protected int $userId;
 
     /**
      * Set scope.
      *
-     * @param string $scope
-     *
      * @return CRoleUser
      */
-    public function setScope($scope)
+    public function setScope(string $scope)
     {
         $this->scope = $scope;
 
@@ -84,11 +74,9 @@ class CRoleUser
     /**
      * Set cId.
      *
-     * @param int $cId
-     *
      * @return CRoleUser
      */
-    public function setCId($cId)
+    public function setCId(int $cId)
     {
         $this->cId = $cId;
 
@@ -108,11 +96,9 @@ class CRoleUser
     /**
      * Set roleId.
      *
-     * @param int $roleId
-     *
      * @return CRoleUser
      */
-    public function setRoleId($roleId)
+    public function setRoleId(int $roleId)
     {
         $this->roleId = $roleId;
 
@@ -132,11 +118,9 @@ class CRoleUser
     /**
      * Set userId.
      *
-     * @param int $userId
-     *
      * @return CRoleUser
      */
-    public function setUserId($userId)
+    public function setUserId(int $userId)
     {
         $this->userId = $userId;
 

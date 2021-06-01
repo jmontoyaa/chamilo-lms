@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 /* For licensing terms, see /license.txt */
 
 namespace Chamilo\CoreBundle\Entity;
 
+use Chamilo\CoreBundle\Traits\UserTrait;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -18,154 +21,55 @@ use Doctrine\ORM\Mapping as ORM;
  */
 class UserRelCourseVote
 {
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="c_id", type="integer", nullable=false)
-     */
-    protected $cId;
+    use UserTrait;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="user_id", type="integer", nullable=false)
-     */
-    protected $userId;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="session_id", type="integer", nullable=false)
-     */
-    protected $sessionId;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="url_id", type="integer", nullable=false)
-     */
-    protected $urlId;
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="vote", type="integer", nullable=false)
-     */
-    protected $vote;
-
-    /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="IDENTITY")
      */
-    protected $id;
+    protected int $id;
 
     /**
-     * Set cId.
-     *
-     * @param int $cId
-     *
-     * @return UserRelCourseVote
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\User", inversedBy="userRelCourseVotes")
+     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", onDelete="CASCADE")
      */
-    public function setCId($cId)
-    {
-        $this->cId = $cId;
-
-        return $this;
-    }
+    protected User $user;
 
     /**
-     * Get cId.
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Course")
+     * @ORM\JoinColumn(name="c_id", referencedColumnName="id", onDelete="CASCADE")
+     */
+    protected Course $course;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Session")
+     * @ORM\JoinColumn(name="session_id", referencedColumnName="id", onDelete="CASCADE")
+     */
+    protected ?Session $session = null;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="AccessUrl", inversedBy="courses")
+     * @ORM\JoinColumn(name="url_id", referencedColumnName="id", onDelete="CASCADE")
+     */
+    protected AccessUrl $url;
+
+    /**
+     * @ORM\Column(name="vote", type="integer", nullable=false)
+     */
+    protected int $vote;
+
+    /**
+     * Get id.
      *
      * @return int
      */
-    public function getCId()
+    public function getId()
     {
-        return $this->cId;
+        return $this->id;
     }
 
-    /**
-     * Set userId.
-     *
-     * @param int $userId
-     *
-     * @return UserRelCourseVote
-     */
-    public function setUserId($userId)
-    {
-        $this->userId = $userId;
-
-        return $this;
-    }
-
-    /**
-     * Get userId.
-     *
-     * @return int
-     */
-    public function getUserId()
-    {
-        return $this->userId;
-    }
-
-    /**
-     * Set sessionId.
-     *
-     * @param int $sessionId
-     *
-     * @return UserRelCourseVote
-     */
-    public function setSessionId($sessionId)
-    {
-        $this->sessionId = $sessionId;
-
-        return $this;
-    }
-
-    /**
-     * Get sessionId.
-     *
-     * @return int
-     */
-    public function getSessionId()
-    {
-        return $this->sessionId;
-    }
-
-    /**
-     * Set urlId.
-     *
-     * @param int $urlId
-     *
-     * @return UserRelCourseVote
-     */
-    public function setUrlId($urlId)
-    {
-        $this->urlId = $urlId;
-
-        return $this;
-    }
-
-    /**
-     * Get urlId.
-     *
-     * @return int
-     */
-    public function getUrlId()
-    {
-        return $this->urlId;
-    }
-
-    /**
-     * Set vote.
-     *
-     * @param int $vote
-     *
-     * @return UserRelCourseVote
-     */
-    public function setVote($vote)
+    public function setVote(int $vote): self
     {
         $this->vote = $vote;
 
@@ -182,13 +86,51 @@ class UserRelCourseVote
         return $this->vote;
     }
 
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
+    public function getUser(): User
     {
-        return $this->id;
+        return $this->user;
+    }
+
+    public function setUser(User $user): self
+    {
+        $this->user = $user;
+
+        return $this;
+    }
+
+    public function getCourse(): Course
+    {
+        return $this->course;
+    }
+
+    public function setCourse(Course $course): self
+    {
+        $this->course = $course;
+
+        return $this;
+    }
+
+    public function getSession(): ?Session
+    {
+        return $this->session;
+    }
+
+    public function setSession(?Session $session): self
+    {
+        $this->session = $session;
+
+        return $this;
+    }
+
+    public function getUrl(): AccessUrl
+    {
+        return $this->url;
+    }
+
+    public function setUrl(AccessUrl $url): self
+    {
+        $this->url = $url;
+
+        return $this;
     }
 }
